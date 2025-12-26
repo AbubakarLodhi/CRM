@@ -2,10 +2,10 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('products', function (Blueprint $table) {
@@ -50,15 +50,15 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropForeign([
-                'category_id',
-                'sub_category_id',
-                'brand_id',
-                'brand_model_id',
-                'varient_id',
-                'addon_id',
-            ]);
+            // Drop only what ACTUALLY exists
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_category_id_foreign');
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_sub_category_id_foreign');
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_brand_id_foreign');
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_brand_model_id_foreign');
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_varient_id_foreign');
+            DB::statement('ALTER TABLE products DROP CONSTRAINT IF EXISTS products_addon_id_foreign');
 
+            // Drop columns safely
             $table->dropColumn([
                 'quantity',
                 'category_id',
