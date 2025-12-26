@@ -10,23 +10,27 @@ use Spatie\Permission\Traits\HasRoles;
 
 class Admin extends Authenticatable
 {
-    use HasUuids;
-    use HasRoles;
-    protected $fillable =
-        [
-            'name',
-            'email',
-            'password',
-            'status'
-        ];
+    use HasUuids, HasRoles;
 
+    /** @var string[] $fillable */
+    protected $fillable = ['name', 'email', 'password', 'status'];
+
+    /** @var string[] $hidden */
     protected $hidden = ['password'];
+
+    /** @var bool $incrementing */
     public $incrementing = false;
+
+    /** @var string $keyType */
     protected $keyType = 'string';
+
+    /**
+     * @return Attribute
+     */
     protected function password(): Attribute
     {
         return Attribute::make(
-            set: fn ($value) => filled($value) ? Hash::make($value) : null
+            set: fn($value) => filled($value) ? Hash::make($value) : null
         );
     }
 }

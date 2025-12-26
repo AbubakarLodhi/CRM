@@ -2,53 +2,46 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable,  HasUuids , HasRoles;
-    public $incrementing = false;
+    use HasFactory, Notifiable, HasUuids, HasRoles;
+
+    /** @var string $keyType */
     protected $keyType = 'string';
 
+    /** @var string */
     const STATUS_PENDING = 'pending';
+
+    /** @var string */
     const STATUS_VERIFIED = 'verified';
+
+    /** @var string */
     const STATUS_REJECTED = 'rejected';
 
+    /** @var bool $incrementing */
+    public $incrementing = false;
+
+    /** @var string $guard_name */
+    protected $guard_name = 'merchant';
+
+    /** @var string[] $fillable */
+    protected $fillable = ['name', 'email', 'merchant_id', 'password', 'status', 'is_active'];
+
+    /** @var string[] $hidden */
+    protected $hidden = ['password', 'remember_token'];
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
-    protected $fillable = [
-        'name',
-        'email',
-        'merchant_id',
-        'password',
-        'status',
-        'is_active',
-    ];
-
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
-
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
+     * @return string[]
      */
     protected function casts(): array
     {
@@ -58,15 +51,35 @@ class User extends Authenticatable
         ];
     }
 
-    public function merchant()
+    /**
+     * @return Attribute
+     */
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: fn($value) => filled($value) ? Hash::make($value) : null
+        );
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
-    public function branches()
+    /**
+     * @return BelongsToMany
+     */
+    public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class)->withTimestamps();
     }
+
+    /**
+     * @return string[]
+     */
     public static function getStatuses(): array
     {
         return [
