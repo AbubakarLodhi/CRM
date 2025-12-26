@@ -68,8 +68,7 @@ class MerchantsTable
                         Merchant::STATUS_VERIFIED => 'Verified',
                         Merchant::STATUS_REJECTED => 'Rejected',
                     ])
-                    ->label('Status')
-                    ->label('Payment Flow'),
+                    ->label('Status'),
                 SelectFilter::make('city')
                     ->label('City')
                     ->options(

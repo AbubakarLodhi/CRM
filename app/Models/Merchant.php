@@ -65,10 +65,26 @@ class Merchant extends Authenticatable
     {
         return $this->hasMany(Category::class);
     }
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+    public function models()
+    {
+        return $this->hasMany(BrandModel::class);
+    }
 
     public function brands()
     {
         return $this->hasMany(Brand::class);
+    }
+    public function Addons()
+    {
+        return $this->hasMany(AddOn::class);
+    }
+    public function customers()
+    {
+        return $this->hasMany(Customer::class);
     }
 
     public function products()

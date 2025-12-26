@@ -20,6 +20,7 @@ class MerchantResource extends Resource
     protected static ?string $model = Merchant::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::BuildingStorefront;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 

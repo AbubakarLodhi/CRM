@@ -69,6 +69,8 @@ class RolesForm
             'businesses' => 'Businesses',
             'orders' => 'Orders',
             'branches' => 'Branches',
+            'categories' => 'Categories',
+            'customers' => 'Customers',
         ];
 
         $actions = ['view', 'create', 'update', 'delete'];

@@ -23,19 +23,23 @@ class RolesResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Key;
 
+
+    protected static ?int $navigationSort =6;
+
     protected static ?string $recordTitleAttribute = 'name';
 
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
 
-        if (! $user) {
+        $guard=Filament::getCurrentPanel()->getAuthGuard();
+        if (! $user || $guard=='staff') {
             return false;
         }
 
         return $user->hasPermissionTo(
             'roles_permissions.view',
-            Filament::getCurrentPanel()->getAuthGuard()
+            $guard
         );
     }
 
@@ -51,9 +55,11 @@ class RolesResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $guardName = Filament::getCurrentPanel()->getAuthGuard();
-
+        if ($guardName=='admin') {
+            return Role::query();
+        }
         return Role::query()
-            ->when($guardName, fn($query) => $query->where('guard_name', $guardName));
+            ->when($guardName, fn($query) => $query->where('guard_name', 'staff'));
     }
 
     public static function afterCreate($record, array $data): void

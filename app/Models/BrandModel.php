@@ -18,10 +18,14 @@ class BrandModel extends Model
     {
         return $this->belongsTo(Brand::class);
     }
+    public function merchant()
+    {
+        return $this->belongsTo(Merchant::class);
+    }
 
     public function variants()
     {
-        return $this->hasMany(Variant::class, 'brand_model_id');
+        return $this->hasMany(ProductVariant::class, 'brand_model_id');
     }
 
     public function addons()

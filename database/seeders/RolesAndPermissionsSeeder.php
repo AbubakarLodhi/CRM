@@ -26,6 +26,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'orders' => ['view', 'create', 'update', 'delete'],
             'businesses' => ['view', 'create', 'update', 'delete'],
             'branches' => ['view', 'create', 'update', 'delete'],
+            'categories' => ['view', 'create', 'update', 'delete'],
+            'customers' => ['view', 'create', 'update', 'delete'],
         ];
 
         foreach ($modules as $module => $actions) {
@@ -47,6 +49,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'merchant_settings.*',
                 'branches.*',
                 'businesses.*',
+                'categories.*',
+                'customers.*',
             ],
             'admin' => [
                 'dashboard.*',
@@ -58,6 +62,8 @@ class RolesAndPermissionsSeeder extends Seeder
                 'merchant_settings.*',
                 'branches.*',
                 'businesses.*',
+                'categories.*',
+                'customers.*',
             ],
             'user' => [
             ],

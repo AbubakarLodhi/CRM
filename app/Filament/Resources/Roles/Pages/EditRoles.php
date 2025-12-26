@@ -75,6 +75,8 @@ class EditRoles extends EditRecord
             'businesses' => 'Businesses',
             'orders' => 'Orders',
             'branches'=>'Branches',
+            'categories' => 'Categories',
+            'customers' => 'Customers',
         ];
     }
     protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
