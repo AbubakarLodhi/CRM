@@ -18,7 +18,6 @@ return new class extends Migration
 
             $table->string('name');         // internal: size, color, voltage
             $table->string('display_name')->nullable(); // UI label
-
             $table->timestamps();
 
             $table->unique(['product_id', 'name']);

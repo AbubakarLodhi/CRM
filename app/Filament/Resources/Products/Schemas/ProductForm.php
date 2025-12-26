@@ -138,6 +138,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
 
@@ -240,57 +242,74 @@ class ProductForm
                                 ]),
                         ]),
 
-                    \Filament\Schemas\Components\Section::make('Pricing & Inventory')
-                        ->columns(3)
-                        ->schema([
-                            TextInput::make('purchase_price')
-                                ->numeric()
-                                ->visible(fn ($get) => $get('type') === 'stock'),
-
-                            TextInput::make('selling_price')
-                                ->numeric()
-                                ->visible(fn ($get) => ! $get('is_variable_price')),
-
-                            Toggle::make('track_inventory')->default(true),
-                            Toggle::make('is_variable_price')->default(false),
-                            Toggle::make('is_active')->default(true),
-                        ]),
-                ]),
-
-            /* =========================
-             | OPTIONS
-             |=========================*/
-            \Filament\Schemas\Components\Section::make('Custom Fields')
+            Section::make('Custom Fields')
                 ->columnSpanFull()
-                ->description('Define attributes like Size, Color, Voltage, Karat.')
+                ->description('Define dynamic attributes like Size, Color, Voltage, Karat.')
                 ->schema([
                     Repeater::make('options')
                         ->columnSpanFull()
                         ->collapsible()
-                        ->itemLabel(fn ($state) => $state['display_name'] ?? $state['name'] ?? 'Option')
+                        ->columns(2)
+                        ->itemLabel(fn ($state) => $state['display_name'] ?? $state['name'] ?? 'Custom Field')
                         ->schema([
-                            TextInput::make('name')
-                                ->label('Option Key')
+
+                            Select::make('field_type')
+                                ->label('Type')
                                 ->required()
-                                ->afterStateUpdated(fn ($state, callable $set) =>
-                                $set('name', Str::lower($state))
-                                ),
+                                ->options([
+                                    'select'     => 'Select',
+                                    'numeric'    => 'Numeric',
+                                    'alphabetic' => 'Text',
+                                ])
+                                ->reactive(),
 
-                            TextInput::make('display_name')
-                                ->label('Display Name')
-                                ->nullable(),
+//                            Toggle::make('is_required')
+//                                ->label('Required')
+//                                ->default(false),
 
+                            TextInput::make('name')
+                                ->label('Label')
+                                ->required(),
+//
+//                            TextInput::make('display_name')
+//                                ->label('Label')
+//                                ->required(),
+
+                            // ✅ Only for "select" type
                             Repeater::make('values')
-                                ->label('Values')
+                                ->label('Options')
                                 ->columnSpanFull()
+                                ->visible(fn ($get) => $get('field_type') === 'select')
+                                ->columns(2)
+                                ->grid(2)
                                 ->schema([
-                                    TextInput::make('value')->required(),
+                                    TextInput::make('value')
+                                        ->required()
+                                        ->placeholder('e.g. Small')
+                                        ->hiddenLabel(),
                                 ])
                                 ->minItems(1)
-                                ->columns(3),
-                        ]),
+                                ->addActionLabel('+'),
+
+                            TextInput::make('min')
+                                ->label('Min')
+                                ->numeric()
+                                ->visible(fn ($get) => $get('field_type') === 'numeric'),
+
+                            TextInput::make('max')
+                                ->label('Max')
+                                ->numeric()
+                                ->visible(fn ($get) => $get('field_type') === 'numeric'),
+                        ])
+                        ->addActionLabel('+ Add Field'),
                 ]),
-        ]);
+
+            Toggle::make('is_stocked')->default(true),
+            Toggle::make('is_active')->default(true),
+
+                    ])
+            ]);
+
     }
 
 }

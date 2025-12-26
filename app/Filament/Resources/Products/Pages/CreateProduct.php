@@ -26,23 +26,23 @@ class CreateProduct extends CreateRecord
             $sku = $this->generateSku($merchantId, $business->name, $data['name']);
 
             $product = Product::create([
-                'merchant_id'       => $merchantId,
-                'business_id'       => $data['business_id'],
-                'name'              => $data['name'],
-                'sku'               => $sku,
-                'description'       => $data['description'] ?? null,
-                'type'              => $data['type'],
-                'unit'              => $data['unit'],
-                'track_inventory'   => (bool)($data['track_inventory'] ?? true),
+                'merchant_id' => $merchantId,
+                'business_id' => $data['business_id'],
+                'name' => $data['name'],
+                'sku' => $sku,
+                'description' => $data['description'] ?? null,
+                'type' => $data['type'],
+                'unit' => $data['unit'],
+                'track_inventory' => (bool)($data['track_inventory'] ?? true),
                 'is_variable_price' => (bool)($data['is_variable_price'] ?? false),
-                'purchase_price'    => $data['purchase_price'] ?? null,
-                'selling_price'     => $data['selling_price'] ?? null,
-                'is_active'         => (bool)($data['is_active'] ?? true),
+                'purchase_price' => $data['purchase_price'] ?? null,
+                'selling_price' => $data['selling_price'] ?? null,
+                'is_active' => (bool)($data['is_active'] ?? true),
 
-                'category_id'       => $data['category_id'] ?? null,
-                'sub_category_id'   => $data['sub_category_id'] ?? null,
-                'brand_id'          => $data['brand_id'] ?? null,
-                'brand_model_id'    => $data['brand_model_id'] ?? null,
+                'category_id' => $data['category_id'] ?? null,
+                'sub_category_id' => $data['sub_category_id'] ?? null,
+                'brand_id' => $data['brand_id'] ?? null,
+                'brand_model_id' => $data['brand_model_id'] ?? null,
             ]);
 
             // 2) Create Options + Values
@@ -51,7 +51,7 @@ class CreateProduct extends CreateRecord
 
             foreach (($data['options'] ?? []) as $opt) {
                 $option = $product->options()->create([
-                    'name'         => $opt['name'],
+                    'name' => $opt['name'],
                     'display_name' => $opt['display_name'] ?? null,
                 ]);
 
@@ -63,46 +63,6 @@ class CreateProduct extends CreateRecord
                     ]);
 
                     $valueIdMap[$option->id][$v->value] = $v->id;
-                }
-            }
-
-            // 3) Create Variants
-            foreach (($data['variants'] ?? []) as $variantData) {
-                $variant = $product->variants()->create([
-                    'merchant_id'    => $merchantId,
-                    'name'           => $variantData['name'] ?? null,
-                    'sku'            => $variantData['sku'] ?? null,
-                    'purchase_price' => $variantData['purchase_price'] ?? null,
-                    'selling_price'  => $variantData['selling_price'] ?? null,
-                    'is_active'      => (bool)($variantData['is_active'] ?? true),
-                ]);
-
-                // 4) Create Variant Values (selections)
-                // We need to resolve option_key + value_string to the correct IDs
-                $options = $product->options()->get()->keyBy('name');
-
-                foreach (($variantData['selections'] ?? []) as $sel) {
-                    $optionKey = $sel['option_key'] ?? null;
-                    $valueStr  = $sel['value'] ?? null;
-
-                    if (! $optionKey || ! $valueStr) {
-                        continue;
-                    }
-
-                    $option = $options->get($optionKey);
-                    if (! $option) {
-                        continue;
-                    }
-
-                    $valueId = $valueIdMap[$option->id][$valueStr] ?? null;
-                    if (! $valueId) {
-                        continue;
-                    }
-
-                    $variant->values()->create([
-                        'product_option_id'       => $option->id,
-                        'product_option_value_id' => $valueId,
-                    ]);
                 }
             }
 
