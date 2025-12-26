@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -27,6 +28,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        DB::statement(
+            'ALTER TABLE IF EXISTS varients DROP CONSTRAINT IF EXISTS varients_brand_model_id_foreign'
+        );
+
         Schema::dropIfExists('brand_models');
     }
 };

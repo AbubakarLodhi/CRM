@@ -4,10 +4,10 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
+        // Remove old typo FK from products
         if (Schema::hasTable('products') && Schema::hasColumn('products', 'varient_id')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->dropForeign(['varient_id']);
@@ -15,12 +15,14 @@ return new class extends Migration
             });
         }
 
+        // Drop typo table
         Schema::dropIfExists('varients');
     }
 
     public function down(): void
     {
-        Schema::create('variants', function (Blueprint $table) {
+        // Restore typo table ONLY (exact rollback)
+        Schema::create('varients', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('name');
 
@@ -37,6 +39,15 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['merchant_id', 'name']);
+        });
+
+        // Restore column in products
+        Schema::table('products', function (Blueprint $table) {
+            $table->foreignUuid('varient_id')
+                ->nullable()
+                ->constrained('varients')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
         });
     }
 };

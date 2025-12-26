@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Models\Merchant;
 
@@ -35,6 +36,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Drop dependent foreign key FIRST (safe even if it doesn't exist)
+        DB::statement(
+            'ALTER TABLE IF EXISTS varients DROP CONSTRAINT IF EXISTS varients_merchant_id_foreign'
+        );
+
         Schema::dropIfExists('merchants');
     }
 };
