@@ -1,0 +1,54 @@
+<?php
+
+namespace Database\Seeders\ZGN;
+
+use App\Models\Business;
+use App\Models\Merchant;
+use App\Models\Product;
+use App\Models\ProductOption;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
+
+class ZGNSolarPanelProductsOptionsSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        if (!$merchant) return;
+
+        $business = Business::where('merchant_id', $merchant->id)->where('name', 'Solar Systems')->first();
+        if (!$business) return;
+
+        $merchantSlug = collect(explode(' ', $merchant->name))
+            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
+            ->implode('');
+
+        $businessSlug = collect(explode(' ', $business->name))
+            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
+            ->implode('');
+
+        $sku = "{$merchantSlug}-{$businessSlug}-solar-panel";
+
+        $product = Product::where('sku', $sku)->first();
+        if (!$product) return;
+
+        $options = [
+            ['name' => 'capacity', 'display_name' => 'Capacity'],
+            ['name' => 'phase', 'display_name' => 'Phase'],
+            ['name' => 'grid_type', 'display_name' => 'Grid Type'],
+        ];
+
+        foreach ($options as $opt) {
+            ProductOption::firstOrCreate(
+                [
+                    'product_id' => $product->id,
+                    'name' => $opt['name'],
+                ],
+                [
+                    'id' => Str::uuid(),
+                    'display_name' => $opt['display_name'],
+                ]
+            );
+        }
+    }
+}

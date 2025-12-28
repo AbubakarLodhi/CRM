@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Categories\Tables;
 
+use App\Models\Category;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -21,6 +23,17 @@ class CategoriesTable
                     ->label('Category Name')
                     ->sortable()
                     ->searchable(),
+                ImageColumn::make('icon')
+                    ->label('Icon')
+                    ->size(36)
+                    ->square()
+                    ->getStateUsing(fn (Category $record) =>
+                    $record->icon
+                        ? asset('storage/' . $record->icon->photo_url)
+                        : null
+                    )
+                    ->defaultImageUrl(asset('images/category-placeholder.png')),
+
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()

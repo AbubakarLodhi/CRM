@@ -22,7 +22,7 @@ class AddOn extends Model
     /**
      * @return BelongsTo
      */
-    public function model(): BelongsTo
+    public function brandModel(): BelongsTo
     {
         return $this->belongsTo(BrandModel::class, 'brand_model_id');
     }

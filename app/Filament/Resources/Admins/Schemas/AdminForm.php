@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Admins\Schemas;
 
 use App\Models\Admin;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -27,6 +28,17 @@ class AdminForm
                     ->password()
                     ->required()
                     ->hiddenOn('edit'),
+                FileUpload::make('profile_photo')
+                    ->label('Profile Photo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('admins/profile-photos')
+                    ->imagePreviewHeight(150)
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->saveUploadedFileUsing(fn ($file) =>
+                    $file->store('admins/profile-photos', 'public')
+                    ),
                 Toggle::make('status')
                     ->required(),
                 Section::make('Role & Status')

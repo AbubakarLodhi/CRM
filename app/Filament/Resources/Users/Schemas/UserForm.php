@@ -7,6 +7,7 @@ use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -21,20 +22,27 @@ class UserForm
             ->components([
                 TextInput::make('name')
                     ->required(),
-
                 TextInput::make('email')
                     ->label('Email address')
                     ->email()
                     ->unique(User::class, 'email')
                     ->required(),
-
                 DateTimePicker::make('email_verified_at'),
-
                 TextInput::make('password')
                     ->password()
                     ->required()
                     ->hiddenOn('edit'),
-
+                FileUpload::make('profile_photo')
+                    ->label('Profile Photo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('staff/profile-photos')
+                    ->imagePreviewHeight(150)
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->saveUploadedFileUsing(fn ($file) =>
+                    $file->store('staff/profile-photos', 'public')
+                    ),
                 Select::make('status')
                     ->options([
                         User::STATUS_PENDING => 'Pending',
@@ -45,7 +53,6 @@ class UserForm
                     ->preload()
                     ->searchable()
                     ->default('pending'),
-
                 Select::make('merchant_id')
                     ->label('Merchant')
                     ->relationship('merchant', 'name')

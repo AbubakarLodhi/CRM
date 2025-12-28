@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Brands\Schemas;
 use App\Models\Admin;
 use App\Models\Category;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -21,6 +22,15 @@ class BrandsForm
                        TextInput::make('name')
                            ->required()
                            ->maxLength(255),
+                FileUpload::make('brand_logo')
+                    ->label('Brand Logo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('brands/logos')
+                    ->imagePreviewHeight(120)
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
+                    ->dehydrated(false),
 
                 Select::make('category_id')
                     ->label('Category')
@@ -51,12 +61,12 @@ class BrandsForm
                             return;
                         }
 
-                        $merchantId = Category::query()
-                            ->whereKey($state)
-                            ->value('merchant_id');
+                               $merchantId = Category::query()
+                                   ->whereKey($state)
+                                   ->value('merchant_id');
 
-                        $set('merchant_id', $merchantId);
-                    }),
+                               $set('merchant_id', $merchantId);
+                           }),
 
                        Hidden::make('merchant_id')
                            ->required(),

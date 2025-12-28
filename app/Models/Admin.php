@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Facades\Hash;
@@ -33,4 +34,14 @@ class Admin extends Authenticatable
             set: fn($value) => filled($value) ? Hash::make($value) : null
         );
     }
+
+    /**
+     * @return MorphOne
+     */
+    public function profilePhoto():MorphOne
+    {
+        return $this->morphOne(Attachment::class, 'attachable')
+            ->where('meta_type', \App\Enums\AttachmentMetaType::PROFILE_PHOTO);
+    }
+
 }

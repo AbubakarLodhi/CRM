@@ -20,11 +20,17 @@ class ProductOptionValue extends Model
      | Relationships
      |--------------------------*/
 
+    /**
+     * @return BelongsTo
+     */
     public function option(): BelongsTo
     {
         return $this->belongsTo(ProductOption::class, 'product_option_id');
     }
 
+    /**
+     * @return HasMany
+     */
     public function variantValues(): HasMany
     {
         return $this->hasMany(ProductVariantValue::class);

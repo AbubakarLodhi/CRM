@@ -9,8 +9,15 @@ class OutboundMessage extends Model
 {
     use HasUuids;
 
+    /** @var string[] $fillable */
     protected $fillable = ['merchant_id','channel','recipient','subject','body','payload','status','provider','provider_message_id','error_message'];
+
+    /** @var string[] $casts Attribute type casting */
     protected $casts = ['payload'=>'array'];
+
+    /** @var bool $incrementing */
     public $incrementing = false;
+
+    /** @var string $keyType */
     protected $keyType = 'string';
 }

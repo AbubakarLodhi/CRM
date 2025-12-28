@@ -24,11 +24,11 @@ class ProductOptionsRelationManager extends RelationManager
                 CreateAction::make(),
             ])
             ->actions([
-                EditAction::make()
-                    ->url(fn ($record) => route(
-                        'filament.admin.resources.product-options.edit',
-                        $record
-                    )),
+//                EditAction::make()
+//                    ->url(fn ($record) => route(
+//                        'filament.admin.resources.product-options.edit',
+//                        $record
+//                    )),
 
                 DeleteAction::make(),
             ]);
