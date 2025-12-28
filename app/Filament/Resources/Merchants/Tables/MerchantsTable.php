@@ -11,6 +11,7 @@ use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -21,8 +22,30 @@ class MerchantsTable
     {
         return $table
             ->columns([
+                ImageColumn::make('profile_photo')
+                    ->label('Photo')
+                    ->size(40)
+                    ->circular()
+                    ->getStateUsing(fn (Merchant $record) =>
+                    $record->profilePhoto
+                        ? asset('storage/' . $record->profilePhoto->photo_url)
+                        : null
+                    )
+                    ->defaultImageUrl(asset('images/avatar-placeholder.png')),
+
                 TextColumn::make('name')
                     ->searchable(),
+                ImageColumn::make('merchant_logo')
+                    ->label('Logo')
+                    ->size(40)
+                    ->square()
+                    ->getStateUsing(fn (Merchant $record) =>
+                    $record->logo
+                        ? asset('storage/' . $record->logo->photo_url)
+                        : null
+                    )
+                    ->defaultImageUrl(asset('images/brand-placeholder.png')),
+
                 TextColumn::make('phone')
                     ->searchable(),
                 TextColumn::make('address_line_1')

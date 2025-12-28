@@ -131,6 +131,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -195,6 +196,17 @@ class ProductForm
                         ->required()
                         ->maxLength(255)
                         ->columnSpanFull(),
+                    FileUpload::make('product_image')
+                        ->label('Product Image')
+                        ->image()
+                        ->disk('public')
+                        ->directory('products/images')
+                        ->imagePreviewHeight(150)
+                        ->maxSize(2048)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                        ->saveUploadedFileUsing(fn ($file) =>
+                        $file->store('products/images', 'public')
+                        ),
 
                     TextInput::make('sku')
                         ->label('SKU')
