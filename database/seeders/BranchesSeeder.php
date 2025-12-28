@@ -41,7 +41,7 @@ class BranchesSeeder extends Seeder
 
         if ($halaynoor) {
             $this->createBranches(
-                $zgn->id,
+                $halaynoor->id,
                 $pakistan->id,
                 $karachi->id,
                 [
