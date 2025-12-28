@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders\ZGN;
+namespace Database\Seeders\ZGN\SolarPanels;
 
 use App\Models\Business;
 use App\Models\Category;

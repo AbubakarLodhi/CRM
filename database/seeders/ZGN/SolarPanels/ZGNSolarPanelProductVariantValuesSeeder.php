@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders\ZGN;
+namespace Database\Seeders\ZGN\SolarPanels;
 
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
@@ -14,31 +14,10 @@ class ZGNSolarPanelProductVariantValuesSeeder extends Seeder
     public function run(): void
     {
         $map = [
-            'HUA-5K-HYB' => [
-                'capacity' => '5kW',
-                'phase' => 'Single Phase',
-                'grid_type' => 'Hybrid',
-            ],
-            'HUA-10K-HYB' => [
-                'capacity' => '10kW',
-                'phase' => 'Three Phase',
-                'grid_type' => 'Hybrid',
-            ],
-            'GRT-5K-ONG' => [
-                'capacity' => '5kW',
-                'phase' => 'Single Phase',
-                'grid_type' => 'On-Grid',
-            ],
-            'GRT-20K-ONG' => [
-                'capacity' => '20kW',
-                'phase' => 'Three Phase',
-                'grid_type' => 'On-Grid',
-            ],
-            'INV-5K-HYB' => [
-                'capacity' => '5kW',
-                'phase' => 'Single Phase',
-                'grid_type' => 'Hybrid',
-            ],
+            'LNG-540-MONO' => ['wattage' => '540W', 'cell_type' => 'Monocrystalline'],
+            'LNG-550-MONO' => ['wattage' => '550W', 'cell_type' => 'Monocrystalline'],
+            'JA-550-MONO'  => ['wattage' => '550W', 'cell_type' => 'Monocrystalline'],
+            'JNK-560-BIF'  => ['wattage' => '560W', 'cell_type' => 'Bifacial'],
         ];
 
         foreach ($map as $sku => $values) {

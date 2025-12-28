@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders\ZGN;
+namespace Database\Seeders\ZGN\SolarPanels;
 
 use App\Models\Business;
 use App\Models\Merchant;
@@ -33,9 +33,8 @@ class ZGNSolarPanelProductsOptionsSeeder extends Seeder
         if (!$product) return;
 
         $options = [
-            ['name' => 'capacity', 'display_name' => 'Capacity'],
-            ['name' => 'phase', 'display_name' => 'Phase'],
-            ['name' => 'grid_type', 'display_name' => 'Grid Type'],
+            ['name' => 'wattage', 'display_name' => 'Wattage'],
+            ['name' => 'cell_type', 'display_name' => 'Cell Type'],
         ];
 
         foreach ($options as $opt) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders\ZGN;
+namespace Database\Seeders\ZGN\SolarPanels;
 
 use App\Models\ProductOption;
 use App\Models\ProductOptionValue;
@@ -12,9 +12,8 @@ class ZGNSolarPanelProductsOptionValuesSeeder extends Seeder
     public function run(): void
     {
         $values = [
-            'capacity' => ['5kW', '10kW', '20kW'],
-            'phase' => ['Single Phase', 'Three Phase'],
-            'grid_type' => ['On-Grid', 'Hybrid'],
+            'wattage' => ['540W', '550W', '560W'],
+            'cell_type' => ['Monocrystalline', 'Bifacial'],
         ];
 
         foreach ($values as $optionName => $vals) {

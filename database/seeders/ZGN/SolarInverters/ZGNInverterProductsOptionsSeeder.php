@@ -1,16 +1,15 @@
 <?php
 
-namespace Database\Seeders\ZGN;
+namespace Database\Seeders\ZGN\SolarInverters;
 
 use App\Models\Business;
-use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
-use App\Models\ProductVariant;
+use App\Models\ProductOption;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
-class ZGNSolarPanelProductVariantsSeeder extends Seeder
+class ZGNInverterProductsOptionsSeeder extends Seeder
 {
     public function run(): void
     {
@@ -28,27 +27,26 @@ class ZGNSolarPanelProductVariantsSeeder extends Seeder
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
-        $sku = "{$merchantSlug}-{$businessSlug}-solar-panel";
-        $product = Product::where('sku', $sku)->first();
+        $sku = "{$merchantSlug}-{$businessSlug}-solar-inverter";
 
-        $variants = [
-            ['name' => 'Huawei 5kW Hybrid', 'sku' => 'HUA-5K-HYB'],
-            ['name' => 'Huawei 10kW Hybrid', 'sku' => 'HUA-10K-HYB'],
-            ['name' => 'Growatt 5kW On-Grid', 'sku' => 'GRT-5K-ONG'],
-            ['name' => 'Growatt 20kW On-Grid', 'sku' => 'GRT-20K-ONG'],
-            ['name' => 'Inverex 5kW Hybrid', 'sku' => 'INV-5K-HYB'],
+        $product = Product::where('sku', $sku)->first();
+        if (!$product) return;
+
+        $options = [
+            ['name' => 'capacity', 'display_name' => 'Capacity'],
+            ['name' => 'phase', 'display_name' => 'Phase'],
+            ['name' => 'grid_type', 'display_name' => 'Grid Type'],
         ];
 
-        foreach ($variants as $v) {
-            ProductVariant::firstOrCreate(
+        foreach ($options as $opt) {
+            ProductOption::firstOrCreate(
                 [
-                    'merchant_id' => $merchant->id,
-                    'sku' => $v['sku'],
+                    'product_id' => $product->id,
+                    'name' => $opt['name'],
                 ],
                 [
                     'id' => Str::uuid(),
-                    'product_id' => $product->id,
-                    'name' => $v['name'],
+                    'display_name' => $opt['display_name'],
                 ]
             );
         }
