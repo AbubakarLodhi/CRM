@@ -53,10 +53,10 @@ class ProductsTable
                     ->sortable()
                     ->searchable(),
 
-                TextColumn::make('business.name')
-                    ->label('Business')
-                    ->sortable()
-                    ->searchable(),
+//                TextColumn::make('business.name')
+//                    ->label('Business')
+//                    ->sortable()
+//                    ->searchable(),
 
                 TextColumn::make('category.name')
                     ->label('Category')

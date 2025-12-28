@@ -1,8 +1,10 @@
 <?php
 
 namespace App\Filament\Resources\Categories\Schemas;
-
 use Filament\Forms\Components\FileUpload;
+use App\Models\Admin;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
@@ -29,9 +31,11 @@ class CategoryForm
                 Select::make('merchant_id')
                     ->label('Merchant')
                     ->relationship('merchant', 'name')
-                    ->preload()
-                    ->searchable()
-                    ->required(),
+                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
+
+                Hidden::make('merchant_id')
+                    ->default(fn() => Filament::auth()->user()?->id)
+                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
 
             ]);
     }

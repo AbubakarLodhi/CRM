@@ -7,6 +7,7 @@ use App\Filament\Resources\BrandModels\Pages\EditBrandModel;
 use App\Filament\Resources\BrandModels\Pages\ListBrandModels;
 use App\Filament\Resources\BrandModels\Schemas\BrandModelForm;
 use App\Filament\Resources\BrandModels\Tables\BrandModelsTable;
+use App\Models\Admin;
 use App\Models\BrandModel;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -44,6 +45,19 @@ class BrandModelResource extends Resource
             'categories.view',
             Filament::getCurrentPanel()->getAuthGuard()
         );
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery();
+
+        if ($user instanceof Admin) {
+            return $query;
+
+        }
+
+        return $query->where('merchant_id', $user->id);
     }
 
     public static function form(Schema $schema): Schema
