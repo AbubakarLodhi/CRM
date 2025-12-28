@@ -16,20 +16,13 @@ class ZGNSolarPanelProductsSeeder extends Seeder
         $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
         if (!$merchant) return;
 
-        $business = Business::where('merchant_id', $merchant->id)->where('name', 'Solar Systems')->first();
-        if (!$business) return;
-
         $category = Category::where('merchant_id', $merchant->id)->where('name', 'Solar Panels')->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
-        $businessSlug = collect(explode(' ', $business->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
-            ->implode('');
-
-        $sku = "{$merchantSlug}-{$businessSlug}-solar-panel";
+        $sku = "{$merchantSlug}-solar-panel";
 
         Product::firstOrCreate(
             [
@@ -38,7 +31,6 @@ class ZGNSolarPanelProductsSeeder extends Seeder
             ],
             [
                 'id' => Str::uuid(),
-                'business_id' => $business->id,
                 'name' => 'Solar Panel',
                 'description' => 'Photovoltaic solar panel',
                 'category_id' => $category?->parent_id,

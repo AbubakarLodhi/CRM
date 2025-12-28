@@ -2,7 +2,6 @@
 
 namespace Database\Seeders\ZGN\SolarInverters;
 
-use App\Models\Business;
 use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
@@ -16,20 +15,13 @@ class ZGNInverterProductsSeeder extends Seeder
         $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
         if (!$merchant) return;
 
-        $business = Business::where('merchant_id', $merchant->id)->where('name', 'Solar Systems')->first();
-        if (!$business) return;
-
         $category = Category::where('merchant_id', $merchant->id)->where('name', 'Inverters')->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
-        $businessSlug = collect(explode(' ', $business->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
-            ->implode('');
-
-        $sku = "{$merchantSlug}-{$businessSlug}-solar-inverter";
+        $sku = "{$merchantSlug}-solar-inverter";
 
         Product::firstOrCreate(
             [
@@ -38,7 +30,6 @@ class ZGNInverterProductsSeeder extends Seeder
             ],
             [
                 'id' => Str::uuid(),
-                'business_id' => $business->id,
                 'name' => 'Solar Inverter',
                 'description' => 'Solar power inverter',
                 'category_id' => $category?->parent_id,

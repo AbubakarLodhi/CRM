@@ -16,18 +16,11 @@ class ZGNInverterProductVariantsSeeder extends Seeder
         $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
         if (!$merchant) return;
 
-        $business = Business::where('merchant_id', $merchant->id)->where('name', 'Solar Systems')->first();
-        if (!$business) return;
-
         $merchantSlug = collect(explode(' ', $merchant->name))
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
-        $businessSlug = collect(explode(' ', $business->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
-            ->implode('');
-
-        $sku = "{$merchantSlug}-{$businessSlug}-solar-inverter";
+        $sku = "{$merchantSlug}-solar-inverter";
         $product = Product::where('sku', $sku)->first();
 
         $variants = [
