@@ -17,9 +17,15 @@ class DatabaseSeeder extends Seeder
         $seeders = [
             PermissionsSeeder::class,
             RolesSeeder::class,
+            CountriesSeeder::class,
+            CitiesSeeder::class,
             AdminsSeeder::class,
             MerchantsSeeder::class,
             StaffsSeeder::class,
+            BusinessesSeeder::class,
+            BranchesSeeder::class,
+            BranchUsersSeeder::class,
+            CustomersSeeder::class,
         ];
 
         $this->call($seeders);

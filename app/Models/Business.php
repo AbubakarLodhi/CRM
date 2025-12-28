@@ -11,11 +11,13 @@ class Business extends Model
 {
     use HasUuids;
 
-    /** @var string[] $fillable */
-    protected $fillable = ['merchant_id','name','description','status'];
-
     /** @var bool $incrementing */
     public $incrementing = false;
+
+    /** @var string[] $fillable */
+    protected $fillable = [
+        'merchant_id', 'name', 'description', 'status', 'country_id', 'city_id', 'postal_code',
+    ];
 
     /** @var string $keyType */
     protected $keyType = 'string';
@@ -36,4 +38,19 @@ class Business extends Model
         return $this->hasMany(Branch::class);
     }
 
+    /**
+     * @return BelongsTo
+     */
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
+    }
 }
