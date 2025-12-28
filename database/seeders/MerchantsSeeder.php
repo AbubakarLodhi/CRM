@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Merchant;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class MerchantsSeeder extends Seeder

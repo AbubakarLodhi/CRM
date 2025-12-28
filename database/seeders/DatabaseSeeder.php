@@ -20,6 +20,9 @@ class DatabaseSeeder extends Seeder
             AdminsSeeder::class,
             MerchantsSeeder::class,
             StaffsSeeder::class,
+            BusinessesSeeder::class,
+            BranchesSeeder::class,
+            BranchUsersSeeder::class
         ];
 
         $this->call($seeders);

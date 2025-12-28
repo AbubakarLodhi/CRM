@@ -4,30 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Branch extends Model
 {
     use HasUuids;
+
+    /** @var string */
     const STATUS_PENDING = 'pending';
+
+    /** @var string */
     const STATUS_VERIFIED = 'verified';
+
+    /** @var string */
     const STATUS_REJECTED = 'rejected';
 
-    protected $fillable = ['merchant_id','business_id','name','address','phone','status'];
+    /** @var bool $incrementing */
     public $incrementing = false;
+
+    /** @var string[] $fillable */
+    protected $fillable = [
+        'merchant_id', 'business_id', 'name', 'address', 'phone', 'status', 'country_id', 'city_id', 'postal_code',
+    ];
+
+    /** @var string $keyType */
     protected $keyType = 'string';
 
-    public function merchant()
-    {
-        return $this->belongsTo(Merchant::class);
-    }
-    public function business()
-    {
-        return $this->belongsTo(Business::class);
-    }
-    public function users()
-    {
-        return $this->belongsToMany(User::class)->withTimestamps();
-    }
+    /**
+     * @return string[]
+     */
     public static function getStatuses(): array
     {
         return [
@@ -35,5 +41,46 @@ class Branch extends Model
             self::STATUS_VERIFIED,
             self::STATUS_REJECTED,
         ];
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function merchant(): BelongsTo
+    {
+        return $this->belongsTo(Merchant::class);
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    /**
+     * @return BelongsToMany
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'branch_users')
+            ->withTimestamps();
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function city(): BelongsTo
+    {
+        return $this->belongsTo(City::class);
     }
 }
