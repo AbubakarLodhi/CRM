@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\Brands\Schemas;
 
+use App\Models\Admin;
 use App\Models\Category;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class BrandsForm
 {
@@ -19,28 +22,41 @@ class BrandsForm
                            ->required()
                            ->maxLength(255),
 
-                       Select::make('category_id')
-                           ->label('Category')
-                           ->relationship(
-                               'category',
-                               'name',
-                               fn ($query) => $query->whereNotNull('parent_id')
-                           )
-                           ->searchable()
-                           ->preload()
-                           ->required()
-                           ->afterStateUpdated(function ($state, callable $set) {
-                               if (! $state) {
-                                   $set('merchant_id', null);
-                                   return;
-                               }
+                Select::make('category_id')
+                    ->label('Category')
+                    ->relationship(
+                        name: 'category',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = Filament::auth()->user();
 
-                               $merchantId = Category::query()
-                                   ->whereKey($state)
-                                   ->value('merchant_id');
+                            // Only sub-categories
+                            $query->whereNotNull('parent_id');
 
-                               $set('merchant_id', $merchantId);
-                           }),
+                            // Admin → see all merchants
+                            if ($user instanceof Admin) {
+                                return;
+                            }
+
+                            // Merchant → only own categories
+                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
+                        }
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->afterStateUpdated(function ($state, callable $set) {
+                        if (! $state) {
+                            $set('merchant_id', null);
+                            return;
+                        }
+
+                        $merchantId = Category::query()
+                            ->whereKey($state)
+                            ->value('merchant_id');
+
+                        $set('merchant_id', $merchantId);
+                    }),
 
                        Hidden::make('merchant_id')
                            ->required(),

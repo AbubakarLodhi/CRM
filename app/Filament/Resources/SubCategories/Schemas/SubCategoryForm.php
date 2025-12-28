@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\SubCategories\Schemas;
 
+use App\Models\Admin;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class SubCategoryForm
 {
@@ -20,9 +23,21 @@ class SubCategoryForm
                 Select::make('parent_id')
                     ->label('Category')
                     ->relationship(
-                        'parent',
-                        'name',
-                        fn ($query) => $query->whereNull('parent_id')
+                        name: 'parent',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = Filament::auth()->user();
+
+                            $query->whereNull('parent_id');
+
+                            // Admin → see all merchants’ categories
+                            if ($user instanceof Admin) {
+                                return;
+                            }
+
+                            // Merchant → only own categories
+                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
+                        }
                     )
                     ->searchable()
                     ->preload()

@@ -7,8 +7,10 @@ use App\Filament\Resources\Products\Pages\EditProduct;
 use App\Filament\Resources\Products\Pages\ListProducts;
 use App\Filament\Resources\Products\Schemas\ProductForm;
 use App\Filament\Resources\Products\Tables\ProductsTable;
+use App\Models\Admin;
 use App\Models\Product;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -22,6 +24,22 @@ class ProductResource extends Resource
     protected static string | \UnitEnum | null $navigationGroup = 'Inventory';
     protected static ?int $navigationSort = 3;
     protected static ?string $recordTitleAttribute = 'Product';
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery();
+
+        if ($user instanceof Admin) {
+            return $query;
+
+        }
+
+        return $query->where('merchant_id', $user->id);
+    }
 
     public static function form(Schema $schema): Schema
     {

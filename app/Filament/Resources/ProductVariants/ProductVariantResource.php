@@ -7,6 +7,7 @@ use App\Filament\Resources\ProductVariants\Pages\EditVariant;
 use App\Filament\Resources\ProductVariants\Pages\ListVariants;
 use App\Filament\Resources\ProductVariants\Schemas\VariantForm;
 use App\Filament\Resources\ProductVariants\Tables\VariantsTable;
+use App\Models\Admin;
 use App\Models\ProductVariant;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -34,6 +35,19 @@ class ProductVariantResource extends Resource
 //            Filament::getCurrentPanel()->getAuthGuard()
 //        ) ?? false;
 //    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery();
+
+        if ($user instanceof Admin) {
+            return $query;
+
+        }
+
+        return $query->where('merchant_id', $user->id);
+    }
 
     public static function form(Schema $schema): Schema
     {

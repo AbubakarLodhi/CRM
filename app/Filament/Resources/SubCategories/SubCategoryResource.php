@@ -7,6 +7,7 @@ use App\Filament\Resources\SubCategories\Pages\EditSubCategory;
 use App\Filament\Resources\SubCategories\Pages\ListSubCategories;
 use App\Filament\Resources\SubCategories\Schemas\SubCategoryForm;
 use App\Filament\Resources\SubCategories\Tables\SubCategoriesTable;
+use App\Models\Admin;
 use App\Models\Category;
 use App\Models\Role;
 use BackedEnum;
@@ -45,6 +46,20 @@ class SubCategoryResource extends Resource
         );
     }
 
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery()
+            ->whereNotNull('parent_id');;
+
+        if ($user instanceof Admin) {
+            return $query;
+
+        }
+
+        return $query->where('merchant_id', $user->id);
+    }
+
     public static function form(Schema $schema): Schema
     {
         return SubCategoryForm::configure($schema);
@@ -55,11 +70,11 @@ class SubCategoryResource extends Resource
         return SubCategoriesTable::configure($table);
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        return parent::getEloquentQuery()
-            ->whereNotNull('parent_id');
-    }
+//    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+//    {
+//        return parent::getEloquentQuery()
+//            ->whereNotNull('parent_id');
+//    }
     public static function getRelations(): array
     {
         return [

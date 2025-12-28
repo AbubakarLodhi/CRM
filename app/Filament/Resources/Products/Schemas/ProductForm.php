@@ -130,6 +130,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use App\Models\Admin;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
@@ -141,6 +142,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Str;
 
 class ProductForm
@@ -185,10 +187,14 @@ class ProductForm
                 ->columnSpanFull()
                 ->schema([
 
+                    Select::make('merchant_id')
+                        ->label('Merchant')
+                        ->relationship('merchant', 'name')
+                        ->visible(fn() => Filament::auth()->user() instanceof Admin),
+
                     Hidden::make('merchant_id')
-                        ->default(fn () => Filament::auth()->user()?->id)
-                        ->dehydrated()
-                        ->required(),
+                        ->default(fn() => Filament::auth()->user()?->id)
+                        ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
 
                     TextInput::make('name')
                         ->label('Product Name')
@@ -206,13 +212,27 @@ class ProductForm
                         ->columnSpanFull(),
 
                     \Filament\Schemas\Components\Section::make('Basics')
-                        ->columns(3)
+                        ->columns(2)
                         ->schema([
-                            Select::make('business_id')
-                                ->relationship('business', 'name')
-                                ->searchable()
-                                ->preload()
-                                ->required(),
+//                            Select::make('business_id')
+//                                ->label('Business')
+//                                ->relationship(
+//                                    name: 'business',
+//                                    titleAttribute: 'name',
+//                                    modifyQueryUsing: function (Builder $query) {
+//                                        $user = Filament::auth()->user();
+//
+//                                        if ($user instanceof Admin) {
+//                                            return;
+//                                        }
+//
+//                                        // Merchant → only their businesses
+//                                        $query->where('merchant_id', $user->id);
+//                                    }
+//                                )
+//                                ->preload()
+//                                ->searchable()
+//                                ->required(),
 
                             Select::make('type')
                                 ->required()

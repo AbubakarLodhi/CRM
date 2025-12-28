@@ -7,6 +7,7 @@ use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
+use App\Models\Admin;
 use App\Models\Customer;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -39,6 +40,22 @@ class CustomerResource extends Resource
         );
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery();
+
+        // Admin can see all businesses
+        if ($user instanceof Admin) {
+            return $query;
+        }
+
+        // Merchant can see only their businesses
+        return $query->where('merchant_id', $user->id);
+    }
 
     public static function form(Schema $schema): Schema
     {

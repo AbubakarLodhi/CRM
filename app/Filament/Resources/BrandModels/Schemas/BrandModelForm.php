@@ -2,11 +2,14 @@
 
 namespace App\Filament\Resources\BrandModels\Schemas;
 
+use App\Models\Admin;
 use App\Models\Brand;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class BrandModelForm
 {
@@ -19,7 +22,20 @@ class BrandModelForm
 
                 Select::make('brand_id')
                     ->label('Brand Name')
-                    ->relationship('brand', 'name')
+//                    ->relationship('brand', 'name')
+                    ->relationship(
+                        name: 'brand',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = Filament::auth()->user();
+
+                            if ($user instanceof Admin) {
+                                return;
+                            }
+
+                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
+                        }
+                    )
                     ->preload()
                     ->searchable()
                     ->reactive() // 👈 key

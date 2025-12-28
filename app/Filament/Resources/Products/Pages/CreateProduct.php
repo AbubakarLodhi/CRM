@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\Pages;
 use App\Filament\Resources\Products\ProductResource;
 use App\Models\Business;
 use App\Models\Product;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -18,16 +19,14 @@ class CreateProduct extends CreateRecord
     {
         return DB::transaction(function () use ($data) {
 
-            // 1) Create Product first
             $merchantId = $data['merchant_id'];
 
-            $business = Business::findOrFail($data['business_id']);
 
-            $sku = $this->generateSku($merchantId, $business->name, $data['name']);
+            $sku = $this->generateSku($merchantId, $data['name']);
 
             $product = Product::create([
                 'merchant_id' => $merchantId,
-                'business_id' => $data['business_id'],
+//                'business_id' => $data['business_id'],
                 'name' => $data['name'],
                 'sku' => $sku,
                 'description' => $data['description'] ?? null,
@@ -70,14 +69,14 @@ class CreateProduct extends CreateRecord
         });
     }
 
-    private function generateSku(string $merchantId, string $businessName, string $productName): string
+    private function generateSku(string $merchantId, string $productName): string
     {
-        $businessCode = $this->initials($businessName); // Halay Noor -> HN
+//        $businessCode = $this->initials($businessName); // Halay Noor -> HN
         $productCode  = $this->initials($productName);  // Necklace -> N (or NE if you want 2 letters)
 
         do {
             $random = random_int(1000, 9999);
-            $sku = "{$businessCode}-{$productCode}-{$random}";
+            $sku = "{$productCode}-{$random}";
         } while (
             Product::where('merchant_id', $merchantId)->where('sku', $sku)->exists()
         );
