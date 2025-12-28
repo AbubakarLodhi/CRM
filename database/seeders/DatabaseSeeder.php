@@ -22,7 +22,8 @@ class DatabaseSeeder extends Seeder
             StaffsSeeder::class,
             BusinessesSeeder::class,
             BranchesSeeder::class,
-            BranchUsersSeeder::class
+            BranchUsersSeeder::class,
+            CustomersSeeder::class,
         ];
 
         $this->call($seeders);
