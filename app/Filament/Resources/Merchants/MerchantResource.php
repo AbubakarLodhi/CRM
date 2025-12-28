@@ -10,6 +10,7 @@ use App\Filament\Resources\Merchants\Tables\MerchantsTable;
 use App\Models\Merchant;
 use BackedEnum;
 use Filament\Facades\Filament;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -55,6 +56,11 @@ class MerchantResource extends Resource
         ];
     }
 
+//    public static function getEloquentQuery(): Builder
+//    {
+//        return parent::getEloquentQuery()
+//            ->with('profilePhoto');
+//    }
     public static function getPages(): array
     {
         return [

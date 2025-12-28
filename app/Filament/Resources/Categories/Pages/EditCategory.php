@@ -6,6 +6,9 @@ use App\Filament\Resources\Categories\CategoryResource;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
+use App\Enums\AttachmentType;
+use App\Enums\AttachmentMetaType;
+
 
 class EditCategory extends EditRecord
 {
@@ -22,5 +25,26 @@ class EditCategory extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function afterSave(): void
+    {
+        $state = $this->form->getRawState();
+
+        $path = collect($state['category_icon'] ?? null)->first();
+
+        if (! $path) {
+            return;
+        }
+
+        $this->record->icon()?->delete();
+
+        $this->record->icon()->create([
+            'merchant_id' => $this->record->merchant_id,
+            'type'        => AttachmentType::IMAGE,
+            'meta_type'   => AttachmentMetaType::CATEGORY_ICON,
+            'photo_url'   => $path,
+        ]);
+    }
+
 
 }

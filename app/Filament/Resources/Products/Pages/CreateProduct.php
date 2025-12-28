@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Products\Pages;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
 use App\Filament\Resources\Products\ProductResource;
 use App\Models\Business;
 use App\Models\Product;
@@ -9,6 +11,7 @@ use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+
 
 class CreateProduct extends CreateRecord
 {
@@ -93,4 +96,23 @@ class CreateProduct extends CreateRecord
             ->map(fn ($w) => strtoupper(Str::substr($w, 0, 1)))
             ->implode('');
     }
+
+    protected function afterCreate(): void
+    {
+        $data = $this->form->getState();
+
+        if (empty($data['product_image'])) {
+            return;
+        }
+        $this->record->productImage()?->delete();
+
+        $this->record->productImage()->create([
+            'merchant_id' => $this->record->merchant_id, // ✅ REQUIRED
+            'type'        => AttachmentType::IMAGE,
+            'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
+            'photo_url'   => $data['product_image'],
+        ]);
+    }
+
+
 }

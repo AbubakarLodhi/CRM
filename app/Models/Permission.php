@@ -8,5 +8,7 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 class Permission extends SpatiePermission
 {
     use HasUuids;
+
+    /** @var string $primaryKey */
     protected $primaryKey = 'id';
 }

@@ -2,11 +2,13 @@
 
 namespace App\Filament\Resources\Admins\Tables;
 
+use App\Models\Admin;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
@@ -18,6 +20,16 @@ class AdminsTable
     {
         return $table
             ->columns([
+                ImageColumn::make('profile_photo')
+                    ->label('Photo')
+                    ->circular()
+                    ->size(40)
+                    ->getStateUsing(fn (Admin $record) =>
+                    $record->profilePhoto
+                        ? asset('storage/' . $record->profilePhoto->photo_url)
+                        : null
+                    )
+                    ->defaultImageUrl(asset('images/avatar-placeholder.png')),
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('email')

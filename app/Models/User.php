@@ -52,6 +52,18 @@ class User extends Authenticatable
     }
 
     /**
+     * @return string[]
+     */
+    public static function getStatuses(): array
+    {
+        return [
+            self::STATUS_PENDING,
+            self::STATUS_VERIFIED,
+            self::STATUS_REJECTED,
+        ];
+    }
+
+    /**
      * @return Attribute
      */
     protected function password(): Attribute
@@ -77,15 +89,9 @@ class User extends Authenticatable
         return $this->belongsToMany(Branch::class)->withTimestamps();
     }
 
-    /**
-     * @return string[]
-     */
-    public static function getStatuses(): array
+    public function profilePhoto()
     {
-        return [
-            self::STATUS_PENDING,
-            self::STATUS_VERIFIED,
-            self::STATUS_REJECTED,
-        ];
+        return $this->morphOne(Attachment::class, 'attachable')
+            ->where('meta_type', \App\Enums\AttachmentMetaType::PROFILE_PHOTO);
     }
 }

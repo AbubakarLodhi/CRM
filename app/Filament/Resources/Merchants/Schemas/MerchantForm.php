@@ -2,7 +2,11 @@
 
 namespace App\Filament\Resources\Merchants\Schemas;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
+use App\Models\Attachment;
 use App\Models\Merchant;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -27,6 +31,16 @@ class MerchantForm
                 TextInput::make('email')
                     ->email()
                     ->required(),
+                FileUpload::make('merchant_logo')
+                    ->label('Merchant Logo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('merchants/logos')
+                    ->imagePreviewHeight(120)
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->dehydrated(false),
+
                 TextInput::make('address_line_1')
                     ->required(),
                 TextInput::make('address_line_2'),
@@ -37,6 +51,18 @@ class MerchantForm
                     ->url(),
                 Toggle::make('is_active')
                     ->required(),
+                FileUpload::make('profile_photo')
+                    ->label('Profile Photo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('merchants/profile-photos')
+                    ->imagePreviewHeight('150')
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->saveUploadedFileUsing(fn ($file) =>
+                    $file->store('merchants/profile-photos', 'public')
+                    ),
+
                 Select::make('status')
                     ->options([
                         Merchant::STATUS_PENDING => 'Pending',

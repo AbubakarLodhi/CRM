@@ -11,6 +11,7 @@ class ProductOption extends Model
 {
     use HasUuids;
 
+    /** @var string[] $fillable */
     protected $fillable = [
         'product_id',
         'name',
@@ -21,11 +22,17 @@ class ProductOption extends Model
      | Relationships
      |--------------------------*/
 
+    /**
+     * @return BelongsTo
+     */
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
     }
 
+    /**
+     * @return HasMany
+     */
     public function values(): HasMany
     {
         return $this->hasMany(ProductOptionValue::class);

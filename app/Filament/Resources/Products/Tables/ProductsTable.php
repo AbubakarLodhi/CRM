@@ -2,10 +2,12 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Models\Product;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,7 +21,18 @@ class ProductsTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('sku')
+                ImageColumn::make('product_image')
+                    ->label('Image')
+                    ->size(40)
+                    ->square()
+                    ->getStateUsing(fn (Product $record) =>
+                    $record->productImage
+                        ? asset('storage/' . $record->productImage->photo_url)
+                        : null
+                    )
+                    ->defaultImageUrl(asset('images/product-placeholder.png')),
+
+        TextColumn::make('sku')
                     ->searchable(),
 
                 TextColumn::make('type')

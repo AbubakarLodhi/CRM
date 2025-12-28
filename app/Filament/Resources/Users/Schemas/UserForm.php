@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Users\Schemas;
 
 use App\Models\User;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -28,6 +29,17 @@ class UserForm
                     ->password()
                     ->required()
                     ->hiddenOn('edit'),
+                FileUpload::make('profile_photo')
+                    ->label('Profile Photo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('staff/profile-photos')
+                    ->imagePreviewHeight(150)
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->saveUploadedFileUsing(fn ($file) =>
+                    $file->store('staff/profile-photos', 'public')
+                    ),
                 Toggle::make('is_active')
                     ->required(),
                 Select::make('status')

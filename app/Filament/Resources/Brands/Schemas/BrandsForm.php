@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Brands\Schemas;
 
 use App\Models\Category;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -15,11 +16,22 @@ class BrandsForm
         return $schema
             ->components([
                 //
-                       TextInput::make('name')
+                TextInput::make('name')
                            ->required()
                            ->maxLength(255),
 
-                       Select::make('category_id')
+                FileUpload::make('brand_logo')
+                    ->label('Brand Logo')
+                    ->image()
+                    ->disk('public')
+                    ->directory('brands/logos')
+                    ->imagePreviewHeight(120)
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
+                    ->dehydrated(false),
+
+
+                Select::make('category_id')
                            ->label('Category')
                            ->relationship(
                                'category',
@@ -42,7 +54,7 @@ class BrandsForm
                                $set('merchant_id', $merchantId);
                            }),
 
-                       Hidden::make('merchant_id')
+                            Hidden::make('merchant_id')
                            ->required(),
                    ]);
 

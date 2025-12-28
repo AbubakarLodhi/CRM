@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AttachmentMetaType;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,10 +15,13 @@ class Merchant extends Authenticatable
 {
     use HasUuids, HasRoles;
 
+    /** @var bool $incrementing */
     public $incrementing = false;
 
+    /** @var string $keyType */
     protected $keyType = 'string';
 
+    /** @var string[] $hidden */
     protected $hidden = ['password'];
 
     const STATUS_PENDING = 'pending';
@@ -26,6 +30,7 @@ class Merchant extends Authenticatable
 
     const STATUS_REJECTED = 'rejected';
 
+    /** @var string[] $fillable */
     protected $fillable = [
         'name',
         'phone',
@@ -39,6 +44,18 @@ class Merchant extends Authenticatable
         'website',
         'is_active',
     ];
+
+    /**
+     * @return string[]
+     */
+    public static function getStatuses(): array
+    {
+        return [
+            self::STATUS_PENDING,
+            self::STATUS_VERIFIED,
+            self::STATUS_REJECTED,
+        ];
+    }
 
     /**
      * @return Attribute
@@ -101,7 +118,7 @@ class Merchant extends Authenticatable
     /**
      * @return HasMany
      */
-    public function models(): HasMany
+    public function brandModel(): HasMany
     {
         return $this->hasMany(BrandModel::class);
     }
@@ -138,15 +155,21 @@ class Merchant extends Authenticatable
         return $this->hasMany(Product::class);
     }
 
-    /**
-     * @return string[]
-     */
-    public static function getStatuses(): array
+
+    public function attachments()
     {
-        return [
-            self::STATUS_PENDING,
-            self::STATUS_VERIFIED,
-            self::STATUS_REJECTED,
-        ];
+        return $this->morphMany(Attachment::class, 'attachable');
+    }
+
+    public function logo()
+    {
+        return $this->morphOne(Attachment::class, 'attachable')
+            ->where('meta_type', AttachmentMetaType::MERCHANT_LOGO);
+    }
+
+    public function profilePhoto()
+    {
+        return $this->morphOne(Attachment::class, 'attachable')
+            ->where('meta_type', AttachmentMetaType::PROFILE_PHOTO);
     }
 }
