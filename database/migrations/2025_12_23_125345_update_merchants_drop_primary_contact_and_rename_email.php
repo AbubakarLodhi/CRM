@@ -9,25 +9,26 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('merchants', function (Blueprint $table) {
-            // Drop columns
-            $table->dropColumn([
-                'primary_contact_name',
-                'primary_contact_number',
-            ]);
+            if (Schema::hasColumn('merchants', 'primary_contact_name')) {
+                $table->dropColumn('primary_contact_name');
+            }
 
-            // Rename column
-            $table->renameColumn('primary_contact_email', 'email');
+            if (Schema::hasColumn('merchants', 'primary_contact_number')) {
+                $table->dropColumn('primary_contact_number');
+            }
+
+            if (Schema::hasColumn('merchants', 'primary_contact_email')) {
+                $table->renameColumn('primary_contact_email', 'email');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('merchants', function (Blueprint $table) {
-            // Recreate dropped columns
-            $table->string('primary_contact_name');
-            $table->string('primary_contact_number')->unique();
+            $table->string('primary_contact_name')->nullable();
+            $table->string('primary_contact_number')->nullable()->unique();
 
-            // Rename column back
             $table->renameColumn('email', 'primary_contact_email');
         });
     }
