@@ -2,7 +2,6 @@
 
 namespace Database\Seeders\ZGN\SolarPanels;
 
-use App\Models\Business;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\ProductOption;
