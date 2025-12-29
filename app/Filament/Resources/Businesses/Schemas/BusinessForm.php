@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Businesses\Schemas;
 
+use App\Models\Admin;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -23,9 +26,14 @@ class BusinessForm
                 Select::make('merchant_id')
                     ->label('Merchant')
                     ->relationship('merchant', 'name')
-                    ->preload()
-                    ->searchable()
-                    ->required(),
+                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
+
+                Hidden::make('merchant_id')
+                    ->default(fn() => Filament::auth()->user()?->id)
+                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
+
             ]);
+
+
     }
 }

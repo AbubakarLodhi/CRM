@@ -7,9 +7,11 @@ use App\Filament\Resources\Businesses\Pages\EditBusiness;
 use App\Filament\Resources\Businesses\Pages\ListBusinesses;
 use App\Filament\Resources\Businesses\Schemas\BusinessForm;
 use App\Filament\Resources\Businesses\Tables\BusinessesTable;
+use App\Models\Admin;
 use App\Models\Business;
 use BackedEnum;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Builder;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -37,6 +39,20 @@ class BusinessResource extends Resource
             'businesses.view',
             Filament::getCurrentPanel()->getAuthGuard()
         );
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery();
+
+        // Admin can see all businesses
+        if ($user instanceof Admin) {
+            return $query;
+        }
+
+        // Merchant can see only their businesses
+        return $query->where('merchant_id', $user->id);
     }
 
     public static function form(Schema $schema): Schema

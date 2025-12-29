@@ -2,10 +2,13 @@
 
 namespace App\Filament\Resources\ProductVariants\Schemas;
 
+use App\Models\Admin;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class VariantForm
 {
@@ -15,7 +18,20 @@ class VariantForm
             ->components([
                 Select::make('product_id')
                     ->label('Product')
-                    ->relationship('product', 'name')
+//                    ->relationship('product', 'name')
+                    ->relationship(
+                        name: 'product',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = Filament::auth()->user();
+
+                            if ($user instanceof Admin) {
+                                return;
+                            }
+
+                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
+                        }
+                    )
                     ->searchable()
                     ->preload()
                     ->required()

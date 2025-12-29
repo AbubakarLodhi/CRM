@@ -75,14 +75,14 @@ return new class extends Migration {
             }
 
             // revert nullable fields
-            $table->uuid('category_id')->nullable(false)->change();
-            $table->uuid('sub_category_id')->nullable(false)->change();
-            $table->uuid('brand_id')->nullable(false)->change();
-            $table->uuid('brand_model_id')->nullable(false)->change();
+            $table->uuid('category_id')->nullable()->change();
+            $table->uuid('sub_category_id')->nullable()->change();
+            $table->uuid('brand_id')->nullable()->change();
+            $table->uuid('brand_model_id')->nullable()->change();
 
             // revert pricing
-            $table->decimal('purchase_price', 12, 2)->nullable(false)->change();
-            $table->decimal('selling_price', 12, 2)->nullable(false)->change();
+            $table->decimal('purchase_price', 12, 2)->nullable()->change();
+            $table->decimal('selling_price', 12, 2)->nullable()->change();
 
             // remove added columns SAFELY
             $table->dropColumn([

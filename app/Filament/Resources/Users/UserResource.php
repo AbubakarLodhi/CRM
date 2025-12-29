@@ -7,6 +7,7 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
+use App\Models\Admin;
 use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -41,6 +42,20 @@ class UserResource extends Resource
             'users.view',
             $guard
         );
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+        $query = parent::getEloquentQuery();
+
+        // Admin can see all businesses
+        if ($user instanceof Admin) {
+            return $query;
+        }
+
+        // Merchant can see only their businesses
+        return $query->where('merchant_id', $user->id);
     }
 
     public static function form(Schema $schema): Schema

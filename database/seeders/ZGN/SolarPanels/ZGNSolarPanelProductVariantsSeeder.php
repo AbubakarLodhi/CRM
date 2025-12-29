@@ -1,9 +1,8 @@
 <?php
 
-namespace Database\Seeders\ZGN;
+namespace Database\Seeders\ZGN\SolarPanels;
 
 use App\Models\Business;
-use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -17,26 +16,18 @@ class ZGNSolarPanelProductVariantsSeeder extends Seeder
         $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
         if (!$merchant) return;
 
-        $business = Business::where('merchant_id', $merchant->id)->where('name', 'Solar Systems')->first();
-        if (!$business) return;
-
         $merchantSlug = collect(explode(' ', $merchant->name))
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
-        $businessSlug = collect(explode(' ', $business->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
-            ->implode('');
-
-        $sku = "{$merchantSlug}-{$businessSlug}-solar-panel";
+        $sku = "{$merchantSlug}-solar-panel";
         $product = Product::where('sku', $sku)->first();
 
         $variants = [
-            ['name' => 'Huawei 5kW Hybrid', 'sku' => 'HUA-5K-HYB'],
-            ['name' => 'Huawei 10kW Hybrid', 'sku' => 'HUA-10K-HYB'],
-            ['name' => 'Growatt 5kW On-Grid', 'sku' => 'GRT-5K-ONG'],
-            ['name' => 'Growatt 20kW On-Grid', 'sku' => 'GRT-20K-ONG'],
-            ['name' => 'Inverex 5kW Hybrid', 'sku' => 'INV-5K-HYB'],
+            ['brand' => 'Longi', 'name' => 'Longi 540W Mono', 'sku' => 'LNG-540-MONO'],
+            ['brand' => 'Longi', 'name' => 'Longi 550W Mono', 'sku' => 'LNG-550-MONO'],
+            ['brand' => 'JA Solar', 'name' => 'JA Solar 550W Mono', 'sku' => 'JA-550-MONO'],
+            ['brand' => 'Jinko Solar', 'name' => 'Jinko 560W Bifacial', 'sku' => 'JNK-560-BIF'],
         ];
 
         foreach ($variants as $v) {

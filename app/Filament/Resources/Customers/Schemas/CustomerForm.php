@@ -2,7 +2,10 @@
 
 namespace App\Filament\Resources\Customers\Schemas;
 
+use App\Models\Admin;
 use App\Models\Customer;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -33,9 +36,11 @@ class CustomerForm
                 Select::make('merchant_id')
                     ->label('Merchant')
                     ->relationship('merchant', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->required(),
+                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
+
+                Hidden::make('merchant_id')
+                    ->default(fn() => Filament::auth()->user()?->id)
+                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
 
                 Select::make('reference_id')
                     ->label('Reference Customer')
