@@ -51,99 +51,151 @@ class ZGNBrandModelsSeeder extends Seeder
         /* ================= SOLAR PANELS ================= */
 
         $create('Longi', [
-            'LR5-72HPH-540M',
-            'LR5-72HPH-550M',
-            'LR5-72HPH-560M',
+            'LONGI-LR5-72HPH-540M',
+            'LONGI-LR5-72HPH-550M',
+            'LONGI-LR5-72HPH-560M',
         ]);
 
         $create('JA Solar', [
-            'JAM72S30-545/MR',
-            'JAM72S30-550/MR',
+            'JA-JAM72S30-545-MR',
+            'JA-JAM72S30-550-MR',
         ]);
 
         $create('Jinko Solar', [
-            'JKM550M-72HL4-V',
-            'JKM555M-72HL4-V',
+            'JINKO-JKM550M-72HL4-V',
+            'JINKO-JKM555M-72HL4-V',
         ]);
 
         $create('Canadian Solar', [
-            'CS6W-545MS',
-            'CS6W-550MS',
+            'CANADIAN-CS6W-545MS',
+            'CANADIAN-CS6W-550MS',
         ]);
 
         $create('Trina Solar', [
-            'TSM-DE18M(II)-545',
-            'TSM-DE18M(II)-550',
+            'TRINA-TSM-DE18M-545',
+            'TRINA-TSM-DE18M-550',
         ]);
 
         /* ================= INVERTERS ================= */
 
         $create('Huawei', [
-            'SUN2000-5K-MAP0',
-            'SUN2000-10K-MAP0',
-            'SUN2000-20K-MAP0',
+            'HUAWEI-SUN2000-5K',
+            'HUAWEI-SUN2000-10K',
+            'HUAWEI-SUN2000-20K',
         ]);
 
         $create('Growatt', [
-            'MIN 5000TL-X',
-            'MOD 10KTL3-X',
-            'MID 20KTL3-X',
+            'GROWATT-MIN-5000TL-X',
+            'GROWATT-MOD-10KTL3-X',
+            'GROWATT-MID-20KTL3-X',
         ]);
 
         $create('Inverex', [
-            'AXPERT-VM-III-5K',
-            'Nitrox-10KW',
-            'Nitrox-15KW',
+            'INVEREX-AXPERT-VM-III-5K',
+            'INVEREX-NITROX-10KW',
+            'INVEREX-NITROX-15KW',
         ]);
 
         $create('GoodWe', [
-            'GW5000-ES',
-            'GW10K-ET',
+            'GOODWE-GW5000-ES',
+            'GOODWE-GW10K-ET',
         ]);
 
         $create('Solis', [
-            'S5-GR1P5K',
-            'S5-GC20K',
+            'SOLIS-S5-GR1P5K',
+            'SOLIS-S5-GC20K',
         ]);
 
         /* ================= BATTERIES ================= */
 
         $create('Phoenix', [
-            'TX-1800',
-            'TX-2500',
+            'PHOENIX-TX-1800',
+            'PHOENIX-TX-2500',
         ]);
 
         $create('Exide', [
-            'TR-2000',
-            'TR-2500',
+            'EXIDE-TR-2000',
+            'EXIDE-TR-2500',
         ]);
 
         $create('AGS', [
-            'SP-1800',
-            'SP-2000',
+            'AGS-SP-1800',
+            'AGS-SP-2000',
         ]);
 
         $create('Narada', [
-            'REXC-1000',
-            'REXC-2000',
+            'NARADA-REXC-1000',
+            'NARADA-REXC-2000',
         ]);
 
         $create('Pylontech', [
-            'US2000C',
-            'US3000C',
+            'PYLONTECH-US2000C',
+            'PYLONTECH-US3000C',
+        ]);
+
+        /* ================= BATTERY ACCESSORIES ================= */
+
+        $create('Generic', [
+            'GENERIC-BATTERY-ACCESSORY',
+        ]);
+
+        $create('ZGN Accessories', [
+            'ZGN-BATTERY-ACCESSORY',
+        ]);
+
+        /* ================= EARTHING ================= */
+
+        $create('Generic', [
+            'GENERIC-EARTHING',
+        ]);
+
+        /* ================= MONITORING DEVICES ================= */
+
+        $create('Huawei', [
+            'HUAWEI-MONITORING',
+        ]);
+
+        $create('Growatt', [
+            'GROWATT-MONITORING',
+        ]);
+
+        $create('Generic', [
+            'GENERIC-MONITORING',
+        ]);
+
+        /* ================= COMMUNICATION MODULES ================= */
+
+        $create('Huawei', [
+            'HUAWEI-COMMUNICATION',
+        ]);
+
+        $create('Growatt', [
+            'GROWATT-COMMUNICATION',
+        ]);
+
+        $create('Generic', [
+            'GENERIC-COMMUNICATION',
         ]);
 
         /* ================= STRUCTURES ================= */
 
         $create('ZGN Fabrication', [
-            'L1-ROOF-MOUNT',
-            'L2-ELEVATED',
-            'L3-HIGH-ELEVATION',
+            'ZGN-L1-ROOF-MOUNT',
+            'ZGN-L2-ELEVATED',
+            'ZGN-L3-HIGH-ELEVATION',
         ]);
 
         $create('Local Fabricator', [
-            'CUSTOM-GI-FRAME',
-            'CUSTOM-AL-FRAME',
+            'LOCAL-GI-FRAME',
+            'LOCAL-AL-FRAME',
+        ]);
+
+        /* ================= SERVICES ================= */
+
+        $create('ZGN Services', [
+            'ZGN-INSTALLATION-SERVICE',
+            'ZGN-NET-METERING-SERVICE',
+            'ZGN-AMC-SERVICE',
         ]);
     }
 }

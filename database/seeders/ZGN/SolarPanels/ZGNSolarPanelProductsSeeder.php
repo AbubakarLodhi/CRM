@@ -2,9 +2,13 @@
 
 namespace Database\Seeders\ZGN\SolarPanels;
 
+use App\Models\Brand;
+use App\Models\BrandCategory;
+use App\Models\BrandModel;
 use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
+use Exception;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -16,6 +20,26 @@ class ZGNSolarPanelProductsSeeder extends Seeder
         if (!$merchant) return;
 
         $category = Category::where('merchant_id', $merchant->id)->where('name', 'Solar Panels')->first();
+        if (!$category) throw new Exception('Solar Panels category not found');
+
+        $brand = Brand::where(['merchant_id' => $merchant->id, 'name' => 'Longi'])->first();
+        if (!$brand) throw new Exception('Longi brand not found');
+
+        BrandCategory::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'brand_id'    => $brand->id,
+                'category_id' => $category->id,
+            ],
+            [
+                'id' => Str::uuid(),
+            ]
+        );
+
+        $brandModel = BrandModel::where([
+            'merchant_id' => $merchant->id,
+            'brand_id' => $brand->id,
+        ])->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
@@ -34,6 +58,8 @@ class ZGNSolarPanelProductsSeeder extends Seeder
                 'description' => 'Photovoltaic solar panel',
                 'category_id' => $category?->parent_id,
                 'sub_category_id' => $category?->id,
+                'brand_id' => $brand?->id,
+                'brand_model_id' => $brandModel?->id,
                 'type' => 'stock',
                 'unit' => 'pcs',
                 'track_inventory' => true,

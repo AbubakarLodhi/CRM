@@ -6,6 +6,7 @@ use App\Enums\AttachmentMetaType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
@@ -14,7 +15,7 @@ class Category extends Model
     use HasUuids;
 
     /** @var string[] $fillable */
-    protected $fillable = ['merchant_id','parent_id','name'];
+    protected $fillable = ['merchant_id', 'parent_id', 'name'];
 
     /** @var bool $incrementing */
     public $incrementing = false;
@@ -35,7 +36,7 @@ class Category extends Model
      */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Category::class,'parent_id');
+        return $this->belongsTo(Category::class, 'parent_id');
     }
 
     /**
@@ -43,15 +44,20 @@ class Category extends Model
      */
     public function children(): HasMany
     {
-        return $this->hasMany(Category::class,'parent_id');
+        return $this->hasMany(Category::class, 'parent_id');
     }
 
     /**
-     * @return HasMany
+     * @return BelongsToMany
      */
-    public function brands(): HasMany
+    public function brands(): BelongsToMany
     {
-        return $this->hasMany(Brand::class);
+        return $this->belongsToMany(
+            Brand::class,
+            'brand_category',
+            'category_id',
+            'brand_id'
+        )->withTimestamps();
     }
 
     /**

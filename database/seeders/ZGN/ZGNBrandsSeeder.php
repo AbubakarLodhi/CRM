@@ -3,8 +3,10 @@
 namespace Database\Seeders\ZGN;
 
 use App\Models\Brand;
+use App\Models\BrandCategory;
 use App\Models\Category;
 use App\Models\Merchant;
+use Exception;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -12,6 +14,7 @@ class ZGNBrandsSeeder extends Seeder
 {
     /**
      * @return void
+     * @throws Exception
      */
     public function run(): void
     {
@@ -19,29 +22,46 @@ class ZGNBrandsSeeder extends Seeder
         if (!$merchant) return;
 
         /**
-         * Helper: find category by name (merchant scoped)
+         * Resolve category by name (merchant scoped)
          */
-        $category = function (string $name) use ($merchant) {
-            return Category::where('merchant_id', $merchant->id)
+        $category = function (string $name) use ($merchant): Category {
+            $cat = Category::where('merchant_id', $merchant->id)
                 ->where('name', $name)
                 ->first();
+
+            if (!$cat) {
+                throw new \Exception("Category '{$name}' not found for merchant {$merchant->id}");
+            }
+
+            return $cat;
         };
 
         /**
-         * Helper: create brand
+         * Create brand globally + attach to category via pivot
          */
-        $create = function (string $name, string $categoryName) use ($merchant, $category) {
+        $attach = function (string $brandName, string $categoryName) use ($merchant, $category) {
             $cat = $category($categoryName);
-            if (!$cat) return;
 
-            Brand::firstOrCreate(
+            // 1️⃣ Brand (GLOBAL per merchant)
+            $brand = Brand::firstOrCreate(
                 [
                     'merchant_id' => $merchant->id,
-                    'name' => $name,
+                    'name' => $brandName,
                 ],
                 [
                     'id' => Str::uuid(),
+                ]
+            );
+
+            // 2️⃣ Brand ↔ Category (PIVOT)
+            BrandCategory::firstOrCreate(
+                [
+                    'merchant_id' => $merchant->id,
+                    'brand_id' => $brand->id,
                     'category_id' => $cat->id,
+                ],
+                [
+                    'id' => Str::uuid(),
                 ]
             );
         };
@@ -55,7 +75,7 @@ class ZGNBrandsSeeder extends Seeder
                      'Canadian Solar',
                      'Trina Solar',
                  ] as $brand) {
-            $create($brand, 'Solar Panels');
+            $attach($brand, 'Solar Panels');
         }
 
         /* ================= INVERTERS ================= */
@@ -67,7 +87,7 @@ class ZGNBrandsSeeder extends Seeder
                      'GoodWe',
                      'Solis',
                  ] as $brand) {
-            $create($brand, 'Inverters');
+            $attach($brand, 'Inverters');
         }
 
         /* ================= BATTERIES ================= */
@@ -79,16 +99,17 @@ class ZGNBrandsSeeder extends Seeder
                      'Narada',
                      'Pylontech',
                  ] as $brand) {
-            $create($brand, 'Batteries');
+            $attach($brand, 'Batteries');
         }
 
-        /* ================= MONITORING ================= */
+        /* ================= MONITORING DEVICES ================= */
 
         foreach ([
                      'Huawei',
                      'Growatt',
+                     'Generic',
                  ] as $brand) {
-            $create($brand, 'Monitoring Devices');
+            $attach($brand, 'Monitoring Devices');
         }
 
         /* ================= MOUNTING STRUCTURES ================= */
@@ -97,7 +118,7 @@ class ZGNBrandsSeeder extends Seeder
                      'ZGN Fabrication',
                      'Local Fabricator',
                  ] as $brand) {
-            $create($brand, 'Mounting Structures');
+            $attach($brand, 'Mounting Structures');
         }
 
         /* ================= ELECTRICAL & SAFETY ================= */
@@ -106,7 +127,45 @@ class ZGNBrandsSeeder extends Seeder
                      'Schneider Electric',
                      'ABB',
                  ] as $brand) {
-            $create($brand, 'Circuit Protection');
+            $attach($brand, 'Circuit Protection');
+        }
+
+        /* ================= BATTERY ACCESSORIES ================= */
+
+        foreach ([
+                     'Generic',
+                     'ZGN Accessories',
+                 ] as $brand) {
+            $attach($brand, 'Battery Accessories');
+        }
+
+        /* ================= EARTHING ================= */
+
+        foreach ([
+                     'Generic',
+                 ] as $brand) {
+            $attach($brand, 'Earthing');
+            $attach($brand, 'Cable Management');
+        }
+
+        /* ================= COMMUNICATION MODULES ================= */
+
+        foreach ([
+                     'Huawei',
+                     'Growatt',
+                     'Generic',
+                 ] as $brand) {
+            $attach($brand, 'Communication Modules');
+        }
+
+        /* ================= SERVICES ================= */
+
+        foreach ([
+                     'ZGN Services',
+                 ] as $brand) {
+            $attach($brand, 'Installation');
+            $attach($brand, 'Net Metering Processing');
+            $attach($brand, 'AMC');
         }
     }
 }

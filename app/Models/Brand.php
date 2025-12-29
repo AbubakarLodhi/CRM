@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Brand extends Model
@@ -14,7 +14,7 @@ class Brand extends Model
     use HasUuids;
 
     /** @var string[] $fillable */
-    protected $fillable = ['merchant_id','category_id','name'];
+    protected $fillable = ['merchant_id', 'name'];
 
     /** @var bool $incrementing */
     public $incrementing = false;
@@ -31,11 +31,16 @@ class Brand extends Model
     }
 
     /**
-     * @return BelongsTo
+     * @return BelongsToMany
      */
-    public function category(): BelongsTo
+    public function categories(): BelongsToMany
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsToMany(
+            Category::class,
+            'brand_category',
+            'brand_id',
+            'category_id'
+        )->withTimestamps();
     }
 
     /**
@@ -43,7 +48,7 @@ class Brand extends Model
      */
     public function brandModel(): HasMany
     {
-        return $this->hasMany(BrandModel::class,'brand_id');
+        return $this->hasMany(BrandModel::class, 'brand_id');
     }
 
     /**

@@ -2,15 +2,17 @@
 
 namespace Database\Seeders\ZGN;
 
-use App\Models\{
+use App\Models\{Brand,
+    BrandCategory,
+    BrandModel,
     Merchant,
     Category,
     Product,
     ProductOption,
     ProductOptionValue,
     ProductVariant,
-    ProductVariantValue
-};
+    ProductVariantValue};
+use Exception;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -22,7 +24,26 @@ class SolarEarthingSeeder extends Seeder
         if (!$merchant) return;
 
         $subCat = Category::where('merchant_id', $merchant->id)->where('name', 'Earthing')->first();
-        if (!$subCat) return;
+        if (!$subCat) throw new Exception('Earthing category not found');
+
+        $brand = Brand::where(['merchant_id' => $merchant->id, 'name' => 'Generic'])->first();
+        if (!$brand) throw new \Exception('Generic brand not found');
+
+        BrandCategory::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'brand_id'    => $brand->id,
+                'category_id' => $subCat->id,
+            ],
+            [
+                'id' => Str::uuid(),
+            ]
+        );
+
+        $brandModel = BrandModel::where([
+            'merchant_id' => $merchant->id,
+            'brand_id' => $brand->id,
+        ])->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
@@ -41,6 +62,8 @@ class SolarEarthingSeeder extends Seeder
                 'description' => 'Earthing rods, pits, clamps for solar systems',
                 'category_id' => $subCat->parent_id,
                 'sub_category_id' => $subCat->id,
+                'brand_id' => $brand?->id,
+                'brand_model_id' => $brandModel?->id,
                 'type' => 'stock',
                 'unit' => 'pcs',
                 'track_inventory' => true,
