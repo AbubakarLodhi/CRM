@@ -9,6 +9,7 @@ use Filament\Actions\CreateAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ListCategories extends ListRecords
 {
@@ -19,15 +20,11 @@ class ListCategories extends ListRecords
         return request()->filled('parent_id');
     }
 
-    // 🔧 MUST BE PUBLIC
     public function getTitle(): string
     {
-        return $this->isSubCategoryContext()
-            ? 'Sub-Categories'
-            : 'Categories';
+        return $this->isSubCategoryContext() ? 'Sub-Categories' : 'Categories';
     }
 
-    // 🔧 MUST BE PUBLIC
     public function getBreadcrumbs(): array
     {
         return [
@@ -36,21 +33,49 @@ class ListCategories extends ListRecords
         ];
     }
 
+    /**
+     * ✅ Table view query (what rows appear)
+     */
     protected function getTableQuery(): Builder
     {
+        $user = Filament::auth()->user();
+
         return Category::query()
             ->when(
-                request('parent_id'),
-                fn (Builder $q) => $q->where('parent_id', request('parent_id')),
-                fn (Builder $q) => $q->whereNull('parent_id')
+                ! $user instanceof Admin,
+                fn (Builder $query) => $query->where('merchant_id', $user->id)
+            )
+            ->when(
+                request()->filled('parent_id'),
+                fn (Builder $query) =>
+                $query->where('parent_id', request('parent_id')),
+                fn (Builder $query) =>
+                $query->whereNull('parent_id')
             );
+    }
+
+    /**
+     * ✅ CRITICAL: Action record resolver (what Filament uses to resolve record for Delete/Edit actions)
+     * This must ignore your table query constraints.
+     */
+    protected function resolveTableRecord(?string $key): ?Model
+    {
+        if (! $key) {
+            return null;
+        }
+
+        return Category::query()->whereKey($key)->first();
     }
 
     protected function getHeaderActions(): array
     {
         return [
             CreateAction::make()
-                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                ->visible(fn () =>
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())
+                ),
 
             ...(
             $this->isSubCategoryContext()

@@ -15,7 +15,6 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
-
 use UnitEnum;
 
 class CategoryResource extends Resource
@@ -34,15 +33,14 @@ class CategoryResource extends Resource
     {
         $user = Filament::auth()->user();
 
-        if (! $user) {
-            return false;
-        }
-
-        return $user->hasPermissionTo(
-            'categories.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        return $user
+            ? $user->hasPermissionTo(
+                'categories.view',
+                Filament::getCurrentPanel()->getAuthGuard()
+            )
+            : false;
     }
+
     public static function form(Schema $schema): Schema
     {
         return CategoryForm::configure($schema);
@@ -53,36 +51,21 @@ class CategoryResource extends Resource
         return CategoriesTable::configure($table);
     }
 
-//    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-//    {
-//        return parent::getEloquentQuery()
-//            ->whereNull('parent_id');
-//    }
-
+    /**
+     * ✅ ONLY merchant / admin scoping
+     * ❌ NO parent_id logic here
+     */
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $user = Filament::auth()->user();
-        $query = parent::getEloquentQuery()
-        ->whereNull('parent_id');;
+
+        $query = parent::getEloquentQuery();
 
         if ($user instanceof Admin) {
             return $query;
-
         }
 
         return $query->where('merchant_id', $user->id);
-    }
-
-//    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-//    {
-//        return parent::getEloquentQuery()
-//            ->whereNull('parent_id');
-//    }
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
     }
 
     public static function getPages(): array
