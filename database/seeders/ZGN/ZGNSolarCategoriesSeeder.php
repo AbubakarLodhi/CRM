@@ -46,106 +46,59 @@ class ZGNSolarCategoriesSeeder extends Seeder
 
         /* ================= ELECTRONICS ================= */
 
-        $panels = $create('Solar Panels', $electronics->id);
-        foreach (['Monocrystalline', 'Polycrystalline', 'Bifacial', 'Thin Film'] as $type) {
-            $create($type, $panels->id);
-        }
+        /* ================= ELECTRONICS ================= */
 
-        $inverters = $create('Inverters', $electronics->id);
-        foreach (['On-Grid', 'Off-Grid', 'Hybrid', 'String', 'Micro-Inverter'] as $type) {
-            $create($type, $inverters->id);
-        }
-
-        $powerElectronics = $create('Power Electronics', $electronics->id);
-        $create('DC Optimizers', $powerElectronics->id);
+        $create('Solar Panels', $electronics->id);
+        $create('Inverters', $electronics->id);
+        $create('Power Electronics', $electronics->id);
 
         /* ================= ELECTRICAL ================= */
 
-        $dcSide = $create('DC Side', $electrical->id);
-        foreach (['DC Cables', 'DC Combiner Boxes', 'DC Isolators'] as $item) {
-            $create($item, $dcSide->id);
-        }
-
-        $acSide = $create('AC Side', $electrical->id);
-        foreach (['AC Cables', 'AC Distribution Boards', 'Changeover Switches'] as $item) {
-            $create($item, $acSide->id);
-        }
+        $create('DC Side Components', $electrical->id);
+        $create('AC Side Components', $electrical->id);
 
         /* ================= ENERGY STORAGE ================= */
 
-        $batteries = $create('Batteries', $storage->id);
-        foreach (['Lithium-Ion', 'LiFePO4', 'Lead Acid'] as $type) {
-            $create($type, $batteries->id);
-        }
-
-        $batteryAccessories = $create('Battery Accessories', $storage->id);
-        foreach (['Battery Racks', 'BMS'] as $item) {
-            $create($item, $batteryAccessories->id);
-        }
+        $create('Batteries', $storage->id);
+        $create('Battery Accessories', $storage->id);
 
         /* ================= MECHANICAL ================= */
 
-        $structures = $create('Mounting Structures', $mechanical->id);
-        foreach (['L1 Structure', 'L2 Structure', 'L3 Structure', 'Custom Fabricated'] as $type) {
-            $create($type, $structures->id);
-        }
-
-        $components = $create('Structural Components', $mechanical->id);
-        foreach (['Rails', 'Clamps', 'Fasteners'] as $item) {
-            $create($item, $components->id);
-        }
+        $create('Mounting Structures', $mechanical->id);
+        $create('Structural Components', $mechanical->id);
 
         /* ================= SAFETY ================= */
 
-        $circuit = $create('Circuit Protection', $safety->id);
-        foreach (['DC MCB / MCCB', 'AC MCB / MCCB', 'Fuses'] as $item) {
-            $create($item, $circuit->id);
-        }
-
-        $surge = $create('Surge Protection', $safety->id);
-        foreach (['DC SPD', 'AC SPD'] as $item) {
-            $create($item, $surge->id);
-        }
-
-        $earthing = $create('Earthing', $safety->id);
-        foreach (['Earthing Rods', 'Earthing Pits'] as $item) {
-            $create($item, $earthing->id);
-        }
+        $create('Circuit Protection', $safety->id);
+        $create('Surge Protection', $safety->id);
+        $create('Earthing', $safety->id);
 
         /* ================= MONITORING ================= */
 
-        $devices = $create('Monitoring Devices', $monitoring->id);
-        foreach (['Energy Meters', 'Net Meters'] as $item) {
-            $create($item, $devices->id);
-        }
-
-        $comms = $create('Communication', $monitoring->id);
-        foreach (['WiFi Loggers', 'GSM Loggers'] as $item) {
-            $create($item, $comms->id);
-        }
+        $create('Monitoring Devices', $monitoring->id);
+        $create('Communication Modules', $monitoring->id);
 
         /* ================= TOOLS ================= */
 
-        foreach (['Electrical Tools', 'Mechanical Tools', 'Safety Gear'] as $item) {
-            $create($item, $tools->id);
-        }
+        $create('Electrical Tools', $tools->id);
+        $create('Mechanical Tools', $tools->id);
+        $create('Safety Gear', $tools->id);
 
         /* ================= CONSUMABLES ================= */
 
-        foreach (['Cable Ties', 'Insulation Tape', 'Warning Labels'] as $item) {
-            $create($item, $consumables->id);
-        }
+        $create('Cable Management', $consumables->id);
+        $create('Insulation & Tapes', $consumables->id);
+        $create('Labels & Accessories', $consumables->id);
 
         /* ================= SERVICES ================= */
 
-        foreach (['Installation', 'Net Metering Processing', 'AMC'] as $item) {
-            $create($item, $services->id);
-        }
+        $create('Installation', $services->id);
+        $create('Net Metering Processing', $services->id);
+        $create('AMC', $services->id);
 
         /* ================= SYSTEMS ================= */
 
-        foreach (['Residential Systems', 'Commercial Systems'] as $item) {
-            $create($item, $systems->id);
-        }
+        $create('Residential Systems', $systems->id);
+        $create('Commercial Systems', $systems->id);
     }
 }
