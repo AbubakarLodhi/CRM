@@ -4,6 +4,7 @@ namespace App\Filament\Resources\BrandModels\Pages;
 
 use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Brands\BrandsResource;
+use App\Models\Admin;
 use App\Models\BrandModel;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -20,14 +21,19 @@ class ListBrandModels extends ListRecords
      */
     protected function getTableQuery(): Builder
     {
+        $user = Filament::auth()->user();
+
         return BrandModel::query()
+            ->when(
+                ! $user instanceof Admin,
+                fn (Builder $query) => $query->where('merchant_id', $user->id)
+            )
             ->when(
                 request()->filled('brand_id'),
                 fn (Builder $query) =>
                 $query->where('brand_id', request('brand_id'))
             );
     }
-
     public function getTitle(): string
     {
         return request()->filled('brand_id')

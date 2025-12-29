@@ -7,8 +7,10 @@ use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\Category;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -26,45 +28,51 @@ class CategoriesTable
                     : self::categoryColumns()
             )
             ->recordActions([
-                    Action::make('view-subcategories')
+                Action::make('view-subcategories')
                     ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Sub-Categories')
-                    ->url(fn (Category $record) =>
-                        CategoryResource::getUrl('index', [
-                        'parent_id' => $record->id,
-                    ])
+                    ->url(fn (?Category $record) =>
+                    $record
+                        ? CategoryResource::getUrl('index', ['parent_id' => $record->id])
+                        : null
                     )
-                    ->openUrlInNewTab(false)
                     ->visible(fn () => ! request()->filled('parent_id')),
 
-
-                    Action::make('view-brands')
+                Action::make('view-brands')
                     ->icon('heroicon-o-building-storefront')
                     ->label('')
                     ->tooltip('View Brands')
-                    ->url(fn (Category $record) =>
-                        BrandsResource::getUrl('index', [
-                        'category_id' => $record->id,
-                    ])
+                    ->url(fn (?Category $record) =>
+                    $record
+                        ? BrandsResource::getUrl('index', ['category_id' => $record->id])
+                        : null
                     )
-                    ->openUrlInNewTab(false)
                     ->visible(fn () => request()->filled('parent_id')),
 
-                    EditAction::make()
+                EditAction::make()
                     ->label('')
                     ->tooltip('Edit'),
-
-                    Action::make('delete')
-                    ->icon('heroicon-o-trash')
-                    ->color('danger')
+                DeleteAction::make()
                     ->label('')
                     ->tooltip('Delete')
                     ->requiresConfirmation()
-                    ->action(function (Category $record): void {
-                        $record->delete();
+                    ->before(function (?Category $record) {
+                        if (! $record) {
+                            return;
+                        }
+                        if ($record->parent_id === null && $record->children()->exists()) {
+                            Notification::make()
+                                ->title('Cannot delete')
+                                ->body('Please delete sub-categories first.')
+                                ->danger()
+                                ->send();
+
+                            return false;
+                        }
                     }),
-            ])
+
+        ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

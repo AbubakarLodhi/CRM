@@ -4,9 +4,11 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Products\ProductResource;
+use App\Models\Admin;
 use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -16,11 +18,17 @@ class ListProducts extends ListRecords
 
     protected function getTableQuery(): Builder
     {
+        $user = Filament::auth()->user();
+
         return Product::query()
             ->when(
+                ! $user instanceof Admin,
+                fn (Builder $query) => $query->where('merchant_id', $user->id)
+            )
+            ->when(
                 request()->filled('brand_model_id'),
-                fn (Builder $q) =>
-                $q->where('brand_model_id', request('brand_model_id'))
+                fn (Builder $query) =>
+                $query->where('brand_model_id', request('brand_model_id'))
             );
     }
 

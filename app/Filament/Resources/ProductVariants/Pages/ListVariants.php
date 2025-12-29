@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ProductVariants\Pages;
 
 use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Resources\ProductVariants\ProductVariantResource;
+use App\Models\Admin;
 use App\Models\ProductVariant;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -17,11 +18,17 @@ class ListVariants extends ListRecords
 
     protected function getTableQuery(): Builder
     {
+        $user = Filament::auth()->user();
+
         return ProductVariant::query()
             ->when(
+                ! $user instanceof Admin,
+                fn (Builder $query) => $query->where('merchant_id', $user->id)
+            )
+            ->when(
                 request()->filled('product_id'),
-                fn (Builder $q) =>
-                $q->where('product_id', request('product_id'))
+                fn (Builder $query) =>
+                $query->where('product_id', request('product_id'))
             );
     }
 
