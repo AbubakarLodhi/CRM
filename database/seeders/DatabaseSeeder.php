@@ -2,16 +2,31 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\ZGN\Batteries\ZGNBatteryProductsOptionsSeeder;
+use Database\Seeders\ZGN\Batteries\ZGNBatteryProductsOptionValuesSeeder;
+use Database\Seeders\ZGN\Batteries\ZGNBatteryProductsSeeder;
+use Database\Seeders\ZGN\Batteries\ZGNBatteryProductVariantsSeeder;
+use Database\Seeders\ZGN\Batteries\ZGNBatteryProductVariantValuesSeeder;
+use Database\Seeders\ZGN\DCSide\SolarCableSeeders;
+use Database\Seeders\ZGN\SolarAMCServiceSeeder;
+use Database\Seeders\ZGN\SolarBatteryAccessoriesSeeder;
+use Database\Seeders\ZGN\SolarCommunicationModulesSeeder;
+use Database\Seeders\ZGN\SolarEarthingSeeder;
+use Database\Seeders\ZGN\SolarInstallationServiceSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductsOptionsSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductsOptionValuesSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductVariantsSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductsSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductVariantValuesSeeder;
+use Database\Seeders\ZGN\SolarMonitoringDevicesSeeder;
+use Database\Seeders\ZGN\SolarNetMeteringServiceSeeder;
 use Database\Seeders\ZGN\SolarPanels\ZGNSolarPanelProductsOptionsSeeder;
 use Database\Seeders\ZGN\SolarPanels\ZGNSolarPanelProductsOptionValuesSeeder;
 use Database\Seeders\ZGN\SolarPanels\ZGNSolarPanelProductsSeeder;
 use Database\Seeders\ZGN\SolarPanels\ZGNSolarPanelProductVariantsSeeder;
 use Database\Seeders\ZGN\SolarPanels\ZGNSolarPanelProductVariantValuesSeeder;
+use Database\Seeders\ZGN\SolarProtectionSeeders;
+use Database\Seeders\ZGN\SolarStructureSeeders;
 use Database\Seeders\ZGN\ZGNBrandModelsSeeder;
 use Database\Seeders\ZGN\ZGNBrandsSeeder;
 use Database\Seeders\ZGN\ZGNSolarCategoriesSeeder;
@@ -58,6 +73,25 @@ class DatabaseSeeder extends Seeder
             ZGNInverterProductsOptionValuesSeeder::class,
             ZGNInverterProductVariantsSeeder::class,
             ZGNInverterProductVariantValuesSeeder::class,
+
+            //Battery
+            ZGNBatteryProductsSeeder::class,
+            ZGNBatteryProductsOptionsSeeder::class,
+            ZGNBatteryProductsOptionValuesSeeder::class,
+            ZGNBatteryProductVariantsSeeder::class,
+            ZGNBatteryProductVariantValuesSeeder::class,
+
+            //Rest of the seeders
+            SolarCableSeeders::class,
+            SolarProtectionSeeders::class,
+            SolarStructureSeeders::class,
+            SolarBatteryAccessoriesSeeder::class,
+            SolarEarthingSeeder::class,
+            SolarMonitoringDevicesSeeder::class,
+            SolarCommunicationModulesSeeder::class,
+            SolarInstallationServiceSeeder::class,
+            SolarNetMeteringServiceSeeder::class,
+            SolarAMCServiceSeeder::class
         ];
 
         $this->call($seeders);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders\ZGN\SolarPanels;
+namespace Database\Seeders\ZGN\Batteries;
 
 use App\Models\Merchant;
 use App\Models\Product;
@@ -8,7 +8,7 @@ use App\Models\ProductVariant;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
-class ZGNSolarPanelProductVariantsSeeder extends Seeder
+class ZGNBatteryProductVariantsSeeder extends Seeder
 {
     public function run(): void
     {
@@ -19,14 +19,15 @@ class ZGNSolarPanelProductVariantsSeeder extends Seeder
             ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
-        $sku = "{$merchantSlug}-solar-panel";
+        $sku = "{$merchantSlug}-solar-battery";
         $product = Product::where('sku', $sku)->first();
 
         $variants = [
-            ['brand' => 'Longi', 'name' => 'Longi 540W Mono', 'sku' => 'LNG-540-MONO'],
-            ['brand' => 'Longi', 'name' => 'Longi 550W Mono', 'sku' => 'LNG-550-MONO'],
-            ['brand' => 'JA Solar', 'name' => 'JA Solar 550W Mono', 'sku' => 'JA-550-MONO'],
-            ['brand' => 'Jinko Solar', 'name' => 'Jinko 560W Bifacial', 'sku' => 'JNK-560-BIF'],
+            ['name' => 'Phoenix 150Ah Lead Acid', 'sku' => 'PHX-150AH-LA'],
+            ['name' => 'Phoenix 200Ah Lead Acid', 'sku' => 'PHX-200AH-LA'],
+            ['name' => 'AGS 200Ah Lead Acid',     'sku' => 'AGS-200AH-LA'],
+            ['name' => 'Pylontech US2000C',       'sku' => 'PYL-2.4KWH-LFP'],
+            ['name' => 'Pylontech US3000C',       'sku' => 'PYL-3.5KWH-LFP'],
         ];
 
         foreach ($variants as $v) {
