@@ -2,74 +2,119 @@
 
 namespace App\Filament\Resources\Categories\Tables;
 
+use App\Filament\Resources\Brands\BrandsResource;
+use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\Category;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Facades\Filament;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class CategoriesTable
 {
     public static function configure(Table $table): Table
     {
+        $isSubCategoryContext = request()->filled('parent_id');
+
         return $table
-            ->columns([
-                TextColumn::make('name')
-                    ->label('Category Name')
-                    ->sortable()
-                    ->searchable(),
-                ImageColumn::make('icon')
-                    ->label('Icon')
-                    ->size(36)
-                    ->square()
-                    ->getStateUsing(fn (Category $record) =>
-                    $record->icon
-                        ? asset('storage/' . $record->icon->photo_url)
-                        : null
-                    )
-                    ->defaultImageUrl(asset('images/category-placeholder.png')),
-
-                TextColumn::make('merchant.name')
-                    ->label('Merchant')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-
-            ])
+            ->columns(
+                $isSubCategoryContext
+                    ? self::subCategoryColumns()
+                    : self::categoryColumns()
+            )
             ->recordActions([
-                EditAction::make()
+                    Action::make('view-subcategories')
+                    ->icon('heroicon-o-eye')
                     ->label('')
-                    ->tooltip('Edit')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())),
-                DeleteAction::make()
+                    ->tooltip('View Sub-Categories')
+                    ->url(fn (Category $record) =>
+                        CategoryResource::getUrl('index', [
+                        'parent_id' => $record->id,
+                    ])
+                    )
+                    ->openUrlInNewTab(false)
+                    ->visible(fn () => ! request()->filled('parent_id')),
+
+
+                    Action::make('view-brands')
+                    ->icon('heroicon-o-building-storefront')
+                    ->label('')
+                    ->tooltip('View Brands')
+                    ->url(fn (Category $record) =>
+                        BrandsResource::getUrl('index', [
+                        'category_id' => $record->id,
+                    ])
+                    )
+                    ->openUrlInNewTab(false)
+                    ->visible(fn () => request()->filled('parent_id')),
+
+                    EditAction::make()
+                    ->label('')
+                    ->tooltip('Edit'),
+
+                    Action::make('delete')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->requiresConfirmation()
+                    ->action(function (Category $record): void {
+                        $record->delete();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make()
-                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                    DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function categoryColumns(): array
+    {
+        return [
+            TextColumn::make('name')
+                ->label('Category Name')
+                ->sortable()
+                ->searchable(),
+
+            ImageColumn::make('icon')
+                ->label('Icon')
+                ->size(36)
+                ->square()
+                ->getStateUsing(fn (Category $record) =>
+                $record->icon
+                    ? asset('storage/' . $record->icon->photo_url)
+                    : null
+                )
+                ->defaultImageUrl(asset('images/category-placeholder.png')),
+
+            TextColumn::make('merchant.name')
+                ->label('Merchant')
+                ->sortable()
+                ->searchable(),
+        ];
+    }
+
+    protected static function subCategoryColumns(): array
+    {
+        return [
+            TextColumn::make('name')
+                ->label('Sub-Category Name')
+                ->sortable()
+                ->searchable(),
+
+            TextColumn::make('parent.name')
+                ->label('Category')
+                ->sortable()
+                ->searchable(),
+
+            TextColumn::make('merchant.name')
+                ->label('Merchant')
+                ->sortable()
+                ->searchable(),
+        ];
     }
 }
