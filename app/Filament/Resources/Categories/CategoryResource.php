@@ -52,11 +52,11 @@ class CategoryResource extends Resource
         return CategoriesTable::configure($table);
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        return parent::getEloquentQuery()
-            ->whereNull('parent_id');
-    }
+//    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+//    {
+//        return parent::getEloquentQuery()
+//            ->whereNull('parent_id');
+//    }
     public static function getRelations(): array
     {
         return [

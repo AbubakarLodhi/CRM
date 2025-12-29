@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Brands\Tables;
 
 use App\Models\Brand;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -51,6 +52,17 @@ class BrandsTable
                     ->sortable(),
             ])
             ->recordActions([
+                Action::make('view-models')
+                    ->icon('heroicon-o-rectangle-stack')
+                    ->label('')
+                    ->tooltip('View Models')
+                    ->url(fn (Brand $record) =>
+                    \App\Filament\Resources\BrandModels\BrandModelResource::getUrl('index', [
+                        'brand_id'    => $record->id,
+                        'category_id' => $record->category_id,
+                    ])
+                    )
+                    ->openUrlInNewTab(false),
                 EditAction::make()
                     ->label('')
                     ->tooltip('Edit')

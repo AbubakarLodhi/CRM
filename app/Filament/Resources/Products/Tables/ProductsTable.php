@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Products\Tables;
 
 use App\Models\Product;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -72,7 +74,27 @@ class ProductsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make(),
+                Action::make('view-variants')
+                    ->icon('heroicon-o-squares-2x2')
+                    ->label('')
+                    ->tooltip('View Variants')
+                    ->url(fn ($record) =>
+                    \App\Filament\Resources\ProductVariants\ProductVariantResource::getUrl('index', [
+                        'product_id'      => $record->id,
+                        'brand_model_id'  => $record->brand_model_id,
+                        'brand_id'        => $record->brand_id,
+                        'category_id'     => $record->category_id,
+                    ])
+                    )
+                    ->openUrlInNewTab(false),
+
+                EditAction::make()
+                    ->label('')
+                    ->tooltip('Edit'),
+                DeleteAction::make()
+                    ->label('')
+                    ->tooltip('Delete'),
+
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
