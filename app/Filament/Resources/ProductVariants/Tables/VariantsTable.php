@@ -44,12 +44,17 @@ class VariantsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('')
+                    ->tooltip('Edit'),
+                DeleteAction::make()
+                    ->label('')
+                    ->tooltip('Delete'),
 //                    ->visible(fn () =>
 //                    auth(Filament::getCurrentPanel()->getAuthGuard())
 //                        ->user()?->hasPermissionTo('products.update', Filament::getCurrentPanel()->getAuthGuard())
 //                    ),
-                DeleteAction::make()
+//                DeleteAction::make()
 //                    ->visible(fn () =>
 //                    auth(Filament::getCurrentPanel()->getAuthGuard())
 //                        ->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())

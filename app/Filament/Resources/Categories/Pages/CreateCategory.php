@@ -14,8 +14,9 @@ class CreateCategory extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        return static::getResource()::getUrl('index', request()->only('parent_id'));
     }
+
 
     protected function afterCreate(): void
     {

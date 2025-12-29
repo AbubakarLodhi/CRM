@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BrandModels\Tables;
 
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -56,6 +57,18 @@ class BrandModelsTable
 
             ])
             ->recordActions([
+                Action::make('view-products')
+                    ->icon('heroicon-o-cube')
+                    ->label('')
+                    ->tooltip('View Products')
+                    ->url(fn ($record) =>
+                    \App\Filament\Resources\Products\ProductResource::getUrl('index', [
+                        'brand_model_id' => $record->id,
+                        'brand_id'       => $record->brand_id,
+                        'category_id'    => $record->brand?->category_id,
+                    ])
+                    )
+                    ->openUrlInNewTab(false),
                 EditAction::make()
                     ->label('')
                     ->tooltip('Edit')

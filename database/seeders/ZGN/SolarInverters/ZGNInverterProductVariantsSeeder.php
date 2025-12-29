@@ -2,7 +2,6 @@
 
 namespace Database\Seeders\ZGN\SolarInverters;
 
-use App\Models\Business;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\ProductVariant;

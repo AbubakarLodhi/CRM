@@ -23,8 +23,13 @@ class EditCategory extends EditRecord
     }
     protected function getRedirectUrl(): string
     {
-        return $this->getResource()::getUrl('index');
+        $record = $this->getRecord();
+
+        return static::getResource()::getUrl('index', [
+            'parent_id' => $record->parent_id,
+        ]);
     }
+
 
     protected function afterSave(): void
     {
