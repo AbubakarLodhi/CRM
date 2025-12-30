@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Categories\Tables;
 use App\Filament\Resources\Brands\BrandsResource;
 use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\Admin;
+use App\Models\BrandCategory;
 use App\Models\Category;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -51,7 +52,15 @@ class CategoriesTable
                         ? BrandsResource::getUrl('index', ['category_id' => $record->id])
                         : null
                     )
-                    ->visible(fn () => request()->filled('parent_id')),
+
+                    ->visible(function (?Category $record) {
+                        if (! request()->filled('parent_id') || ! $record) {
+                            return false;
+                        }
+
+                        return BrandCategory::where('category_id', $record->id)->exists();
+                    }),
+
 
                 EditAction::make()
                     ->label('')

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Brands\Tables;
 
 use App\Models\BrandCategory;
+use App\Models\BrandModel;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -87,16 +88,31 @@ class BrandsTable
                 /**
                  * View models (brand + category aware)
                  */
+//                Action::make('view-models')
+//                    ->icon('heroicon-o-rectangle-stack')
+//                    ->label('')
+//                    ->tooltip('View Models')
+//                    ->url(fn ($record) =>
+//                    \App\Filament\Resources\BrandModels\BrandModelResource::getUrl('index', [
+//                        'brand_id'    => $record->brand_id,
+//                        'category_id' => $record->category_id,
+//                    ])
+//                    ),
                 Action::make('view-models')
                     ->icon('heroicon-o-rectangle-stack')
                     ->label('')
                     ->tooltip('View Models')
                     ->url(fn ($record) =>
                     \App\Filament\Resources\BrandModels\BrandModelResource::getUrl('index', [
-                        'brand_id'    => $record->brand_id,
-                        'category_id' => $record->category_id,
+                        'brand_id' => $record->brand_id,
                     ])
+                    )
+
+                    // ✅ BRAND-ONLY CHECK (CORRECT)
+                    ->visible(fn ($record) =>
+                    BrandModel::where('brand_id', $record->brand_id)->exists()
                     ),
+
 
                 /**
                  * Edit BRAND

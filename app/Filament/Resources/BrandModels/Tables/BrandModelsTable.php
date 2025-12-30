@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\BrandModels\Tables;
 
+use App\Filament\Resources\Products\ProductResource;
+use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -62,13 +64,18 @@ class BrandModelsTable
                     ->label('')
                     ->tooltip('View Products')
                     ->url(fn ($record) =>
-                    \App\Filament\Resources\Products\ProductResource::getUrl('index', [
+                   ProductResource::getUrl('index', [
                         'brand_model_id' => $record->id,
                         'brand_id'       => $record->brand_id,
-                        'category_id'    => $record->brand?->category_id,
                     ])
                     )
+
+                    // ✅ SHOW ONLY IF PRODUCTS EXIST FOR THIS MODEL
+                    ->visible(fn ($record) =>
+                    Product::where('brand_model_id', $record->id)->exists()
+                    )
                     ->openUrlInNewTab(false),
+
                 EditAction::make()
                     ->label('')
                     ->tooltip('Edit')

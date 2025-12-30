@@ -6,6 +6,7 @@ use App\Filament\Resources\Brands\BrandsResource;
 use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\Admin;
 use App\Models\Brand;
+use App\Models\Category;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Facades\Filament;
@@ -56,15 +57,16 @@ class ListBrands extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('back')
-                ->label('Back')
-                ->icon('heroicon-o-arrow-left')
-                ->visible(fn () => request()->filled('category_id'))
-                ->url(fn () =>
-                CategoryResource::getUrl('index', [
-                    'parent_id' => request('category_id'),
-                ])
-                ),
+                Action::make('back')
+                    ->label('Back')
+                    ->icon('heroicon-o-arrow-left')
+                    ->visible(fn () => request()->filled('category_id'))
+                    ->url(fn () => CategoryResource::getUrl('index', [
+                        // 🔑 force sub-category context
+                        'parent_id' => Category::query()
+                            ->whereKey(request('category_id'))
+                            ->value('parent_id'),
+                    ])),
 
             CreateAction::make()
                 ->visible(fn () =>

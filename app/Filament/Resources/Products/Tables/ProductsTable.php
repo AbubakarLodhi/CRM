@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Tables;
 
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -81,14 +82,18 @@ class ProductsTable
                     ->tooltip('View Variants')
                     ->url(fn ($record) =>
                     \App\Filament\Resources\ProductVariants\ProductVariantResource::getUrl('index', [
-                        'product_id'      => $record->id,
-                        'brand_model_id'  => $record->brand_model_id,
-                        'brand_id'        => $record->brand_id,
-                        'category_id'     => $record->category_id,
+                        'product_id'     => $record->id,
+                        'brand_model_id' => $record->brand_model_id,
+                        'brand_id'       => $record->brand_id,
+                        'category_id'    => $record->category_id,
                     ])
                     )
-                    ->openUrlInNewTab(false),
 
+                    // ✅ SHOW ONLY IF VARIANTS EXIST FOR THIS PRODUCT
+                    ->visible(fn ($record) =>
+                    ProductVariant::where('product_id', $record->id)->exists()
+                    )
+                    ->openUrlInNewTab(false),
                 EditAction::make()
                     ->label('')
                     ->tooltip('Edit'),
