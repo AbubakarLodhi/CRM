@@ -22,7 +22,7 @@ class CategoryForm
                     ->label('Category Name')
                     ->required(),
                 Select::make('parent_id')
-                    ->label('Category')
+                    ->label('Global Category')
                     ->relationship(
                         name: 'parent',
                         titleAttribute: 'name',

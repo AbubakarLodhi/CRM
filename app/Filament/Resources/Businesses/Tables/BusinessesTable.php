@@ -2,12 +2,14 @@
 
 namespace App\Filament\Resources\Businesses\Tables;
 
+use App\Models\Business;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -20,6 +22,15 @@ class BusinessesTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
+                ImageColumn::make('business_logo')
+                    ->label('Logo')
+                    ->size(50)
+                    ->square()
+                    ->getStateUsing(fn (Business $record) =>
+                    $record->icon
+                        ? asset('storage/' . $record->logo->photo_url)
+                        : asset('storage/placeholder/placeholder.jpg')
+                    ),
                 IconColumn::make('status')
                     ->label('Active')
                     ->boolean(),

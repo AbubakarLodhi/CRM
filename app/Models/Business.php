@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class Business extends Model
 {
@@ -53,4 +54,14 @@ class Business extends Model
     {
         return $this->belongsTo(City::class);
     }
+
+    /**
+     * @return MorphOne
+     */
+    public function logo(): MorphOne
+    {
+        return $this->morphOne(Attachment::class, 'attachable')
+            ->where('meta_type', \App\Enums\AttachmentMetaType::BUSINESS_LOGO);
+    }
+
 }

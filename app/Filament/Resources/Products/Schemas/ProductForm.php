@@ -199,58 +199,81 @@ class ProductForm
                         ->nullable(),
 
                     Select::make('brand_id')
+                        ->label('Brand')
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
                         ->relationship(
                             name: 'brand',
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
 
+                                // ✅ Merchant scoping
                                 if (! $user instanceof Admin) {
                                     $query->where('merchant_id', $user->id);
                                 }
 
-                                if ($subCategoryId = $get('sub_category_id')) {
-                                    // 🔥 only brands linked to this sub-category
-                                    $query->where('category_id', $subCategoryId);
+                                $subCategoryId = $get('sub_category_id');
+
+                                // ✅ Only brands linked to selected sub-category
+                                if ($subCategoryId) {
+                                    $query->whereExists(function ($sub) use ($subCategoryId) {
+                                        $sub->selectRaw(1)
+                                            ->from('brand_category')
+                                            ->whereColumn('brand_category.brand_id', 'brands.id')
+                                            ->where('brand_category.category_id', $subCategoryId);
+                                    });
                                 } else {
+                                    // ❌ No sub-category selected → show nothing
                                     $query->whereRaw('1 = 0');
                                 }
                             }
-                        )
+                        ),
+                    Select::make('brand_model_id')
+                        ->label('Brand Model')
                         ->searchable()
                         ->preload()
-                        ->nullable(),
-
-                    Select::make('brand_model_id')
+                        ->nullable()
                         ->relationship(
                             name: 'brandModel',
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
 
+                                // ✅ Merchant scoping
                                 if (! $user instanceof Admin) {
                                     $query->where('merchant_id', $user->id);
                                 }
 
-                                if ($brandId = $get('brand_id')) {
-                                    $query->where('brand_id', $brandId);
-                                } else {
+                                $brandId       = $get('brand_id');
+                                $subCategoryId = $get('sub_category_id');
+
+                                // ❌ No brand selected → show nothing
+                                if (! $brandId) {
                                     $query->whereRaw('1 = 0');
                                     return;
                                 }
 
-                                if ($subCategoryId = $get('sub_category_id')) {
-                                    $query->whereHas('brand', function (Builder $q) use ($subCategoryId) {
-                                        $q->where('category_id', $subCategoryId);
-                                    });
-                                } else {
+                                // ✅ Brand model must belong to selected brand
+                                $query->where('brand_id', $brandId);
+
+                                // ❌ No sub-category selected → show nothing
+                                if (! $subCategoryId) {
                                     $query->whereRaw('1 = 0');
+                                    return;
                                 }
+
+                                // ✅ Ensure brand is linked to selected sub-category (pivot-aware)
+                                $query->whereExists(function ($sub) use ($subCategoryId) {
+                                    $sub->selectRaw(1)
+                                        ->from('brand_category')
+                                        ->whereColumn('brand_category.brand_id', 'brand_models.brand_id')
+                                        ->where('brand_category.category_id', $subCategoryId);
+                                });
                             }
                         )
-                        ->searchable()
-                        ->preload()
-                        ->nullable(),
+                        ->reactive(),
                 ]),
 
             /* =========================

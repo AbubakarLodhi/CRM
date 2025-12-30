@@ -24,17 +24,25 @@ class ListBrands extends ListRecords
         $user = Filament::auth()->user();
 
         return Brand::query()
+            // Merchant scoping
             ->when(
                 ! $user instanceof Admin,
-                fn (Builder $query) => $query->where('merchant_id', $user->id)
+                fn (Builder $query) =>
+                $query->where('merchant_id', $user->id)
             )
+
+            // ✅ FIX: Filter via brand_category
             ->when(
                 request()->filled('category_id'),
                 fn (Builder $query) =>
-                $query->where('category_id', request('category_id'))
+                $query->whereExists(function ($sub) {
+                    $sub->selectRaw(1)
+                        ->from('brand_category')
+                        ->whereColumn('brand_category.brand_id', 'brands.id')
+                        ->where('brand_category.category_id', request('category_id'));
+                })
             );
     }
-
     /**
      * Optional: better title UX
      */

@@ -24,27 +24,37 @@ class MerchantsTable
             ->columns([
                 ImageColumn::make('profile_photo')
                     ->label('Photo')
-                    ->size(40)
-                    ->circular()
+                    ->size(50)
+                    ->square()
                     ->getStateUsing(fn (Merchant $record) =>
-                    $record->profilePhoto
+                    $record->icon
                         ? asset('storage/' . $record->profilePhoto->photo_url)
-                        : null
-                    )
-                    ->defaultImageUrl(asset('images/avatar-placeholder.png')),
+                        : asset('storage/placeholder/placeholder.jpg')
+                    ),
+
 
                 TextColumn::make('name')
                     ->searchable(),
+
                 ImageColumn::make('merchant_logo')
                     ->label('Logo')
-                    ->size(40)
+                    ->size(50)
                     ->square()
                     ->getStateUsing(fn (Merchant $record) =>
-                    $record->logo
+                    $record->icon
                         ? asset('storage/' . $record->logo->photo_url)
-                        : null
-                    )
-                    ->defaultImageUrl(asset('images/brand-placeholder.png')),
+                        : asset('storage/placeholder/placeholder.jpg')
+                    ),
+//                ImageColumn::make('merchant_logo')
+//                    ->label('Logo')
+//                    ->size(40)
+//                    ->square()
+//                    ->getStateUsing(fn (Merchant $record) =>
+//                    $record->logo
+//                        ? asset('storage/' . $record->logo->photo_url)
+//                        : null
+//                    )
+//                    ->defaultImageUrl(asset('images/brand-placeholder.png')),
 
                 TextColumn::make('phone')
                     ->searchable(),

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\Brand;
 use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -22,14 +23,13 @@ class UsersTable
             ->columns([
                 ImageColumn::make('profile_photo')
                     ->label('Photo')
-                    ->circular()
-                    ->size(40)
+                    ->size(50)
+                    ->square()
                     ->getStateUsing(fn (User $record) =>
-                    $record->profilePhoto
+                    $record->icon
                         ? asset('storage/' . $record->profilePhoto->photo_url)
-                        : null
-                    )
-                    ->defaultImageUrl(asset('images/avatar-placeholder.png')),
+                        : asset('storage/placeholder/placeholder.jpg')
+                    ),
                 TextColumn::make('name')
                     ->searchable(),
                 TextColumn::make('email')

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Categories\Pages;
 
 use App\Filament\Resources\Categories\CategoryResource;
+use App\Models\Admin;
 use App\Models\Category;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -70,13 +71,6 @@ class ListCategories extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()
-                ->visible(fn () =>
-                auth(Filament::getCurrentPanel()->getAuthGuard())
-                    ->user()
-                    ?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())
-                ),
-
             ...(
             $this->isSubCategoryContext()
                 ? [
@@ -87,6 +81,12 @@ class ListCategories extends ListRecords
             ]
                 : []
             ),
-        ];
+            CreateAction::make()
+                ->visible(fn () =>
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())
+                ),
+            ];
     }
 }

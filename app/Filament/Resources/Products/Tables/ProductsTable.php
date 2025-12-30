@@ -22,17 +22,18 @@ class ProductsTable
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-
                 ImageColumn::make('product_image')
                     ->label('Image')
-                    ->size(40)
+                    ->size(50)
                     ->square()
                     ->getStateUsing(fn (Product $record) =>
-                    $record->productImage
-                        ? asset('storage/' . $record->productImage->photo_url)
-                        : null
-                    )
-                    ->defaultImageUrl(asset('images/product-placeholder.png')),
+                    $record->icon
+                        ? asset('storage/' .  $record->productImage->photo_url)
+                        : asset('storage/placeholder/placeholder.jpg')
+                    ),
+
+
+
 
         TextColumn::make('sku')
                     ->searchable(),

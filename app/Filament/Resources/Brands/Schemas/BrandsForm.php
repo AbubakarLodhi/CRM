@@ -32,44 +32,45 @@ class BrandsForm
                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
                     ->dehydrated(false),
 
-                Select::make('category_id')
-                    ->label('Category')
-                    ->relationship(
-                        name: 'category',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: function (Builder $query) {
-                            $user = Filament::auth()->user();
-
-                            // Only sub-categories
-                            $query->whereNotNull('parent_id');
-
-                            // Admin → see all merchants
-                            if ($user instanceof Admin) {
-                                return;
-                            }
-
-                            // Merchant → only own categories
-                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
-                        }
-                    )
+                Select::make('category_ids')
+                    ->label('Categories')
+                    ->multiple()
                     ->searchable()
                     ->preload()
                     ->required()
-                    ->afterStateUpdated(function ($state, callable $set) {
-                        if (! $state) {
-                            $set('merchant_id', null);
-                            return;
-                        }
+                    ->options(function () {
+                        $user = Filament::auth()->user();
 
-                               $merchantId = Category::query()
-                                   ->whereKey($state)
-                                   ->value('merchant_id');
+                        return Category::query()
+                            // ✅ Only sub-categories
+                            ->whereNotNull('parent_id')
 
-                               $set('merchant_id', $merchantId);
-                           }),
+                            // ✅ Merchant scoping
+                            ->when(
+                                ! $user instanceof Admin,
+                                fn ($q) => $q->where(
+                                    'merchant_id',
+                                    $user->merchant_id ?? $user->id
+                                )
+                            )
 
-                       Hidden::make('merchant_id')
-                           ->required(),
+                            // (Optional) Admin sees all merchants’ categories
+                            ->when(
+                                $user instanceof Admin,
+                                fn ($q) => $q
+                            )
+
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    }),
+
+
+
+        Hidden::make('merchant_id')
+                    ->default(fn () => Filament::auth()->id())
+                    ->required(),
+
                    ]);
 
     }
