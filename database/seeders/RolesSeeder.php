@@ -36,6 +36,7 @@ class RolesSeeder extends Seeder
                 'brands.*',
                 'addons.*',
                 'customers.*',
+                'roles_permissions.*',
                 'reports.view',
                 'merchants.view',
                 'merchants.update',
