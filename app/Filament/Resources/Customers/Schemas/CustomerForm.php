@@ -23,11 +23,19 @@ class CustomerForm
                 TextInput::make('phone')
                     ->tel(),
 
+                Textarea::make('address')
+                    ->columnSpanFull(),
+
                 TextInput::make('email')
                     ->label('Email address')
                     ->email()
                     ->unique(Customer::class, 'email')
                     ->required(),
+
+                TextInput::make('postal_code')
+                    ->label('Postal Code')
+                    ->maxLength(20)
+                    ->nullable(),
 
                 Select::make('country_id')
                     ->label('Country')

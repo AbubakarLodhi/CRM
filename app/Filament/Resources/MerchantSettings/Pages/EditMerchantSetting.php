@@ -5,7 +5,6 @@ namespace App\Filament\Resources\MerchantSettings\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\MerchantSettings\MerchantSettingResource;
-use App\Models\MerchantSetting;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -13,42 +12,22 @@ class EditMerchantSetting extends EditRecord
 {
     protected static string $resource = MerchantSettingResource::class;
 
-    /**
-     * 🔑 Resolve the record automatically
-     */
-    protected function resolveRecord($key): MerchantSetting
-    {
-        $merchant = auth('merchant')->user();
-
-        return MerchantSetting::firstOrCreate(
-            ['merchant_id' => $merchant->id],
-            [
-                'currency' => 'USD',
-                'timezone' => 'UTC',
-            ]
-        );
-    }
-
-    /**
-     * 🚫 No delete on settings
-     */
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            DeleteAction::make(),
+        ];
     }
-
-    /**
-     * Pre-fill attachments
-     */
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $merchant = auth('merchant')->user();
 
-        $data['merchant_logo']  = $merchant->logo?->photo_url;
+        $data['merchant_logo'] = $merchant->logo?->photo_url;      // STRING
         $data['profile_photo'] = $merchant->profilePhoto?->photo_url;
 
         return $data;
     }
+
 
     protected function afterSave(): void
     {
@@ -79,4 +58,5 @@ class EditMerchantSetting extends EditRecord
             ]);
         }
     }
+
 }
