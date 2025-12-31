@@ -14,30 +14,20 @@ class MerchantSettingForm
     {
         return $schema->components([
 
-            /* ================= MERCHANT LOGO ================= */
             FileUpload::make('merchant_logo')
                 ->label('Merchant Logo')
                 ->image()
                 ->disk('public')
                 ->directory('merchants/logos')
-                ->imagePreviewHeight(120)
-                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                ->maxSize(2048)
-                ->dehydrated(false)
-                ->afterStateHydrated(fn($component) => $component->state(null)),
+                ->imagePreviewHeight(120),
 
-
-            /* ================= PROFILE PHOTO ================= */
             FileUpload::make('profile_photo')
                 ->label('Profile Photo')
                 ->image()
                 ->disk('public')
                 ->directory('merchants/profile-photos')
-                ->imagePreviewHeight(120)
-                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                ->maxSize(2048)
-                ->dehydrated(false)
-                ->afterStateHydrated(fn($component) => $component->state(null)),
+                ->imagePreviewHeight(120),
+
 
             /* ================= LIGHT MODE COLORS ================= */
             Section::make('Light Mode Colors')
