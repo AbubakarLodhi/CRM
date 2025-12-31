@@ -57,7 +57,6 @@ class CustomersSeeder extends Seeder
                     'merchant_id' => $merchantId,
                     'name' => "Customer {$i}",
                     'phone' => '03' . rand(100000000, 399999999),
-                    'city' => 'Karachi',
                     'country_id' => $countryId,
                     'city_id' => $cityId,
                     'postal_code' => '75500',

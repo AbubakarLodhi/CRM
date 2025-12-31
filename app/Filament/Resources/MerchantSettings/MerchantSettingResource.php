@@ -20,9 +20,9 @@ class MerchantSettingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static ?string $navigationLabel = 'Settings';
-    protected static ?string $modelLabel = 'Settings';
-    protected static ?string $pluralModelLabel = 'Settings';
+    protected static ?string $navigationLabel = 'Merchant Settings';
+    protected static ?string $modelLabel = 'Merchant Settings';
+    protected static ?string $pluralModelLabel = 'Merchant Settings';
 
 
     protected static ?string $recordTitleAttribute = 'MerchantSetting';

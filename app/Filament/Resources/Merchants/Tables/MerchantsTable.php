@@ -2,19 +2,27 @@
 
 namespace App\Filament\Resources\Merchants\Tables;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
 use App\Models\Branch;
 use App\Models\Merchant;
+use App\Models\MerchantSetting;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Arr;
 
 class MerchantsTable
 {
@@ -114,6 +122,120 @@ class MerchantsTable
                     ->preload()
             ])
             ->recordActions([
+                Action::make('settings')
+                    ->label('')
+                    ->icon('heroicon-o-cog-6-tooth')
+                    ->tooltip('Merchant Settings')
+                    ->modalHeading('Merchant Settings')
+                    ->modalSubmitActionLabel('Save Settings')
+                    ->modalWidth('xl')
+
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()
+                        ?->hasPermissionTo('merchants.update', Filament::getCurrentPanel()->getAuthGuard())
+                    )
+
+                    // 👉 Prefill form if settings exist
+                    ->mountUsing(function (Action $action, Merchant $record) {
+
+                        $settings = $record->settings;
+
+                        if (! $settings) {
+                            return;
+                        }
+
+                        $action->fillForm([
+                            // 🔹 Normal fields
+                            'primary_color'   => $settings->primary_color,
+                            'secondary_color' => $settings->secondary_color,
+                            'currency'        => $settings->currency,
+                            'timezone'        => $settings->timezone,
+
+                            // 🔹 FileUpload fields MUST be arrays
+                            'merchant_logo' => $record->logo
+                                ? [$record->logo->photo_url]
+                                : null,
+
+                            'profile_photo' => $record->profilePhoto
+                                ? [$record->profilePhoto->photo_url]
+                                : null,
+                        ]);
+                    })
+
+
+                    ->form([
+                        FileUpload::make('merchant_logo')
+                            ->label('Merchant Logo')
+                            ->image()
+                            ->disk('public')
+                            ->directory('merchants/logos')
+                            ->imagePreviewHeight(120)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(2048)
+                            ->dehydrated(false),
+
+                        FileUpload::make('profile_photo')
+                            ->label('Profile Photo')
+                            ->image()
+                            ->disk('public')
+                            ->directory('merchants/profile-photos')
+                            ->imagePreviewHeight(120)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->maxSize(2048)
+                            ->dehydrated(false),
+
+                        ColorPicker::make('primary_color')->required(),
+                        ColorPicker::make('secondary_color')->required(),
+
+                        TextInput::make('currency')
+                            ->required()
+                            ->default('USD'),
+
+                        TextInput::make('timezone')
+                            ->required()
+                            ->default('UTC'),
+                    ])
+
+                    // 👉 UPSERT logic
+                    ->action(function (array $data, Merchant $record) {
+
+                        // 1️⃣ Create or update settings
+                        MerchantSetting::updateOrCreate(
+                            ['merchant_id' => $record->id],
+                            Arr::only($data, [
+                                'primary_color',
+                                'secondary_color',
+                                'currency',
+                                'timezone',
+                            ])
+                        );
+
+                        // 2️⃣ PROFILE PHOTO
+                        if (!empty($data['profile_photo'])) {
+                            $record->profilePhoto()?->delete();
+
+                            $record->profilePhoto()->create([
+                                'merchant_id' => $record->id,
+                                'type'        => AttachmentType::IMAGE,
+                                'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
+                                'photo_url'   => collect($data['profile_photo'])->first(),
+                            ]);
+                        }
+
+                        // 3️⃣ MERCHANT LOGO
+                        if (!empty($data['merchant_logo'])) {
+                            $record->logo()?->delete();
+
+                            $record->logo()->create([
+                                'merchant_id' => $record->id,
+                                'type'        => AttachmentType::IMAGE,
+                                'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
+                                'photo_url'   => collect($data['merchant_logo'])->first(),
+                            ]);
+                        }
+                    }),
+
                 EditAction::make()
                     ->color('warning')
                     ->label('')
