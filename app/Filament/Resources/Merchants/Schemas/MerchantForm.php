@@ -2,9 +2,6 @@
 
 namespace App\Filament\Resources\Merchants\Schemas;
 
-use App\Enums\AttachmentMetaType;
-use App\Enums\AttachmentType;
-use App\Models\Attachment;
 use App\Models\Merchant;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -12,7 +9,6 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Hash;
 
 class MerchantForm
 {

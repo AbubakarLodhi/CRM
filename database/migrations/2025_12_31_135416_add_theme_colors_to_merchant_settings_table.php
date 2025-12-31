@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -20,19 +19,12 @@ return new class extends Migration
                 'timezone',
             ]);
 
-            /* ================= LIGHT MODE COLORS ================= */
-            $table->string('primary_color_light', 20)->nullable();
-            $table->string('secondary_color_light', 20)->nullable();
-            $table->string('warning_color_light', 20)->nullable();
-            $table->string('danger_color_light', 20)->nullable();
-            $table->string('success_color_light', 20)->nullable();
-
-            /* ================= DARK MODE COLORS ================= */
-            $table->string('primary_color_dark', 20)->nullable();
-            $table->string('secondary_color_dark', 20)->nullable();
-            $table->string('warning_color_dark', 20)->nullable();
-            $table->string('danger_color_dark', 20)->nullable();
-            $table->string('success_color_dark', 20)->nullable();
+            $table->string('primary_color', 20)->nullable();
+            $table->string('secondary_color', 20)->nullable();
+            $table->string('warning_color', 20)->nullable();
+            $table->string('danger_color', 20)->nullable();
+            $table->string('success_color', 20)->nullable();
+            $table->string('default_color', 20)->nullable();
         });
     }
 
@@ -43,17 +35,12 @@ return new class extends Migration
     {
         Schema::table('merchant_settings', function (Blueprint $table) {
             $table->dropColumn([
-                'primary_color_light',
-                'secondary_color_light',
-                'warning_color_light',
-                'danger_color_light',
-                'success_color_light',
-
-                'primary_color_dark',
-                'secondary_color_dark',
-                'warning_color_dark',
-                'danger_color_dark',
-                'success_color_dark',
+                'primary_color',
+                'secondary_color',
+                'warning_color',
+                'danger_color',
+                'success_color',
+                'default_color'
             ]);
         });
     }

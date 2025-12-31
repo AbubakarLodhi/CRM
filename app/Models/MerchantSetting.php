@@ -15,9 +15,8 @@ class MerchantSetting extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'primary_color_light', 'secondary_color_light', 'warning_color_light', 'danger_color_light',
-        'success_color_light', 'primary_color_dark', 'secondary_color_dark', 'warning_color_dark', 'danger_color_dark',
-        'success_color_dark'
+        'merchant_id', 'primary_color', 'secondary_color', 'warning_color', 'danger_color', 'success_color',
+        'default_color',
     ];
 
     /** @var string $keyType */

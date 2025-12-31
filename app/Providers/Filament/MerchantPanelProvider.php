@@ -31,15 +31,15 @@ class MerchantPanelProvider extends PanelProvider
             ->path('merchant')
             ->login()
             ->brandLogo(function () {
-                $merchant = auth('merchant')->user();
+                $merchant = Filament::auth()->user();
                 if (!$merchant || !$merchant->logo) return null;
 
                 $path = $merchant->logo->photo_url;
 
-                if (!Storage::disk('public')->exists($path)) return null;
+                if (! Storage::disk('public')->exists($path)) return null;
                 return asset('storage/' . $path);
             })
-            ->brandName(fn() => auth('merchant')->user()?->name ?? 'Sales_Crm')
+            ->brandName(fn() => Filament::auth()->user()?->name ?? 'Sales_Crm')
             ->brandLogoHeight('2.5rem')
             ->viteTheme('resources/css/filament/merchant/theme.css')
             ->renderHook(
@@ -56,33 +56,16 @@ class MerchantPanelProvider extends PanelProvider
                     $merchant = Filament::auth()->user();
                     if (!$merchant || !$merchant->settings) return null;
 
+                    $settings = $merchant->settings;
                     return view('filament.merchant.theme-vars', [
-                        'settings' => $merchant->settings,
+                        'primary' => Color::generatePalette($settings->primary_color ?? '#1E3A8A'),
+                        'success' => Color::generatePalette($settings->success_color ?? '#22C55E'),
+                        'secondary'  => Color::generatePalette($settings->secondary_color ?? '#64748B'),
+                        'danger'  => Color::generatePalette($settings->danger_color ?? '#DC2626'),
+                        'warning'  => Color::generatePalette($settings->warning_color ?? '#FACC15'),
+                        'default'  => Color::generatePalette($settings->default_color ?? '#E5E7EB'),
                     ]);
                 })
-            ->colors([
-                'primary' => Color::Blue,
-                'warning' => Color::Yellow,
-                'danger' => Color::Red,
-                'default' => Color::Neutral,
-                'secondary' => Color::Gray,
-
-                /*---------------------------Light Mode------------------------------*/
-//                'primary'   => '#1E3A8A', // Solar Blue
-//                'success'   => '#22C55E', // Eco Green
-//                'warning'   => '#FACC15', // Solar Yellow
-//                'danger'    => '#DC2626', // Controlled Red
-//                'secondary' => '#64748B', // Slate
-//                'default'   => '#E5E7EB', // Soft Gray
-
-                /*---------------------------Dark Mode------------------------------*/
-//                'primary_dark'   => '#3B82F6', // brighter blue
-//                'success_dark'   => '#4ADE80', // luminous green
-//                'warning_dark'   => '#FDE047', // softer yellow
-//                'danger_dark'    => '#F87171', // readable red
-//                'secondary_dark' => '#94A3B8',
-//                'default_dark'   => '#1F2937',
-            ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

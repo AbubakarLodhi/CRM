@@ -1,19 +1,63 @@
 <style>
-    /* LIGHT MODE */
-    :root[data-filament-panel="merchant"] {
-        --fi-color-primary:   {{ $settings->primary_color_light }};
-        --fi-color-secondary: {{ $settings->secondary_color_light }};
-        --fi-color-warning:   {{ $settings->warning_color_light }};
-        --fi-color-danger:    {{ $settings->danger_color_light }};
-        --fi-color-success:   {{ $settings->success_color_light }};
+    .fi-color-primary {
+        @foreach ($primary as $shade => $value)
+             --color-{{ $shade }}: {{ $value }};
+        @endforeach
     }
 
-    /* DARK MODE */
-    html.dark :root[data-filament-panel="merchant"] {
-        --fi-color-primary:   {{ $settings->primary_color_dark }};
-        --fi-color-secondary: {{ $settings->secondary_color_dark }};
-        --fi-color-warning:   {{ $settings->warning_color_dark }};
-        --fi-color-danger:    {{ $settings->danger_color_dark }};
-        --fi-color-success:   {{ $settings->success_color_dark }};
+    .fi-color-success {
+        @foreach ($success as $shade => $value)
+             --color-{{ $shade }}: {{ $value }};
+        @endforeach
     }
+
+    .fi-color-warning {
+        @foreach ($warning as $shade => $value)
+             --color-{{ $shade }}: {{ $value }};
+        @endforeach
+    }
+
+    .fi-color-danger {
+        @foreach ($danger as $shade => $value)
+             --color-{{ $shade }}: {{ $value }};
+        @endforeach
+    }
+
+    .fi-color-secondary {
+        @foreach ($secondary as $shade => $value)
+             --color-{{ $shade }}: {{ $value }};
+        @endforeach
+    }
+
+    .fi-color-default {
+        @foreach ($default as $shade => $value)
+             --color-{{ $shade }}: {{ $value }};
+        @endforeach
+    }
+
+
+
+ {{--/* LIGHT MODE */--}}
+ {{--   body.fi-panel-merchant {--}}
+ {{--       @foreach ($primaryLight as $shade => $value)--}}
+ {{--              --fi-color-primary- {{ $shade }}: {{ $value }};--}}
+ {{--       @endforeach--}}
+
+ {{--       @foreach ($successLight as $shade => $value)--}}
+ {{--              --fi-color-success- {{ $shade }}: {{ $value }};--}}
+ {{--   @endforeach--}}
+
+ {{--   }--}}
+
+ {{--   /* DARK MODE */--}}
+ {{--   html.dark body.fi-panel-merchant {--}}
+ {{--       @foreach ($primaryDark as $shade => $value)--}}
+ {{--            --fi-color-primary- {{ $shade }}: {{ $value }};--}}
+ {{--       @endforeach--}}
+
+ {{--       @foreach ($successDark as $shade => $value)--}}
+ {{--            --fi-color-success- {{ $shade }}: {{ $value }};--}}
+ {{--   @endforeach--}}
+
+ {{--   }--}}
 </style>

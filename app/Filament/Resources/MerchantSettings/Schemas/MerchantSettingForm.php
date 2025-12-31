@@ -2,13 +2,12 @@
 
 namespace App\Filament\Resources\MerchantSettings\Schemas;
 
-use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\ColorPicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+
 class MerchantSettingForm
 {
     public static function configure(Schema $schema): Schema
@@ -25,10 +24,10 @@ class MerchantSettingForm
                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                 ->maxSize(2048)
                 ->dehydrated(false)
-                ->afterStateHydrated(fn ($component) => $component->state(null)),
+                ->afterStateHydrated(fn($component) => $component->state(null)),
 
 
-        /* ================= PROFILE PHOTO ================= */
+            /* ================= PROFILE PHOTO ================= */
             FileUpload::make('profile_photo')
                 ->label('Profile Photo')
                 ->image()
@@ -38,18 +37,41 @@ class MerchantSettingForm
                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                 ->maxSize(2048)
                 ->dehydrated(false)
-                ->afterStateHydrated(fn ($component) => $component->state(null)),
+                ->afterStateHydrated(fn($component) => $component->state(null)),
 
-        /* ================= COLORS ================= */
-            ColorPicker::make('primary_color')->required(),
-            ColorPicker::make('secondary_color')->required(),
+            /* ================= LIGHT MODE COLORS ================= */
+            Section::make('Light Mode Colors')
+                ->columnSpanFull()
+                ->columns(3)
+                ->schema([
+                    ColorPicker::make('primary_color')
+                        ->label('Primary')
+                        ->required(),
 
-            TextInput::make('currency')->required()->default('USD'),
-            TextInput::make('timezone')->required()->default('UTC'),
+                    ColorPicker::make('secondary_color')
+                        ->label('Secondary')
+                        ->required(),
+
+                    ColorPicker::make('warning_color')
+                        ->label('Warning')
+                        ->required(),
+
+                    ColorPicker::make('danger_color')
+                        ->label('Danger')
+                        ->required(),
+
+                    ColorPicker::make('success_color')
+                        ->label('Success')
+                        ->required(),
+
+                    ColorPicker::make('default_color')
+                        ->label('Default')
+                        ->required(),
+                ]),
 
             /* ================= MERCHANT ================= */
             Hidden::make('merchant_id')
-                ->default(fn () => auth('merchant')->id())
+                ->default(fn() => auth('merchant')->id())
                 ->required(),
         ]);
     }

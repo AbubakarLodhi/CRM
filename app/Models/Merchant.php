@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\AttachmentMetaType;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,6 +17,15 @@ class Merchant extends Authenticatable
 {
     use HasUuids, HasRoles;
 
+    /** @var string */
+    const STATUS_PENDING = 'pending';
+
+    /** @var string */
+    const STATUS_VERIFIED = 'verified';
+
+    /** @var string */
+    const STATUS_REJECTED = 'rejected';
+
     /** @var bool $incrementing */
     public $incrementing = false;
 
@@ -24,25 +35,10 @@ class Merchant extends Authenticatable
     /** @var string[] $hidden */
     protected $hidden = ['password'];
 
-    const STATUS_PENDING = 'pending';
-
-    const STATUS_VERIFIED = 'verified';
-
-    const STATUS_REJECTED = 'rejected';
-
     /** @var string[] $fillable */
     protected $fillable = [
-        'name',
-        'phone',
-        'password',
-        'email',
-        'status',
-        'address_line_1',
-        'address_line_2',
-        'city',
-        'social_media_handles',
-        'website',
-        'is_active',
+        'name', 'phone', 'password', 'email', 'status', 'address_line_1', 'address_line_2', 'city',
+        'social_media_handles', 'website', 'is_active',
     ];
 
     /**
@@ -155,19 +151,27 @@ class Merchant extends Authenticatable
         return $this->hasMany(Product::class);
     }
 
-
-    public function attachments()
+    /**
+     * @return MorphMany
+     */
+    public function attachments(): MorphMany
     {
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
-    public function logo()
+    /**
+     * @return MorphOne
+     */
+    public function logo(): MorphOne
     {
         return $this->morphOne(Attachment::class, 'attachable')
             ->where('meta_type', AttachmentMetaType::MERCHANT_LOGO);
     }
 
-    public function profilePhoto()
+    /**
+     * @return MorphOne
+     */
+    public function profilePhoto(): MorphOne
     {
         return $this->morphOne(Attachment::class, 'attachable')
             ->where('meta_type', AttachmentMetaType::PROFILE_PHOTO);
