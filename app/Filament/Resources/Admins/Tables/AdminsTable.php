@@ -58,10 +58,12 @@ class AdminsTable
             ])
             ->recordActions([
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
                     ->visible(fn () => auth('admin')->user()?->hasPermissionTo('admins.update', 'admin')),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
                     ->visible(fn () => auth('admin')->user()?->hasPermissionTo('admins.delete', 'admin')),

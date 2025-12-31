@@ -50,10 +50,12 @@ class RolesTable
             ])
             ->recordActions([
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('roles_permissions.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('roles_permissions.delete', Filament::getCurrentPanel()->getAuthGuard())),

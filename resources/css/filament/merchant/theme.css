@@ -1,0 +1,16 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+
+/*.fi-simple-layout {*/
+/*    background-color: #5b21b6;*/
+/*}*/
+
+/*.fi-simple-main {*/
+/*    background-color: #5b21b6;*/
+/*}*/
+
+/*.fi-color-danger {*/
+/*    color: #5b21b6;*/
+/*}*/

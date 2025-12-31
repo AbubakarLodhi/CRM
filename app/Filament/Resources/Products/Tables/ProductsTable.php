@@ -77,6 +77,7 @@ class ProductsTable
             ])
             ->recordActions([
                 Action::make('view-variants')
+                    ->color('secondary')
                     ->icon('heroicon-o-squares-2x2')
                     ->label('')
                     ->tooltip('View Variants')
@@ -95,9 +96,11 @@ class ProductsTable
                     )
                     ->openUrlInNewTab(false),
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit'),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete'),
 

@@ -66,10 +66,12 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('users.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('users.delete', Filament::getCurrentPanel()->getAuthGuard())),

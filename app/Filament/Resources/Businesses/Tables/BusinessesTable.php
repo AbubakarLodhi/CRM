@@ -57,10 +57,12 @@ class BusinessesTable
             ])
             ->recordActions([
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('businesses.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('businesses.delete', Filament::getCurrentPanel()->getAuthGuard())),

@@ -17,6 +17,7 @@ class EditRoles extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->color('danger')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('roles_permissions.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }

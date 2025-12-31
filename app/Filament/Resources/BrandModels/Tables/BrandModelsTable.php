@@ -60,6 +60,7 @@ class BrandModelsTable
             ])
             ->recordActions([
                 Action::make('view-products')
+                    ->color('secondary')
                     ->icon('heroicon-o-cube')
                     ->label('')
                     ->tooltip('View Products')
@@ -77,10 +78,12 @@ class BrandModelsTable
                     ->openUrlInNewTab(false),
 
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),

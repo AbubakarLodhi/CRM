@@ -43,6 +43,7 @@ class ListProducts extends ListRecords
     {
         return [
             Action::make('back')
+                ->color('default')
                 ->label('Back')
                 ->icon('heroicon-o-arrow-left')
                 ->visible(fn () => request()->filled('brand_model_id'))

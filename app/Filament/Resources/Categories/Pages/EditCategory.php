@@ -18,6 +18,7 @@ class EditCategory extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->color('danger')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }

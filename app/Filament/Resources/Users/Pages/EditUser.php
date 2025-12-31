@@ -23,6 +23,7 @@ class EditUser extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->color('danger')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('users.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }

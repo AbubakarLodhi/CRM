@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Products\RelationManagers;
 
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -32,11 +35,13 @@ class ProductOptionValuesRelationManager extends RelationManager
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->headerActions([
-                \Filament\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\EditAction::make(),
-                \Filament\Actions\DeleteAction::make(),
+                EditAction::make()
+                    ->color('warning'),
+                DeleteAction::make()
+                    ->color('danger'),
             ]);
     }
 }

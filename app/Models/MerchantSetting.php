@@ -5,17 +5,20 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MerchantSetting extends Model
 {
     use HasUuids;
 
-    /** @var string[] $fillable */
-    protected $fillable = ['merchant_id','logo_path','primary_color','secondary_color','currency','timezone'];
-
     /** @var bool $incrementing */
     public $incrementing = false;
+
+    /** @var string[] $fillable */
+    protected $fillable = [
+        'merchant_id', 'primary_color_light', 'secondary_color_light', 'warning_color_light', 'danger_color_light',
+        'success_color_light', 'primary_color_dark', 'secondary_color_dark', 'warning_color_dark', 'danger_color_dark',
+        'success_color_dark'
+    ];
 
     /** @var string $keyType */
     protected $keyType = 'string';
@@ -23,7 +26,7 @@ class MerchantSetting extends Model
     /**
      * @return BelongsTo
      */
-    public function merchant():BelongsTo
+    public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }

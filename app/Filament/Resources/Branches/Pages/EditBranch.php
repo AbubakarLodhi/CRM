@@ -19,6 +19,7 @@ class EditBranch extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->color('danger')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('branches.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }

@@ -35,7 +35,8 @@ class ProductOptionsTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->color('warning'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

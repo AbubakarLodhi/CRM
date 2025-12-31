@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Products\RelationManagers;
 
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -37,10 +39,11 @@ class ProductVariantValuesRelationManager extends RelationManager
                 TextColumn::make('value.value')->label('Value'),
             ])
             ->headerActions([
-                \Filament\Actions\CreateAction::make(),
+                CreateAction::make(),
             ])
             ->actions([
-                \Filament\Actions\DeleteAction::make(),
+                DeleteAction::make()
+                    ->color('danger'),
             ]);
     }
 }

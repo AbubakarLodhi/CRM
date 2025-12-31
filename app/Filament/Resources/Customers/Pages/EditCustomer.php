@@ -20,6 +20,7 @@ class EditCustomer extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->color('danger')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('customers.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }

@@ -30,7 +30,8 @@ class ProductOptionsRelationManager extends RelationManager
 //                        $record
 //                    )),
 
-                DeleteAction::make(),
+                DeleteAction::make()
+                    ->color('danger'),
             ]);
     }
 }
