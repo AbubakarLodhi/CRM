@@ -136,34 +136,6 @@ class MerchantsTable
                         ?->hasPermissionTo('merchants.update', Filament::getCurrentPanel()->getAuthGuard())
                     )
 
-                    // 👉 Prefill form if settings exist
-                    ->mountUsing(function (Action $action, Merchant $record) {
-
-                        $settings = $record->settings;
-
-                        if (! $settings) {
-                            return;
-                        }
-
-                        $action->fillForm([
-                            // 🔹 Normal fields
-                            'primary_color'   => $settings->primary_color,
-                            'secondary_color' => $settings->secondary_color,
-                            'currency'        => $settings->currency,
-                            'timezone'        => $settings->timezone,
-
-                            // 🔹 FileUpload fields MUST be arrays
-                            'merchant_logo' => $record->logo
-                                ? [$record->logo->photo_url]
-                                : null,
-
-                            'profile_photo' => $record->profilePhoto
-                                ? [$record->profilePhoto->photo_url]
-                                : null,
-                        ]);
-                    })
-
-
                     ->form([
                         FileUpload::make('merchant_logo')
                             ->label('Merchant Logo')
@@ -172,8 +144,7 @@ class MerchantsTable
                             ->directory('merchants/logos')
                             ->imagePreviewHeight(120)
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->maxSize(2048)
-                            ->dehydrated(false),
+                            ->maxSize(2048),
 
                         FileUpload::make('profile_photo')
                             ->label('Profile Photo')
@@ -182,8 +153,8 @@ class MerchantsTable
                             ->directory('merchants/profile-photos')
                             ->imagePreviewHeight(120)
                             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->maxSize(2048)
-                            ->dehydrated(false),
+                            ->maxSize(2048),
+
 
                         ColorPicker::make('primary_color')->required(),
                         ColorPicker::make('secondary_color')->required(),
@@ -196,10 +167,32 @@ class MerchantsTable
                             ->required()
                             ->default('UTC'),
                     ])
+                    // 👉 Prefill form if settings exist
+                    ->mountUsing(function (Action $action, Merchant $record) {
+                        $settings = $record->settings;
+
+                        if (! $settings) {
+                            return;
+                        }
+
+                        $action->fillForm([
+                            'primary_color'   => $settings?->primary_color,
+                            'secondary_color' => $settings?->secondary_color,
+                            'currency'        => $settings?->currency ?? 'USD',
+                            'timezone'        => $settings?->timezone ?? 'UTC',
+
+                            'merchant_logo' => $record->logo
+                                ? [$record->logo->photo_url]
+                                : null,
+
+                            'profile_photo' => $record->profilePhoto
+                                ? [$record->profilePhoto->photo_url]
+                                : null,
+                        ]);
+                    })
 
                     // 👉 UPSERT logic
                     ->action(function (array $data, Merchant $record) {
-
                         // 1️⃣ Create or update settings
                         MerchantSetting::updateOrCreate(
                             ['merchant_id' => $record->id],
