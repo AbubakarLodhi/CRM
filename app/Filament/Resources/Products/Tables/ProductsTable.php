@@ -30,7 +30,7 @@ class ProductsTable
                     ->getStateUsing(fn (Product $record) =>
                     $record->icon
                         ? asset('storage/' .  $record->productImage->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     ),
 
 

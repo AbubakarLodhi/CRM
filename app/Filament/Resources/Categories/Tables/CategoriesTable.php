@@ -111,7 +111,7 @@ class CategoriesTable
                 ->getStateUsing(fn (Category $record) =>
                 $record->icon
                     ? asset('storage/' . $record->icon->photo_url)
-                    : asset('storage/placeholder/placeholder.jpg')
+                    : asset('images/placeholder.jpg')
                 ),
 
 

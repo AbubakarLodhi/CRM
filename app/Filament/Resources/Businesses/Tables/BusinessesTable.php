@@ -29,7 +29,7 @@ class BusinessesTable
                     ->getStateUsing(fn (Business $record) =>
                     $record->icon
                         ? asset('storage/' . $record->logo->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     ),
                 IconColumn::make('status')
                     ->label('Active')

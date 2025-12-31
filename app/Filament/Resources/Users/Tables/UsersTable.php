@@ -28,7 +28,7 @@ class UsersTable
                     ->getStateUsing(fn (User $record) =>
                     $record->icon
                         ? asset('storage/' . $record->profilePhoto->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     ),
                 TextColumn::make('name')
                     ->searchable(),

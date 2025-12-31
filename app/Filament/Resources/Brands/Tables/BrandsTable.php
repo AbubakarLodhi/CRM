@@ -56,7 +56,7 @@ class BrandsTable
                     ->getStateUsing(fn ($record) =>
                     $record->brand?->logo
                         ? asset('storage/' . $record->brand->logo->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     ),
 
                 /**
