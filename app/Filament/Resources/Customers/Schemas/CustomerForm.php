@@ -29,8 +29,25 @@ class CustomerForm
                     ->unique(Customer::class, 'email')
                     ->required(),
 
-                Textarea::make('city')
+                Select::make('country_id')
+                    ->label('Country')
+                    ->relationship('country', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(fn (callable $set) => $set('city_id', null)),
+
+                Select::make('city_id')
                     ->label('City')
+                    ->relationship(
+                        'city',
+                        'name',
+                        fn ($query, callable $get) =>
+                        $query->where('country_id', $get('country_id'))
+                    )
+                    ->searchable()
+                    ->preload()
                     ->required(),
 
                 Select::make('merchant_id')
@@ -42,19 +59,8 @@ class CustomerForm
                     ->default(fn() => Filament::auth()->user()?->id)
                     ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
 
-                Select::make('reference_id')
+                TextInput::make('reference')
                     ->label('Reference Customer')
-                    ->relationship('reference', 'name')
-                    ->options(function ($get) {
-                        $currentId = $get('id');
-                        return Customer::when($currentId, function ($query) use ($currentId) {
-                            $query->where('id', '<>', $currentId); // exclude itself
-                        })
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    })
-                    ->searchable()
-                    ->preload()
                     ->nullable(),
             ]);
     }

@@ -43,7 +43,7 @@ class CustomersTable
                     ->searchable(),
 
                 // Show reference customer name instead of ID
-                TextColumn::make('reference.name')
+                TextColumn::make('reference')
                     ->label('Reference Customer')
                     ->sortable()
                     ->searchable(),

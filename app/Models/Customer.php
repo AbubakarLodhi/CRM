@@ -32,10 +32,6 @@ class Customer extends Model
     /**
      * @return BelongsTo
      */
-    public function reference(): BelongsTo
-    {
-        return $this->belongsTo(Customer::class, 'reference_id');
-    }
 
     /**
      * @return BelongsTo

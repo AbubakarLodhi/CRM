@@ -27,10 +27,11 @@ class MerchantsTable
                     ->size(50)
                     ->square()
                     ->getStateUsing(fn (Merchant $record) =>
-                    $record->icon
+                    $record->profilePhoto
                         ? asset('storage/' . $record->profilePhoto->photo_url)
                         : asset('storage/placeholder/placeholder.jpg')
                     ),
+
 
 
                 TextColumn::make('name')
@@ -41,7 +42,7 @@ class MerchantsTable
                     ->size(50)
                     ->square()
                     ->getStateUsing(fn (Merchant $record) =>
-                    $record->icon
+                    $record->logo
                         ? asset('storage/' . $record->logo->photo_url)
                         : asset('storage/placeholder/placeholder.jpg')
                     ),

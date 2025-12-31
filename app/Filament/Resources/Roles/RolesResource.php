@@ -59,7 +59,7 @@ class RolesResource extends Resource
             return Role::query();
         }
         return Role::query()
-            ->when($guardName, fn($query) => $query->where('guard_name', 'staff'));
+            ->when($guardName, fn($query) => $query->where('guard_name', 'merchant'));
     }
 
     public static function afterCreate($record, array $data): void
