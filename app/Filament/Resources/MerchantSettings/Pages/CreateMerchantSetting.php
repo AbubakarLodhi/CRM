@@ -5,11 +5,44 @@ namespace App\Filament\Resources\MerchantSettings\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\MerchantSettings\MerchantSettingResource;
+use App\Models\MerchantSetting;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateMerchantSetting extends CreateRecord
 {
     protected static string $resource = MerchantSettingResource::class;
+    protected static ?string $title = 'Merchant Settings';
+
+    public function mount(): void
+    {
+        if (auth('merchant')->check()) {
+            $existing = MerchantSetting::where(
+                'merchant_id',
+                auth('merchant')->id()
+            )->first();
+
+            if ($existing) {
+                redirect(
+                    static::getResource()::getUrl('edit', [
+                        'record' => $existing,
+                        'panel' => 'merchant',
+                    ])
+                );
+            }
+        }
+
+        parent::mount();
+    }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (auth('merchant')->check()) {
+            $data['merchant_id'] = auth('merchant')->id();
+        }
+
+        return $data;
+    }
+
     protected function afterCreate(): void
     {
         $state = $this->form->getRawState();

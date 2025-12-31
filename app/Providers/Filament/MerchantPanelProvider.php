@@ -38,7 +38,7 @@ class MerchantPanelProvider extends PanelProvider
 
                 $path = $merchant->logo->photo_url;
 
-                if (! \Storage::disk('public')->exists($path)) {
+                if (! Storage::disk('public')->exists($path)) {
                     return null;
                 }
                 return asset('storage/' . $path);

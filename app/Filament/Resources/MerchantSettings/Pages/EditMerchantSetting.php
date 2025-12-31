@@ -5,28 +5,64 @@ namespace App\Filament\Resources\MerchantSettings\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\MerchantSettings\MerchantSettingResource;
+use App\Models\MerchantSetting;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditMerchantSetting extends EditRecord
 {
     protected static string $resource = MerchantSettingResource::class;
 
+    protected static ?string $title = 'Merchant Settings';
+
+    protected function resolveRecord($key): Model
+    {
+        if (auth('merchant')->check()) {
+            return MerchantSetting::where(
+                'merchant_id',
+                auth('merchant')->id()
+            )->firstOrFail();
+        }
+
+        return parent::resolveRecord($key); // admin
+    }
+
     protected function getHeaderActions(): array
     {
-        return [
-            DeleteAction::make(),
-        ];
+        return auth('merchant')->check()
+            ? []   // no delete for merchant
+            : [DeleteAction::make()];
     }
+
+//    protected function getHeaderActions(): array
+//    {
+//        return [
+//            DeleteAction::make(),
+//        ];
+//    }
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $merchant = auth('merchant')->user();
+        // ✅ MERCHANT PANEL
+        if (auth('merchant')->check()) {
+            $merchant = auth('merchant')->user();
 
-        $data['merchant_logo'] = $merchant->logo?->photo_url;      // STRING
-        $data['profile_photo'] = $merchant->profilePhoto?->photo_url;
+            $data['merchant_logo'] = $merchant->logo?->photo_url;
+            $data['profile_photo'] = $merchant->profilePhoto?->photo_url;
+
+            return $data;
+        }
+
+        // ✅ ADMIN PANEL
+        // Merchant comes from the record itself
+        if ($this->record?->merchant) {
+            $data['merchant_logo'] = $this->record->merchant->logo?->photo_url;
+            $data['profile_photo'] = $this->record->merchant->profilePhoto?->photo_url;
+        }
 
         return $data;
     }
+
 
 
     protected function afterSave(): void
