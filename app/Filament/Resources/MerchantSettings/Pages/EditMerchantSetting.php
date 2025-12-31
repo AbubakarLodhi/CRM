@@ -35,33 +35,37 @@ class EditMerchantSetting extends EditRecord
             : [DeleteAction::make()];
     }
 
-//    protected function getHeaderActions(): array
-//    {
-//        return [
-//            DeleteAction::make(),
-//        ];
-//    }
     protected function mutateFormDataBeforeFill(array $data): array
     {
         // ✅ MERCHANT PANEL
         if (auth('merchant')->check()) {
             $merchant = auth('merchant')->user();
 
-            $data['merchant_logo'] = $merchant->logo?->photo_url;
-            $data['profile_photo'] = $merchant->profilePhoto?->photo_url;
+            $data['merchant_logo'] = $merchant->logo
+                ? [$merchant->logo->photo_url]
+                : null;
+
+            $data['profile_photo'] = $merchant->profilePhoto
+                ? [$merchant->profilePhoto->photo_url]
+                : null;
 
             return $data;
         }
 
         // ✅ ADMIN PANEL
-        // Merchant comes from the record itself
         if ($this->record?->merchant) {
-            $data['merchant_logo'] = $this->record->merchant->logo?->photo_url;
-            $data['profile_photo'] = $this->record->merchant->profilePhoto?->photo_url;
+            $data['merchant_logo'] = $this->record->merchant->logo
+                ? [$this->record->merchant->logo->photo_url]
+                : null;
+
+            $data['profile_photo'] = $this->record->merchant->profilePhoto
+                ? [$this->record->merchant->profilePhoto->photo_url]
+                : null;
         }
 
         return $data;
     }
+
 
 
 

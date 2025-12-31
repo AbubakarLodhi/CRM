@@ -6,12 +6,26 @@ use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\MerchantSettings\MerchantSettingResource;
 use App\Models\MerchantSetting;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateMerchantSetting extends CreateRecord
 {
     protected static string $resource = MerchantSettingResource::class;
     protected static ?string $title = 'Merchant Settings';
+
+    protected function getFormActions(): array
+    {
+        return [
+            Action::make('save')
+                ->label('Save changes')
+                ->submit('create'),
+
+            Action::make('cancel')
+                ->label('Cancel')
+                ->url($this->getResource()::getUrl('index')),
+        ];
+    }
 
     public function mount(): void
     {

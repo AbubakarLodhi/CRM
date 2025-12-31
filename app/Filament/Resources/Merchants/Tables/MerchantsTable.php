@@ -15,7 +15,9 @@ use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
@@ -54,16 +56,7 @@ class MerchantsTable
                         ? asset('storage/' . $record->logo->photo_url)
                         : asset('storage/placeholder/placeholder.jpg')
                     ),
-//                ImageColumn::make('merchant_logo')
-//                    ->label('Logo')
-//                    ->size(40)
-//                    ->square()
-//                    ->getStateUsing(fn (Merchant $record) =>
-//                    $record->logo
-//                        ? asset('storage/' . $record->logo->photo_url)
-//                        : null
-//                    )
-//                    ->defaultImageUrl(asset('images/brand-placeholder.png')),
+//
 
                 TextColumn::make('phone')
                     ->searchable(),
@@ -136,75 +129,94 @@ class MerchantsTable
                         ?->hasPermissionTo('merchants.update', Filament::getCurrentPanel()->getAuthGuard())
                     )
 
+                    // ================= FORM =================
                     ->form([
                         FileUpload::make('merchant_logo')
                             ->label('Merchant Logo')
                             ->image()
                             ->disk('public')
                             ->directory('merchants/logos')
-                            ->imagePreviewHeight(120)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->maxSize(2048),
+                            ->imagePreviewHeight(120),
 
                         FileUpload::make('profile_photo')
                             ->label('Profile Photo')
                             ->image()
                             ->disk('public')
                             ->directory('merchants/profile-photos')
-                            ->imagePreviewHeight(120)
-                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                            ->maxSize(2048),
+                            ->imagePreviewHeight(120),
 
+                        Section::make('Light Mode Colors')
+                            ->columnSpanFull()
+                            ->columns(3)
+                            ->schema([
+                                ColorPicker::make('primary_color')
+                                    ->label('Primary')
+                                    ->required(),
 
-                        ColorPicker::make('primary_color')->required(),
-                        ColorPicker::make('secondary_color')->required(),
+                                ColorPicker::make('secondary_color')
+                                    ->label('Secondary')
+                                    ->required(),
 
-                        TextInput::make('currency')
-                            ->required()
-                            ->default('USD'),
+                                ColorPicker::make('warning_color')
+                                    ->label('Warning')
+                                    ->required(),
 
-                        TextInput::make('timezone')
-                            ->required()
-                            ->default('UTC'),
+                                ColorPicker::make('danger_color')
+                                    ->label('Danger')
+                                    ->required(),
+
+                                ColorPicker::make('success_color')
+                                    ->label('Success')
+                                    ->required(),
+
+                                ColorPicker::make('default_color')
+                                    ->label('Default')
+                                    ->required(),
+                            ]),
+
+                        Hidden::make('merchant_id'),
                     ])
-                    // 👉 Prefill form if settings exist
-                    ->mountUsing(function (Action $action, Merchant $record) {
+
+                    // ================= FILL FORM (Action equivalent of mutate-before-fill) =================
+                    ->fillForm(function (Merchant $record): array {
                         $settings = $record->settings;
 
-                        if (! $settings) {
-                            return;
-                        }
+                        return [
+                            'merchant_id' => $record->id,
 
-                        $action->fillForm([
                             'primary_color'   => $settings?->primary_color,
                             'secondary_color' => $settings?->secondary_color,
-                            'currency'        => $settings?->currency ?? 'USD',
-                            'timezone'        => $settings?->timezone ?? 'UTC',
+                            'warning_color'   => $settings?->warning_color,
+                            'danger_color'    => $settings?->danger_color,
+                            'success_color'   => $settings?->success_color,
+                            'default_color'   => $settings?->default_color,
 
-                            'merchant_logo' => $record->logo
+                            'merchant_logo' => $record->logo?->photo_url
                                 ? [$record->logo->photo_url]
                                 : null,
 
-                            'profile_photo' => $record->profilePhoto
+                            'profile_photo' => $record->profilePhoto?->photo_url
                                 ? [$record->profilePhoto->photo_url]
                                 : null,
-                        ]);
+                        ];
                     })
 
-                    // 👉 UPSERT logic
+                    // ================= SAVE (UPSERT) =================
                     ->action(function (array $data, Merchant $record) {
-                        // 1️⃣ Create or update settings
+
                         MerchantSetting::updateOrCreate(
                             ['merchant_id' => $record->id],
                             Arr::only($data, [
                                 'primary_color',
                                 'secondary_color',
-                                'currency',
-                                'timezone',
+                                'warning_color',
+                                'danger_color',
+                                'success_color',
+                                'default_color',
                             ])
                         );
 
-                        // 2️⃣ PROFILE PHOTO
+                        // PROFILE PHOTO
                         if (!empty($data['profile_photo'])) {
                             $record->profilePhoto()?->delete();
 
@@ -216,7 +228,7 @@ class MerchantsTable
                             ]);
                         }
 
-                        // 3️⃣ MERCHANT LOGO
+                        // MERCHANT LOGO
                         if (!empty($data['merchant_logo'])) {
                             $record->logo()?->delete();
 
@@ -228,8 +240,7 @@ class MerchantsTable
                             ]);
                         }
                     }),
-
-                EditAction::make()
+        EditAction::make()
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
