@@ -14,19 +14,14 @@ class MerchantSettingForm
     {
         return $schema->components([
 
-            FileUpload::make('merchant_logo')
-                ->label('Merchant Logo')
-                ->image()
-                ->disk('public')
-                ->directory('merchants/logos')
-                ->imagePreviewHeight(120),
 
-            FileUpload::make('profile_photo')
-                ->label('Profile Photo')
-                ->image()
-                ->disk('public')
-                ->directory('merchants/profile-photos')
-                ->imagePreviewHeight(120),
+
+//            FileUpload::make('profile_photo')
+//                ->label('Profile Photo')
+//                ->image()
+//                ->disk('public')
+//                ->directory('merchants/profile-photos')
+//                ->imagePreviewHeight(120),
 
 
             /* ================= LIGHT MODE COLORS ================= */
@@ -58,6 +53,13 @@ class MerchantSettingForm
                         ->label('Default')
                         ->required(),
                 ]),
+
+            FileUpload::make('merchant_logo')
+                ->label('Merchant Logo')
+                ->image()
+                ->disk('public')
+                ->directory('merchants/logos')
+                ->imagePreviewHeight(120),
 
             /* ================= MERCHANT ================= */
             Hidden::make('merchant_id')
