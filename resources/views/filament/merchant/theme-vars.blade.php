@@ -1,43 +1,39 @@
 <style>
-    .fi-color-primary {
+    body.fi-panel-merchant {
         @foreach ($primary as $shade => $value)
-             --color-{{ $shade }}: {{ $value }};
+            --primary-{{ $shade }}: {{ $value }};
+            --fi-color-primary-{{ $shade }}: {{ $value }};
         @endforeach
-    }
 
-    .fi-color-success {
         @foreach ($success as $shade => $value)
-             --color-{{ $shade }}: {{ $value }};
+            --success-{{ $shade }}: {{ $value }};
+            --fi-color-success-{{ $shade }}: {{ $value }};
         @endforeach
-    }
 
-    .fi-color-warning {
         @foreach ($warning as $shade => $value)
-             --color-{{ $shade }}: {{ $value }};
+            --warning-{{ $shade }}: {{ $value }};
+            --fi-color-warning-{{ $shade }}: {{ $value }};
         @endforeach
-    }
 
-    .fi-color-danger {
         @foreach ($danger as $shade => $value)
-             --color-{{ $shade }}: {{ $value }};
+            --danger-{{ $shade }}: {{ $value }};
+            --fi-color-danger-{{ $shade }}: {{ $value }};
         @endforeach
-    }
 
-    .fi-color-secondary {
         @foreach ($secondary as $shade => $value)
-             --color-{{ $shade }}: {{ $value }};
+            --secondary-{{ $shade }}: {{ $value }};
+            --fi-color-secondary-{{ $shade }}: {{ $value }};
         @endforeach
-    }
 
-    .fi-color-default {
         @foreach ($default as $shade => $value)
-             --color-{{ $shade }}: {{ $value }};
+            --default-{{ $shade }}: {{ $value }};
+            --fi-color-default-{{ $shade }}: {{ $value }};
         @endforeach
     }
 
 
 
- {{--/* LIGHT MODE */--}}
+    {{--/* LIGHT MODE */--}}
  {{--   body.fi-panel-merchant {--}}
  {{--       @foreach ($primaryLight as $shade => $value)--}}
  {{--              --fi-color-primary- {{ $shade }}: {{ $value }};--}}

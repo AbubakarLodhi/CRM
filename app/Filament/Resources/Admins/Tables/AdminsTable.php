@@ -27,7 +27,7 @@ class AdminsTable
                     ->getStateUsing(fn (Admin $record) =>
                     $record->profilePhoto
                         ? asset('storage/' . $record->profilePhoto->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     )
                     ->defaultImageUrl(asset('images/avatar-placeholder.png')),
                 TextColumn::make('name')

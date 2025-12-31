@@ -39,7 +39,7 @@ class MerchantsTable
                     ->getStateUsing(fn (Merchant $record) =>
                     $record->profilePhoto
                         ? asset('storage/' . $record->profilePhoto->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     ),
 
 
@@ -54,7 +54,7 @@ class MerchantsTable
                     ->getStateUsing(fn (Merchant $record) =>
                     $record->logo
                         ? asset('storage/' . $record->logo->photo_url)
-                        : asset('storage/placeholder/placeholder.jpg')
+                        : asset('images/placeholder.jpg')
                     ),
 //
 
