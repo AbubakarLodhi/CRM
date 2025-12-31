@@ -99,6 +99,7 @@ class BrandsTable
 //                    ])
 //                    ),
                 Action::make('view-models')
+                    ->color('secondary')
                     ->icon('heroicon-o-rectangle-stack')
                     ->label('')
                     ->tooltip('View Models')
@@ -118,6 +119,7 @@ class BrandsTable
                  * Edit BRAND
                  */
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit Brand')
                     ->url(fn ($record) =>
@@ -134,6 +136,7 @@ class BrandsTable
                  * Remove category from brand (pivot delete)
                  */
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Remove Brand')
                     ->modalHeading('Remove Brand')

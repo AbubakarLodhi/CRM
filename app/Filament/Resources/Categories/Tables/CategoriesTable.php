@@ -33,6 +33,7 @@ class CategoriesTable
             )
             ->recordActions([
                 Action::make('view-subcategories')
+                    ->color('secondary')
                     ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Sub-Categories')
@@ -44,6 +45,7 @@ class CategoriesTable
                     ->visible(fn () => ! request()->filled('parent_id')),
 
                 Action::make('view-brands')
+                    ->color('secondary')
                     ->icon('heroicon-o-building-storefront')
                     ->label('')
                     ->tooltip('View Brands')
@@ -63,9 +65,11 @@ class CategoriesTable
 
 
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit'),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
                     ->requiresConfirmation()

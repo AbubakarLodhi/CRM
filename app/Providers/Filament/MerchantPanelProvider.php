@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -30,27 +31,41 @@ class MerchantPanelProvider extends PanelProvider
             ->path('merchant')
             ->login()
             ->brandLogo(function () {
-                $merchant = auth('merchant')->user();
-
-                if (! $merchant || ! $merchant->logo) {
-                    return null;
-                }
+                $merchant = Filament::auth()->user();
+                if (!$merchant || !$merchant->logo) return null;
 
                 $path = $merchant->logo->photo_url;
 
-                if (! Storage::disk('public')->exists($path)) {
-                    return null;
-                }
+                if (! Storage::disk('public')->exists($path)) return null;
                 return asset('storage/' . $path);
             })
-
-
-            ->brandName(fn () => auth('merchant')->user()?->name ?? 'Sales_Crm')
-
+            ->brandName(fn() => Filament::auth()->user()?->name ?? 'Sales_Crm')
             ->brandLogoHeight('2.5rem')
+            ->viteTheme('resources/css/filament/merchant/theme.css')
+            ->renderHook(
+                'panels::head.end',
+                function () {
+                    /*$merchant = auth('merchant')->user();
 
+                    $settings = $merchant->settings;
+                    return [
+                        'primary' => $settings?->primary_color ?? '#6d28d9',
+                        'secondary' => $settings?->secondary_color ?? '#9333ea',
+                    ];*/
 
-            ->colors(fn () => $this->getMerchantColors())
+                    $merchant = Filament::auth()->user();
+                    if (!$merchant || !$merchant->settings) return null;
+
+                    $settings = $merchant->settings;
+                    return view('filament.merchant.theme-vars', [
+                        'primary' => Color::generatePalette($settings->primary_color ?? '#1E3A8A'),
+                        'success' => Color::generatePalette($settings->success_color ?? '#22C55E'),
+                        'secondary'  => Color::generatePalette($settings->secondary_color ?? '#64748B'),
+                        'danger'  => Color::generatePalette($settings->danger_color ?? '#DC2626'),
+                        'warning'  => Color::generatePalette($settings->warning_color ?? '#FACC15'),
+                        'default'  => Color::generatePalette($settings->default_color ?? '#E5E7EB'),
+                    ]);
+                })
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -76,30 +91,6 @@ class MerchantPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->authGuard('merchant');
-    }
-    protected function getMerchantColors(): array
-    {
-        try {
-            $merchant = auth('merchant')->user();
-
-            if (! $merchant) {
-                return [
-                    'primary' => 'oklch(0.809 0.105 251.813)', // fallback purple
-                    'secondary' => '#9333ea',
-                ];
-            }
-
-            $settings = $merchant->settings; // relationship
-            return [
-                'primary' => $settings?->primary_color ?? '#6d28d9',
-                'secondary' => $settings?->secondary_color ?? '#9333ea',
-            ];
-        } catch (\Throwable $e) {
-            return [
-                'primary' => '#6d28d9',
-                'secondary' => '#9333ea',
-            ];
-        }
     }
 
 }

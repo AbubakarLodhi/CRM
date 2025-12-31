@@ -44,6 +44,7 @@ class ListVariants extends ListRecords
         return [
 
             Action::make('back')
+                ->color('default')
                 ->label('Back')
                 ->icon('heroicon-o-arrow-left')
                 ->visible(fn () => request()->filled('product_id'))

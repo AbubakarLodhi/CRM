@@ -21,6 +21,7 @@ class EditAdmin extends EditRecord
     {
         return [
             DeleteAction::make()
+                ->color('danger')
                 ->visible(fn () => auth('admin')->user()?->hasPermissionTo('admins.delete', 'admin')),
         ];
     }

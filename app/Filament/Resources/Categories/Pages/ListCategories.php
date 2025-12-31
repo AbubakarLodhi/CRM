@@ -75,6 +75,7 @@ class ListCategories extends ListRecords
             $this->isSubCategoryContext()
                 ? [
                 Action::make('back')
+                    ->color('default')
                     ->label('Back')
                     ->icon('heroicon-o-arrow-left')
                     ->url(static::getResource()::getUrl()),

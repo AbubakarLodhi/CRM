@@ -45,9 +45,11 @@ class VariantsTable
             ])
             ->recordActions([
                 EditAction::make()
+                    ->color('warning')
                     ->label('')
                     ->tooltip('Edit'),
                 DeleteAction::make()
+                    ->color('danger')
                     ->label('')
                     ->tooltip('Delete'),
 //                    ->visible(fn () =>
@@ -55,6 +57,7 @@ class VariantsTable
 //                        ->user()?->hasPermissionTo('products.update', Filament::getCurrentPanel()->getAuthGuard())
 //                    ),
 //                DeleteAction::make()
+//                    ->color('danger')
 //                    ->visible(fn () =>
 //                    auth(Filament::getCurrentPanel()->getAuthGuard())
 //                        ->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())
