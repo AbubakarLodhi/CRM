@@ -21,13 +21,13 @@ class MerchantSettingForm
                 ->disk('public')
                 ->directory('merchants/logos')
                 ->imagePreviewHeight(120),
-            
-            FileUpload::make('profile_photo')
-                ->label('Profile Photo')
-                ->image()
-                ->disk('public')
-                ->directory('merchants/profile-photos')
-                ->imagePreviewHeight(120),
+
+//            FileUpload::make('profile_photo')
+//                ->label('Profile Photo')
+//                ->image()
+//                ->disk('public')
+//                ->directory('merchants/profile-photos')
+//                ->imagePreviewHeight(120),
 
 
             /* ================= LIGHT MODE COLORS ================= */
@@ -64,6 +64,6 @@ class MerchantSettingForm
             Hidden::make('merchant_id')
                 ->default(fn() => auth('merchant')->id())
                 ->required(),
-        ]);
+        ])->columns(1);
     }
 }

@@ -13,6 +13,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class BranchesTable
 {
@@ -50,15 +51,29 @@ class BranchesTable
                     ->searchable(),
             ])
             ->filters([
-                //
                 SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
+                    ->label('Merchants')
+                    ->relationship(
+                        'merchant',
+                        'name',
+                    )
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    ->visible(fn () => (Filament::auth()->user() instanceof \App\Models\Admin)),
                 SelectFilter::make('business_id')
-                    ->relationship('business', 'name')
                     ->label('Businesses')
+                    ->relationship(
+                        'business',
+                        'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = Filament::auth()->user();
+
+                            if ($user instanceof \App\Models\Merchant) {
+                                $query->where('merchant_id', $user->id);
+                            }
+
+                        }
+                    )
                     ->searchable()
                     ->preload(),
                 SelectFilter::make('status')

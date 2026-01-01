@@ -33,6 +33,7 @@ class BusinessesTable
                     ),
                 IconColumn::make('status')
                     ->label('Active')
+                    ->color('primary')
                     ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()
@@ -48,11 +49,11 @@ class BusinessesTable
                     ->searchable(),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
+//                SelectFilter::make('merchant_id')
+//                    ->relationship('merchant', 'name')
+//                    ->label('Merchant')
+//                    ->searchable()
+//                    ->preload()
                 //
             ])
             ->recordActions([

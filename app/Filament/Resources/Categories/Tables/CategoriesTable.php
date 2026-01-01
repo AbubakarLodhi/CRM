@@ -46,7 +46,7 @@ class CategoriesTable
 
                 Action::make('view-brands')
                     ->color('secondary')
-                    ->icon('heroicon-o-building-storefront')
+                    ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Brands')
                     ->url(fn (?Category $record) =>

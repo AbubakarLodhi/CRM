@@ -42,9 +42,18 @@ class RolesTable
                 //
                 SelectFilter::make('id')
                     ->label('Roles')
-                    ->options(
-                        Role::pluck('name', 'id')
-                    )
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        // Merchant panel → merchant roles only
+                        if ($user instanceof \App\Models\Merchant) {
+                            return Role::where('guard_name', 'merchant')
+                                ->pluck('name', 'id');
+                        }
+
+                        // Admin panel → all roles
+                        return Role::pluck('name', 'id');
+                    })
                     ->searchable()
                     ->preload()
             ])

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\AttachmentMetaType;
+use Filament\Models\Contracts\HasAvatar;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -11,9 +13,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-class Merchant extends Authenticatable
+class Merchant extends Authenticatable implements HasAvatar
 {
     use HasUuids, HasRoles;
 
@@ -176,4 +179,16 @@ class Merchant extends Authenticatable
         return $this->morphOne(Attachment::class, 'attachable')
             ->where('meta_type', AttachmentMetaType::PROFILE_PHOTO);
     }
+
+    public function getFilamentAvatarUrl(): ?string
+    {
+        $attachment = $this->profilePhoto;
+
+        if (! $attachment?->photo_url) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($attachment->photo_url);
+    }
+
 }

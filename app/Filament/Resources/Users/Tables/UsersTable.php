@@ -39,11 +39,12 @@ class UsersTable
                     ->dateTime()
                     ->sortable(),
                 IconColumn::make('is_active')
+                    ->color('primary')
                     ->boolean(),
                 BadgeColumn::make('status')
                     ->colors([
-                        'primary' => 'pending',
-                        'success' => 'verified',
+                        'warning' => 'pending',
+                        'primary' => 'verified',
                         'danger' => 'rejected',
                     ])
                     ->sortable()

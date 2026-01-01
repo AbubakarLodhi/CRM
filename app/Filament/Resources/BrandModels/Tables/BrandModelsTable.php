@@ -61,7 +61,7 @@ class BrandModelsTable
             ->recordActions([
                 Action::make('view-products')
                     ->color('secondary')
-                    ->icon('heroicon-o-cube')
+                    ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Products')
                     ->url(fn ($record) =>
