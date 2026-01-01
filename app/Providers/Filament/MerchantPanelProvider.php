@@ -54,9 +54,7 @@ class MerchantPanelProvider extends PanelProvider
                     ];*/
 
                     $merchant = Filament::auth()->user();
-                    if (!$merchant || !$merchant->settings) return null;
-
-                    $settings = $merchant->settings;
+                    $settings = $merchant->settings ?? null;
                     return view('filament.merchant.theme-vars', [
                         'primary' => Color::generatePalette($settings->primary_color ?? '#1E3A8A'),
                         'success' => Color::generatePalette($settings->success_color ?? '#22C55E'),
