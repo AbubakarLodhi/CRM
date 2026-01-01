@@ -15,8 +15,8 @@ use Database\Seeders\ZGN\SolarEarthingSeeder;
 use Database\Seeders\ZGN\SolarInstallationServiceSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductsOptionsSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductsOptionValuesSeeder;
-use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductVariantsSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductsSeeder;
+use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductVariantsSeeder;
 use Database\Seeders\ZGN\SolarInverters\ZGNInverterProductVariantValuesSeeder;
 use Database\Seeders\ZGN\SolarMonitoringDevicesSeeder;
 use Database\Seeders\ZGN\SolarNetMeteringServiceSeeder;
@@ -55,33 +55,33 @@ class DatabaseSeeder extends Seeder
             BranchUsersSeeder::class,
             CustomersSeeder::class,
 
-            //ZGN Merchant Seeders
+            // ZGN Merchant Seeders
             ZGNSolarCategoriesSeeder::class,
             ZGNBrandsSeeder::class,
             ZGNBrandModelsSeeder::class,
 
-            //Solar Panels
+            // Solar Panels
             ZGNSolarPanelProductsSeeder::class,
             ZGNSolarPanelProductsOptionsSeeder::class,
             ZGNSolarPanelProductsOptionValuesSeeder::class,
             ZGNSolarPanelProductVariantsSeeder::class,
             ZGNSolarPanelProductVariantValuesSeeder::class,
 
-            //Inverters
+            // Inverters
             ZGNInverterProductsSeeder::class,
             ZGNInverterProductsOptionsSeeder::class,
             ZGNInverterProductsOptionValuesSeeder::class,
             ZGNInverterProductVariantsSeeder::class,
             ZGNInverterProductVariantValuesSeeder::class,
 
-            //Battery
+            // Battery
             ZGNBatteryProductsSeeder::class,
             ZGNBatteryProductsOptionsSeeder::class,
             ZGNBatteryProductsOptionValuesSeeder::class,
             ZGNBatteryProductVariantsSeeder::class,
             ZGNBatteryProductVariantValuesSeeder::class,
 
-            //Rest of the seeders
+            // Rest of the seeders
             SolarCableSeeders::class,
             SolarProtectionSeeders::class,
             SolarStructureSeeders::class,
@@ -91,7 +91,11 @@ class DatabaseSeeder extends Seeder
             SolarCommunicationModulesSeeder::class,
             SolarInstallationServiceSeeder::class,
             SolarNetMeteringServiceSeeder::class,
-            SolarAMCServiceSeeder::class
+            SolarAMCServiceSeeder::class,
+
+            // Purchases and Sales (must be after products are created)
+            PurchasesSeeder::class,
+            SalesSeeder::class,
         ];
 
         $this->call($seeders);

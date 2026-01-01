@@ -2,28 +2,44 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
     use HasUuids;
 
-    /** @var string[] $fillable */
+    /** @var string[] */
     protected $fillable = ['merchant_id', 'business_id', 'branch_id', 'sale_id', 'status', 'status_notes'];
 
-    /** @var bool $incrementing */
+    /** @var bool */
     public $incrementing = false;
 
-    /** @var string $keyType */
+    /** @var string */
     protected $keyType = 'string';
 
-    /**
-     * @return BelongsTo
-     */
-    public function sale():BelongsTo
+    /** @var string[] */
+    protected $casts = [
+        'status' => 'string',
+    ];
+
+    public function merchant(): BelongsTo
+    {
+        return $this->belongsTo(Merchant::class);
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function sale(): BelongsTo
     {
         return $this->belongsTo(Sale::class);
     }

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -11,14 +11,58 @@ class Purchase extends Model
 {
     use HasUuids;
 
-    /** @var string[] $fillable */
-    protected $fillable = ['merchant_id', 'business_id', 'branch_id', 'purchase_no', 'purchase_date', 'subtotal', 'discount', 'tax', 'total_amount', 'notes', 'created_by'];
-
     /** @var bool $incrementing */
     public $incrementing = false;
 
+    /** @var string[] $fillable */
+    protected $fillable = [
+        'merchant_id', 'business_id', 'branch_id', 'purchase_no', 'purchase_date', 'subtotal', 'discount', 'tax',
+        'total_amount', 'notes', 'created_by'
+    ];
+
     /** @var string $keyType */
     protected $keyType = 'string';
+
+    /** @var string[] $casts */
+    protected $casts = [
+        'purchase_date' => 'date',
+        'subtotal' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'tax' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+    ];
+
+    /**
+     * @return BelongsTo
+     */
+    public function merchant(): BelongsTo
+    {
+        return $this->belongsTo(Merchant::class);
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    /**
+     * @return BelongsTo
+     */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     /**
      * @return HasMany
