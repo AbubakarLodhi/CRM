@@ -9,6 +9,7 @@ use App\Filament\Resources\MerchantSettings\Schemas\MerchantSettingForm;
 use App\Filament\Resources\MerchantSettings\Tables\MerchantSettingsTable;
 use App\Models\MerchantSetting;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -19,6 +20,7 @@ class MerchantSettingResource extends Resource
     protected static ?string $model = MerchantSetting::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+//    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $navigationLabel = 'Merchant Settings';
     protected static ?string $modelLabel = 'Merchant Settings';
@@ -28,6 +30,11 @@ class MerchantSettingResource extends Resource
     protected static ?string $recordTitleAttribute = 'MerchantSetting';
 
     protected static ?int $navigationSort = 8;
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return Filament::getCurrentPanel()?->getId() === 'merchant';
+    }
 
     public static function form(Schema $schema): Schema
     {

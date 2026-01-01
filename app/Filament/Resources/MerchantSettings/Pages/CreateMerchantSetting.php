@@ -62,18 +62,7 @@ class CreateMerchantSetting extends CreateRecord
         $state = $this->form->getRawState();
         $merchant = auth('merchant')->user();
 
-        /* ===== PROFILE PHOTO ===== */
-        if ($profile = collect($state['profile_photo'] ?? null)->first()) {
-            $merchant->profilePhoto()?->delete();
-
-            $merchant->profilePhoto()->create([
-                'merchant_id' => $merchant->id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                'photo_url'   => $profile,
-            ]);
-        }
-
+        dd($merchant);
         /* ===== MERCHANT LOGO ===== */
         if ($logo = collect($state['merchant_logo'] ?? null)->first()) {
             $merchant->logo()?->delete();
@@ -84,6 +73,9 @@ class CreateMerchantSetting extends CreateRecord
                 'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
                 'photo_url'   => $logo,
             ]);
-        }
+
+        }else{}
+
+
     }
 }

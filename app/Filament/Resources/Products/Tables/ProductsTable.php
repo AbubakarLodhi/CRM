@@ -78,7 +78,7 @@ class ProductsTable
             ->recordActions([
                 Action::make('view-variants')
                     ->color('secondary')
-                    ->icon('heroicon-o-squares-2x2')
+                    ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Variants')
                     ->url(fn ($record) =>

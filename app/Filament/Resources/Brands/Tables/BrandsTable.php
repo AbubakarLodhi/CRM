@@ -100,7 +100,7 @@ class BrandsTable
 //                    ),
                 Action::make('view-models')
                     ->color('secondary')
-                    ->icon('heroicon-o-rectangle-stack')
+                    ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Models')
                     ->url(fn ($record) =>

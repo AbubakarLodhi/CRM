@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\EditProfile;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -26,6 +28,7 @@ class MerchantPanelProvider extends PanelProvider
 
     public function panel(Panel $panel): Panel
     {
+
         return $panel
             ->id('merchant')
             ->path('merchant')
@@ -41,6 +44,15 @@ class MerchantPanelProvider extends PanelProvider
             })
             ->brandName(fn() => Filament::auth()->user()?->name ?? 'Sales_Crm')
             ->brandLogoHeight('2.5rem')
+            ->userMenuItems([
+                Action::make('editProfile')
+                    ->label('Edit profile')
+                    ->icon('heroicon-o-user')
+                    ->url(fn () => EditProfile::getUrl(panel: 'merchant'))
+                    ->sort(-10), // appears above theme switcher & logout
+            ])
+
+
             ->viteTheme('resources/css/filament/merchant/theme.css')
             ->renderHook(
                 'panels::head.end',
@@ -89,6 +101,8 @@ class MerchantPanelProvider extends PanelProvider
                 Authenticate::class,
             ])
             ->authGuard('merchant');
+
+
     }
 
 }
