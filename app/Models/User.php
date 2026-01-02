@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
@@ -14,9 +15,9 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasUuids, HasRoles;
+    use HasFactory, HasRoles, HasUuids, Notifiable;
 
-    /** @var string $keyType */
+    /** @var string */
     protected $keyType = 'string';
 
     /** @var string */
@@ -28,16 +29,16 @@ class User extends Authenticatable
     /** @var string */
     const STATUS_REJECTED = 'rejected';
 
-    /** @var bool $incrementing */
+    /** @var bool */
     public $incrementing = false;
 
-    /** @var string $guard_name */
+    /** @var string */
     protected $guard_name = 'merchant';
 
-    /** @var string[] $fillable */
+    /** @var string[] */
     protected $fillable = ['name', 'email', 'merchant_id', 'password', 'status', 'is_active'];
 
-    /** @var string[] $hidden */
+    /** @var string[] */
     protected $hidden = ['password', 'remember_token'];
 
     /**
@@ -63,30 +64,26 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * @return Attribute
-     */
     protected function password(): Attribute
     {
         return Attribute::make(
-            set: fn($value) => filled($value) ? Hash::make($value) : null
+            set: fn ($value) => filled($value) ? Hash::make($value) : null
         );
     }
 
-    /**
-     * @return BelongsTo
-     */
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
-    /**
-     * @return BelongsToMany
-     */
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class)->withTimestamps();
+    }
+
+    public function payrolls(): HasMany
+    {
+        return $this->hasMany(Payroll::class);
     }
 
     public function profilePhoto()

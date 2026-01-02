@@ -145,6 +145,9 @@ class DatabaseSeeder extends Seeder
             PurchasesSeeder::class,
             SalesSeeder::class,
             ExpensesSeeder::class,
+
+            // Payrolls (must be after staff/users are created)
+            PayrollsSeeder::class,
         ];
 
         $this->call($seeders);

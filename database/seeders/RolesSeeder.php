@@ -25,6 +25,7 @@ class RolesSeeder extends Seeder
                 'sales.*',
                 'purchases.*',
                 'expenses.*',
+                'payrolls.*',
                 'businesses.*',
                 'branches.*',
                 'products.*',
@@ -77,6 +78,7 @@ class RolesSeeder extends Seeder
                 'sales.view',
                 'purchases.view',
                 'expenses.view',
+                'payrolls.view',
                 'orders.view',
             ],
 

@@ -2,8 +2,9 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
-use App\Models\Brand;
+use App\Filament\Resources\Payrolls\PayrollResource;
 use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -19,15 +20,16 @@ class UsersTable
 {
     public static function configure(Table $table): Table
     {
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
         return $table
             ->columns([
                 ImageColumn::make('profile_photo')
                     ->label('Photo')
                     ->size(50)
                     ->square()
-                    ->getStateUsing(fn (User $record) =>
-                    $record->icon
-                        ? asset('storage/' . $record->profilePhoto->photo_url)
+                    ->getStateUsing(fn (User $record) => $record->icon
+                        ? asset('storage/'.$record->profilePhoto->photo_url)
                         : asset('images/placeholder.jpg')
                     ),
                 TextColumn::make('name')
@@ -66,21 +68,37 @@ class UsersTable
                 //
             ])
             ->recordActions([
+                Action::make('manage_payroll')
+                    ->color('success')
+                    ->icon('heroicon-o-currency-dollar')
+                    ->label('')
+                    ->tooltip('Manage Payroll')
+                    ->url(fn (User $record) => PayrollResource::getUrl('index', ['user_id' => $record->id]))
+                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.view', $guard)),
+
+                Action::make('create_payroll')
+                    ->color('info')
+                    ->icon('heroicon-o-plus')
+                    ->label('')
+                    ->tooltip('Create Payroll')
+                    ->url(fn (User $record) => PayrollResource::getUrl('create', ['user_id' => $record->id]))
+                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.create', $guard)),
+
                 EditAction::make()
                     ->color('warning')
                     ->label('')
-                    ->tooltip('Edit')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('users.update', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->tooltip('Edit Staff')
+                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('users.update', $guard)),
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
-                    ->tooltip('Delete')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('users.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->tooltip('Delete Staff')
+                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('users.delete', $guard)),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('users.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                        ->visible(fn () => auth($guard)->user()?->hasPermissionTo('users.delete', $guard)),
                 ]),
             ]);
     }

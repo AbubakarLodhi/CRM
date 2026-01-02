@@ -35,6 +35,7 @@ class PermissionsSeeder extends Seeder
             'sales' => ['view', 'create', 'update', 'delete'],
             'purchases' => ['view', 'create', 'update', 'delete'],
             'expenses' => ['view', 'create', 'update', 'delete'],
+            'payrolls' => ['view', 'create', 'update', 'delete'],
         ];
 
         foreach ($modules as $module => $actions) {
