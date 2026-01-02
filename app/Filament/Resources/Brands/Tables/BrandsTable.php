@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Brands\Tables;
 
+use App\Filament\Resources\BrandModels\BrandModelResource;
+use App\Filament\Resources\Brands\BrandsResource;
+use App\Models\Admin;
 use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use Filament\Actions\Action;
@@ -19,6 +22,7 @@ class BrandsTable
 {
     public static function configure(Table $table): Table
     {
+        $user = Filament::auth()->user();
         return $table
             /**
              * ✅ Each row is a BrandCategory
@@ -27,15 +31,17 @@ class BrandsTable
                 BrandCategory::query()
                     ->with(['brand.logo', 'category', 'merchant'])
                     ->when(
+                        !$user instanceof Admin,
+                        fn($query) => $query->where('merchant_id', $user->id)
+                    )
+                    ->when(
                         request()->filled('category_id'),
-                        fn ($query) =>
-                        $query->where(
+                        fn($query) => $query->where(
                             'category_id',
                             request('category_id')
                         )
                     )
             )
-
             ->columns([
                 /**
                  * Brand name
@@ -53,8 +59,7 @@ class BrandsTable
                     ->label('Logo')
                     ->size(40)
                     ->square()
-                    ->getStateUsing(fn ($record) =>
-                    $record->brand?->logo
+                    ->getStateUsing(fn($record) => $record->brand?->logo
                         ? asset('storage/' . $record->brand->logo->photo_url)
                         : asset('images/placeholder.jpg')
                     ),
@@ -83,7 +88,6 @@ class BrandsTable
                     ->dateTime()
                     ->sortable(),
             ])
-
             ->recordActions([
                 /**
                  * View models (brand + category aware)
@@ -103,15 +107,13 @@ class BrandsTable
                     ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Models')
-                    ->url(fn ($record) =>
-                    \App\Filament\Resources\BrandModels\BrandModelResource::getUrl('index', [
+                    ->url(fn($record) => BrandModelResource::getUrl('index', [
                         'brand_id' => $record->brand_id,
                     ])
                     )
 
                     // ✅ BRAND-ONLY CHECK (CORRECT)
-                    ->visible(fn ($record) =>
-                    BrandModel::where('brand_id', $record->brand_id)->exists()
+                    ->visible(fn($record) => BrandModel::where('brand_id', $record->brand_id)->exists()
                     ),
 
 
@@ -122,13 +124,11 @@ class BrandsTable
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit Brand')
-                    ->url(fn ($record) =>
-                    \App\Filament\Resources\Brands\BrandsResource::getUrl('edit', [
+                    ->url(fn($record) => BrandsResource::getUrl('edit', [
                         'record' => $record->brand_id,
                     ])
                     )
-                    ->visible(fn () =>
-                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('categories.update')
                     ),
 
@@ -143,22 +143,19 @@ class BrandsTable
                     ->modalDescription('Are you sure you want to remove this brand from this category?')
                     ->modalSubmitActionLabel('Yes, remove')
                     ->modalCancelActionLabel('Cancel')
-                    ->action(fn ($record) => $record->delete())
-                    ->visible(fn () =>
-                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->action(fn($record) => $record->delete())
+                    ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('categories.delete')
                     ),
 
 
             ])
-
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->label('Remove Category')
-                        ->action(fn ($records) => $records->each->delete())
-                        ->visible(fn () =>
-                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->action(fn($records) => $records->each->delete())
+                        ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
                             ->user()?->hasPermissionTo('categories.delete')
                         ),
                 ]),
