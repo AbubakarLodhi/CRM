@@ -31,6 +31,8 @@ class StockReport extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Stock Report';
 
+    protected string $view = 'filament.pages.stock-report';
+
     public function table(Table $table): Table
     {
         $user = Filament::auth()->user();
@@ -50,8 +52,17 @@ class StockReport extends Page implements HasTable
                             FROM sale_items 
                             WHERE sale_items.product_id = products.id
                         ), 0) as total_sold'),
+                        DB::raw('(COALESCE((
+                            SELECT SUM(quantity) 
+                            FROM purchase_items 
+                            WHERE purchase_items.product_id = products.id
+                        ), 0) - COALESCE((
+                            SELECT SUM(quantity) 
+                            FROM sale_items 
+                            WHERE sale_items.product_id = products.id
+                        ), 0)) as current_stock'),
                     ])
-                    ->when(! $user instanceof Admin, fn (Builder $query) => $query->where('products.merchant_id', $user->id))
+                    ->when($user && ! $user instanceof Admin, fn (Builder $query) => $query->where('products.merchant_id', $user->id))
                     ->where('products.is_active', true)
                     ->where('products.track_inventory', true)
             )
@@ -94,7 +105,6 @@ class StockReport extends Page implements HasTable
 
                 TextColumn::make('current_stock')
                     ->label('Current Stock')
-                    ->state(fn (Product $record): int => (int) $record->total_purchased - (int) $record->total_sold)
                     ->numeric()
                     ->sortable()
                     ->color(fn (int $state): string => $state <= 0 ? 'danger' : ($state <= 10 ? 'warning' : 'success'))
@@ -127,7 +137,7 @@ class StockReport extends Page implements HasTable
             ->filters([
                 SelectFilter::make('category_id')
                     ->relationship('category', 'name', modifyQueryUsing: function (Builder $query) use ($user) {
-                        if (! $user instanceof Admin) {
+                        if ($user && ! $user instanceof Admin) {
                             $query->where('merchant_id', $user->id);
                         }
                     })
@@ -137,7 +147,7 @@ class StockReport extends Page implements HasTable
 
                 SelectFilter::make('brand_id')
                     ->relationship('brand', 'name', modifyQueryUsing: function (Builder $query) use ($user) {
-                        if (! $user instanceof Admin) {
+                        if ($user && ! $user instanceof Admin) {
                             $query->where('merchant_id', $user->id);
                         }
                     })

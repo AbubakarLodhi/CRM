@@ -29,6 +29,8 @@ class InventoryMovementReport extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Inventory Movement';
 
+    protected string $view = 'filament.pages.inventory-movement-report';
+
     public function table(Table $table): Table
     {
         $user = Filament::auth()->user();
@@ -40,7 +42,7 @@ class InventoryMovementReport extends Page implements HasTable
                 // Get purchase items
                 $purchaseItems = \App\Models\PurchaseItem::query()
                     ->with(['purchase', 'product'])
-                    ->when(! $user instanceof Admin, fn (Builder $query) => $query->whereHas('purchase', fn ($q) => $q->where('merchant_id', $user->id))
+                    ->when($user && ! $user instanceof Admin, fn (Builder $query) => $query->whereHas('purchase', fn ($q) => $q->where('merchant_id', $user->id))
                     )
                     ->get()
                     ->map(fn ($item) => [
@@ -59,7 +61,7 @@ class InventoryMovementReport extends Page implements HasTable
                 // Get sale items
                 $saleItems = \App\Models\SaleItem::query()
                     ->with(['sale', 'product'])
-                    ->when(! $user instanceof Admin, fn (Builder $query) => $query->whereHas('sale', fn ($q) => $q->where('merchant_id', $user->id))
+                    ->when($user && ! $user instanceof Admin, fn (Builder $query) => $query->whereHas('sale', fn ($q) => $q->where('merchant_id', $user->id))
                     )
                     ->get()
                     ->map(fn ($item) => [

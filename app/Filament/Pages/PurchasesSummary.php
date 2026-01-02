@@ -29,6 +29,8 @@ class PurchasesSummary extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Purchases Summary';
 
+    protected string $view = 'filament.pages.purchases-summary';
+
     public function table(Table $table): Table
     {
         $user = Filament::auth()->user();
@@ -37,7 +39,7 @@ class PurchasesSummary extends Page implements HasTable
             ->query(
                 Purchase::query()
                     ->with(['merchant', 'business', 'branch', 'items'])
-                    ->when(! $user instanceof Admin, fn (Builder $query) => $query->where('merchant_id', $user->id))
+                    ->when($user && ! $user instanceof Admin, fn (Builder $query) => $query->where('merchant_id', $user->id))
             )
             ->columns([
                 TextColumn::make('purchase_no')
