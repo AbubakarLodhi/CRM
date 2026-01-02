@@ -25,7 +25,6 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class MerchantPanelProvider extends PanelProvider
 {
-
     public function panel(Panel $panel): Panel
     {
 
@@ -35,14 +34,19 @@ class MerchantPanelProvider extends PanelProvider
             ->login()
             ->brandLogo(function () {
                 $merchant = Filament::auth()->user();
-                if (!$merchant || !$merchant->logo) return null;
+                if (! $merchant || ! $merchant->logo) {
+                    return null;
+                }
 
                 $path = $merchant->logo->photo_url;
 
-                if (! Storage::disk('public')->exists($path)) return null;
-                return asset('storage/' . $path);
+                if (! Storage::disk('public')->exists($path)) {
+                    return null;
+                }
+
+                return asset('storage/'.$path);
             })
-            ->brandName(fn() => Filament::auth()->user()?->name ?? 'Sales_Crm')
+            ->brandName(fn () => Filament::auth()->user()?->name ?? 'Sales_Crm')
             ->brandLogoHeight('2.5rem')
             ->userMenuItems([
                 Action::make('editProfile')
@@ -51,7 +55,6 @@ class MerchantPanelProvider extends PanelProvider
                     ->url(fn () => EditProfile::getUrl(panel: 'merchant'))
                     ->sort(-10), // appears above theme switcher & logout
             ])
-
 
             ->viteTheme('resources/css/filament/merchant/theme.css')
             ->renderHook(
@@ -67,18 +70,19 @@ class MerchantPanelProvider extends PanelProvider
 
                     $merchant = Filament::auth()->user();
                     $settings = $merchant->settings ?? null;
+
                     return view('filament.merchant.theme-vars', [
                         'primary' => Color::generatePalette($settings->primary_color ?? '#1E3A8A'),
                         'success' => Color::generatePalette($settings->success_color ?? '#22C55E'),
-                        'secondary'  => Color::generatePalette($settings->secondary_color ?? '#64748B'),
-                        'danger'  => Color::generatePalette($settings->danger_color ?? '#DC2626'),
-                        'warning'  => Color::generatePalette($settings->warning_color ?? '#FACC15'),
-                        'default'  => Color::generatePalette($settings->default_color ?? '#E5E7EB'),
+                        'secondary' => Color::generatePalette($settings->secondary_color ?? '#64748B'),
+                        'danger' => Color::generatePalette($settings->danger_color ?? '#DC2626'),
+                        'warning' => Color::generatePalette($settings->warning_color ?? '#FACC15'),
+                        'default' => Color::generatePalette($settings->default_color ?? '#E5E7EB'),
                     ]);
                 })
             ->navigationGroups([
                 'Inventory',
-                'Transactions',
+                'Procurement',
                 'Reportings',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
@@ -107,7 +111,5 @@ class MerchantPanelProvider extends PanelProvider
             ])
             ->authGuard('merchant');
 
-
     }
-
 }

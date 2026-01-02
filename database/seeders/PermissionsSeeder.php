@@ -34,13 +34,14 @@ class PermissionsSeeder extends Seeder
             'addons' => ['view', 'create', 'update', 'delete'],
             'sales' => ['view', 'create', 'update', 'delete'],
             'purchases' => ['view', 'create', 'update', 'delete'],
+            'expenses' => ['view', 'create', 'update', 'delete'],
         ];
 
         foreach ($modules as $module => $actions) {
             foreach ($actions as $action) {
-                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => "admin"]);
-                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => "staff"]);
-                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => "merchant"]);
+                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => 'admin']);
+                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => 'staff']);
+                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => 'merchant']);
             }
         }
     }

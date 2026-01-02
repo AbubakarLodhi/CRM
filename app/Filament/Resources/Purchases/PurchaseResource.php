@@ -24,7 +24,7 @@ class PurchaseResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingCart;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Transactions';
+    protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
     protected static ?int $navigationSort = 1;
 

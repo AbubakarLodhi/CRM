@@ -21,9 +21,9 @@ class OrderResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Transactions';
+    protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'id';
 

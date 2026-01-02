@@ -2,15 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\Permission;
+use App\Models\Role;
 use Illuminate\Database\Seeder;
 
 class RolesSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
         $rolesPermissions = [
@@ -27,6 +24,7 @@ class RolesSeeder extends Seeder
                 'orders.*',
                 'sales.*',
                 'purchases.*',
+                'expenses.*',
                 'businesses.*',
                 'branches.*',
                 'products.*',
@@ -67,6 +65,8 @@ class RolesSeeder extends Seeder
                 'sales.create',
                 'purchases.view',
                 'purchases.create',
+                'expenses.view',
+                'expenses.create',
                 'customers.view',
                 'products.view',
             ],
@@ -76,6 +76,7 @@ class RolesSeeder extends Seeder
                 'reports.view',
                 'sales.view',
                 'purchases.view',
+                'expenses.view',
                 'orders.view',
             ],
 
@@ -121,7 +122,7 @@ class RolesSeeder extends Seeder
                         $module = str_replace('.*', '', $permission);
 
                         return Permission::where('guard_name', $guard)
-                            ->where('name', 'like', $module . '.%')
+                            ->where('name', 'like', $module.'.%')
                             ->pluck('name');
                     }
 

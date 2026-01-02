@@ -93,9 +93,10 @@ class DatabaseSeeder extends Seeder
             SolarNetMeteringServiceSeeder::class,
             SolarAMCServiceSeeder::class,
 
-            // Purchases and Sales (must be after products are created)
+            // Purchases, Sales, and Expenses (must be after products are created)
             PurchasesSeeder::class,
             SalesSeeder::class,
+            ExpensesSeeder::class,
         ];
 
         $this->call($seeders);
