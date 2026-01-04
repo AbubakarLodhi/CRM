@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Branch extends Model
 {
@@ -44,6 +45,18 @@ class Branch extends Model
     }
 
     /**
+     * @return BelongsToMany
+     */
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,
+            'branch_products',
+        )
+            ->using(\App\Models\BranchProduct::class)
+            ->withTimestamps();
+    }
+    /**
      * @return BelongsTo
      */
     public function merchant(): BelongsTo
@@ -64,9 +77,14 @@ class Branch extends Model
      */
     public function users(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'branch_users')
+        return $this->belongsToMany(
+            User::class,
+            'branch_users',
+        )
+            ->using(\App\Models\BranchUser::class)
             ->withTimestamps();
     }
+
 
     /**
      * @return BelongsTo
@@ -83,4 +101,5 @@ class Branch extends Model
     {
         return $this->belongsTo(City::class);
     }
+
 }

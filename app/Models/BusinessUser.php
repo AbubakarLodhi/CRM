@@ -2,23 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
-class BranchUser extends Pivot
+class BusinessUser  extends Pivot
 {
+    //
     use HasUuids;
 
-    protected $table = 'branch_users';
+    protected $table = 'business_users';
+
 
     public $incrementing = false;
     protected $keyType = 'string';
+
     protected $fillable = [
         'id',
         'user_id',
-        'branch_id',
+        'business_id',
     ];
 
     /**
@@ -32,8 +35,8 @@ class BranchUser extends Pivot
     /**
      * @return BelongsTo
      */
-    public function branch(): BelongsTo
+    public function business(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Business::class);
     }
 }

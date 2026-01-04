@@ -109,6 +109,7 @@ class MerchantPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->globalSearch(false)
             ->authGuard('merchant');
 
     }

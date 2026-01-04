@@ -71,6 +71,76 @@ class UserForm
 
                 Toggle::make('is_active')
                     ->required(),
+
+                Section::make('Access Control')
+                    ->schema([
+                        Select::make('businesses')
+                            ->label('Businesses')
+                            ->multiple()
+                            ->relationship(
+                                'businesses',
+                                'name',
+                                fn ($query) =>
+                                ! Filament::auth()->user() instanceof Admin
+                                    ? $query->where('merchant_id', Filament::auth()->id())
+                                    : $query
+                            )
+                            ->preload()
+                            ->searchable()
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (callable $set, callable $get, $state, $old) {
+                                if ($old !== null) {
+                                    $set('branches', []);
+                                }
+                            }),
+
+                        Select::make('branches')
+                            ->label('Branches')
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->live()
+
+                            // ✅ Tell Filament how to resolve label for a selected value
+                            ->getOptionLabelUsing(function ($value): ?string {
+                                return \App\Models\Branch::find($value)?->name;
+                            })
+
+                            // ✅ Rehydrate selected branches on edit
+                            ->afterStateHydrated(function (callable $set, ?User $record) {
+                                if ($record) {
+                                    $set(
+                                        'branches',
+                                        $record->branches()->pluck('branches.id')->toArray()
+                                    );
+                                }
+                            })
+
+                            // ✅ Options filtered by selected businesses
+                            ->options(function (callable $get) {
+                                $businessIds = $get('businesses') ?? [];
+
+                                if (blank($businessIds)) {
+                                    return [];
+                                }
+
+                                return \App\Models\Branch::query()
+                                    ->whereIn('business_id', $businessIds)
+                                    ->when(
+                                        ! Filament::auth()->user() instanceof Admin,
+                                        fn ($q) => $q->where('merchant_id', Filament::auth()->id())
+                                    )
+                                    ->pluck('name', 'id')
+                                    ->toArray();
+                            }),
+
+                    ])
+                    ->columns(2),
+
+
+
             ]);
     }
 }

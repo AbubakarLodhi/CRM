@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
@@ -40,6 +41,19 @@ class Business extends Model
     }
 
     /**
+     * @return BelongsToMany
+     */
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Product::class,
+            'business_products',
+        )
+            ->using(\App\Models\BusinessProduct::class)
+            ->withTimestamps();
+    }
+
+    /**
      * @return BelongsTo
      */
     public function country(): BelongsTo
@@ -63,5 +77,18 @@ class Business extends Model
         return $this->morphOne(Attachment::class, 'attachable')
             ->where('meta_type', \App\Enums\AttachmentMetaType::BUSINESS_LOGO);
     }
+
+    /**
+     * @return BelongsToMany
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'business_users'
+        )->using(\App\Models\BusinessUser::class)
+            ->withTimestamps();
+    }
+
 
 }

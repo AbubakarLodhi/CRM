@@ -128,60 +128,143 @@ class SaleForm
                             Select::make('product_id')
                                 ->label('Product')
                                 ->searchable()
-                                ->getSearchResultsUsing(function (string $search): array {
-                                    if (mb_strlen($search) < 2) {
+                                ->preload()
+                                ->reactive()
+
+                                ->options(function (callable $get): array {
+
+                                    $businessId = $get('../../business_id');
+                                    $branchId   = $get('../../branch_id');
+
+                                    if (! $businessId || ! $branchId) {
                                         return [];
                                     }
 
                                     $user = Filament::auth()->user();
 
                                     $query = Product::query()
-                                        ->select(['id', 'name', 'sku'])
-                                        ->where('is_active', true)
-                                        ->where(function (Builder $q) use ($search) {
-                                            $q->where('name', 'ilike', "%{$search}%")
-                                                ->orWhere('sku', 'ilike', "%{$search}%");
+                                        ->select('products.id', 'products.name', 'products.sku')
+                                        ->where('products.is_active', true)
+
+                                        ->whereExists(function ($q) use ($businessId) {
+                                            $q->selectRaw(1)
+                                                ->from('business_products')
+                                                ->whereColumn('business_products.product_id', 'products.id')
+                                                ->where('business_products.business_id', $businessId);
+                                        })
+
+                                        ->whereExists(function ($q) use ($branchId) {
+                                            $q->selectRaw(1)
+                                                ->from('branch_products')
+                                                ->whereColumn('branch_products.product_id', 'products.id')
+                                                ->where('branch_products.branch_id', $branchId);
                                         });
 
-                                    if (!$user instanceof Admin) {
-                                        $query->where('merchant_id', $user->id);
+                                    if (! $user instanceof Admin) {
+                                        $query->where('products.merchant_id', $user->id);
+                                    }
+
+                                    return $query
+                                        ->orderBy('products.name')
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(fn (Product $p) => [
+                                            $p->id => "{$p->name} ({$p->sku})",
+                                        ])
+                                        ->all();
+                                })
+
+                                ->getSearchResultsUsing(function (string $search, callable $get): array {
+
+                                    if (mb_strlen($search) < 1) {
+                                        return [];
+                                    }
+
+                                    $businessId = $get('../../business_id');
+                                    $branchId   = $get('../../branch_id');
+
+                                    if (! $businessId || ! $branchId) {
+                                        return [];
+                                    }
+
+                                    $user = Filament::auth()->user();
+
+                                    $query = Product::query()
+                                        ->select('products.id', 'products.name', 'products.sku')
+                                        ->where('products.is_active', true)
+
+                                        ->whereExists(function ($q) use ($businessId) {
+                                            $q->selectRaw(1)
+                                                ->from('business_products')
+                                                ->whereColumn('business_products.product_id', 'products.id')
+                                                ->where('business_products.business_id', $businessId);
+                                        })
+
+                                        ->whereExists(function ($q) use ($branchId) {
+                                            $q->selectRaw(1)
+                                                ->from('branch_products')
+                                                ->whereColumn('branch_products.product_id', 'products.id')
+                                                ->where('branch_products.branch_id', $branchId);
+                                        })
+
+                                        ->where(function ($q) use ($search) {
+                                            $q->where('products.name', 'ilike', "%{$search}%")
+                                                ->orWhere('products.sku', 'ilike', "%{$search}%");
+                                        });
+
+                                    if (! $user instanceof Admin) {
+                                        $query->where('products.merchant_id', $user->id);
                                     }
 
                                     return $query
                                         ->limit(50)
                                         ->get()
-                                        ->mapWithKeys(fn(Product $p) => [
+                                        ->mapWithKeys(fn (Product $p) => [
                                             $p->id => "{$p->name} ({$p->sku})",
                                         ])
                                         ->all();
                                 })
-                                ->getOptionLabelUsing(fn($value) => null)
+
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (! $value) {
+                                        return null;
+                                    }
+
+                                    $product = Product::query()
+                                        ->select(['id', 'name', 'sku'])
+                                        ->find($value);
+
+                                    return $product
+                                        ? "{$product->name} ({$product->sku})"
+                                        : null;
+                                })
+
                                 ->required()
-                                ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    if (!$state) {
+
+                                    if (! $state) {
                                         return;
                                     }
 
-                                    // Single query only when product changes
                                     $product = Product::query()
                                         ->select(['id', 'selling_price'])
                                         ->find($state);
 
-                                    if (!$product) {
+                                    if (! $product) {
                                         return;
                                     }
 
-                                    $qty = (float)($get('quantity') ?? 1);
-                                    $unit = (float)($product->selling_price ?? 0);
+                                    $qty  = (float) ($get('quantity') ?? 1);
+                                    $unit = (float) ($product->selling_price ?? 0);
 
                                     $set('unit_price', $unit);
                                     $set('line_total', $unit * $qty);
 
-                                    self::recalcTotals($set, $get);
+                                    SaleForm::recalcTotals($set, $get);
                                 }),
 
-                            TextInput::make('quantity')
+
+        TextInput::make('quantity')
                                 ->label('Quantity')
                                 ->numeric()
                                 ->required()

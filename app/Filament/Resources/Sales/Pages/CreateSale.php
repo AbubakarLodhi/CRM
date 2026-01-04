@@ -23,8 +23,21 @@ class CreateSale extends CreateRecord
             $items = $data['items'] ?? [];
             unset($data['items']);
 
-            // If merchant is creating, ensure merchant_id set
-            $user = Filament::auth()->user();
+            $panel = Filament::getCurrentPanel();
+            $guard = $panel?->getAuthGuard();
+            $user  = Filament::auth()->user();
+
+            /*
+            |--------------------------------------------------------------------------
+            | created_by logic
+            |--------------------------------------------------------------------------
+            | Only staff panel should set created_by
+            */
+            if ($guard === 'staff' && $user) {
+                $data['created_by'] = $user->id;
+            } else {
+                $data['created_by'] = null;
+            }
             if ($user && ! ($user instanceof \App\Models\Admin)) {
                 $data['merchant_id'] = $user->id;
             }

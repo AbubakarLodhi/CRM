@@ -21,16 +21,30 @@ class CreateUser extends CreateRecord
     {
         $data = $this->form->getState();
 
-        if (empty($data['profile_photo'])) {
-            return;
+        if (! empty($data['businesses'])) {
+            foreach ($data['businesses'] as $businessId) {
+                $this->record->businesses()->attach($businessId, [
+                    'id' => \Illuminate\Support\Str::uuid(),
+                ]);
+            }
         }
 
-        $this->record->profilePhoto()->create([
-            'merchant_id' => $this->record->merchant_id,
-            'type'        => AttachmentType::IMAGE,
-            'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-            'photo_url'   => $data['profile_photo'],
-        ]);
+        if (! empty($data['branches'])) {
+            foreach ($data['branches'] as $branchId) {
+                $this->record->branches()->attach($branchId, [
+                    'id' => \Illuminate\Support\Str::uuid(),
+                ]);
+            }
+        }
+
+        if (! empty($data['profile_photo'])) {
+            $this->record->profilePhoto()->create([
+                'merchant_id' => $this->record->merchant_id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
+                'photo_url'   => $data['profile_photo'],
+            ]);
+        }
     }
 
 }

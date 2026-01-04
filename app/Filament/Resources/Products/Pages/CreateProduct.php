@@ -98,19 +98,44 @@ class CreateProduct extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $data = $this->form->getState();
+        $data    = $this->form->getState();
+        $product = $this->record;
 
-        if (empty($data['product_image'])) {
-            return;
+        /* -------------------------
+         | Attach Businesses
+         |--------------------------*/
+        if (! empty($data['businesses'])) {
+            foreach ($data['businesses'] as $businessId) {
+                $product->businesses()->attach($businessId, [
+                    'id' => (string) Str::uuid(),
+                ]);
+            }
         }
-        $this->record->productImage()?->delete();
 
-        $this->record->productImage()->create([
-            'merchant_id' => $this->record->merchant_id, // ✅ REQUIRED
-            'type'        => AttachmentType::IMAGE,
-            'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
-            'photo_url'   => $data['product_image'],
-        ]);
+        /* -------------------------
+         | Attach Branches
+         |--------------------------*/
+        if (! empty($data['branches'])) {
+            foreach ($data['branches'] as $branchId) {
+                $product->branches()->attach($branchId, [
+                    'id' => (string) Str::uuid(),
+                ]);
+            }
+        }
+
+        /* -------------------------
+         | Product Image
+         |--------------------------*/
+        if (! empty($data['product_image'])) {
+            $product->productImage()?->delete();
+
+            $product->productImage()->create([
+                'merchant_id' => $product->merchant_id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
+                'photo_url'   => $data['product_image'],
+            ]);
+        }
     }
 
 

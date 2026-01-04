@@ -6,6 +6,7 @@ use App\Enums\AttachmentMetaType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
@@ -63,12 +64,31 @@ class Product extends Model
     }
 
     /**
-     * @return BelongsTo
+     * @return BelongsToMany
      */
-    public function business(): BelongsTo
+    public function businesses(): BelongsToMany
     {
-        return $this->belongsTo(Business::class);
+        return $this->belongsToMany(
+            Business::class,
+            'business_products',
+        )
+            ->using(\App\Models\BusinessProduct::class)
+            ->withTimestamps();
     }
+
+    /**
+     * @return BelongsToMany
+     */
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Branch::class,
+            'branch_products',
+        )
+            ->using(\App\Models\BranchProduct::class)
+            ->withTimestamps();
+    }
+
 
     /**
      * @return BelongsTo
