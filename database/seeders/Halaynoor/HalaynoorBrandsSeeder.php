@@ -27,6 +27,12 @@ class HalaynoorBrandsSeeder extends Seeder
             return;
         }
 
+        $jewellerySubCategory = Category::where('parent_id', $jewelleryCategory->id)->get();
+
+        if (! $jewellerySubCategory) {
+            return;
+        }
+
         $brand = Brand::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
@@ -37,15 +43,19 @@ class HalaynoorBrandsSeeder extends Seeder
             ]
         );
 
-        BrandCategory::firstOrCreate(
-            [
-                'merchant_id' => $merchant->id,
-                'brand_id' => $brand->id,
-                'category_id' => $jewelleryCategory->id,
-            ],
-            [
-                'id' => Str::uuid(),
-            ]
-        );
+
+        foreach ($jewellerySubCategory as $jsc) {
+            BrandCategory::firstOrCreate(
+                [
+                    'merchant_id' => $merchant->id,
+                    'brand_id' => $brand->id,
+                    'category_id' => $jsc->id,
+                ],
+                [
+                    'id' => Str::uuid(),
+                ]
+            );
+        }
+
     }
 }
