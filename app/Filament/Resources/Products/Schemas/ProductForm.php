@@ -152,6 +152,66 @@ class ProductForm
     {
         return $schema->components([
 
+
+            Section::make('Availability')
+                ->description('Select businesses and specific branches where this product will be available.')
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
+
+                    /* =========================
+                     | BUSINESS SELECT
+                     |=========================*/
+                    Select::make('businesses')
+                        ->label('Businesses')
+                        ->relationship(
+                            name: 'businesses',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: function (Builder $query) {
+                                $user = Filament::auth()->user();
+
+                                // Admin → all businesses
+                                if ($user instanceof Admin) {
+                                    return;
+                                }
+
+                                // Merchant → only their businesses
+                                $query->where('merchant_id', $user->id);
+                            }
+                        )
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->reactive(),
+
+                    /* =========================
+                     | BRANCH SELECT
+                     |=========================*/
+                    Select::make('branches')
+                        ->label('Branches')
+                        ->relationship(
+                            name: 'branches',
+                            titleAttribute: 'name',
+                            modifyQueryUsing: function (Builder $query, callable $get) {
+                                $businessIds = $get('businesses');
+
+                                // ❌ No business selected → show nothing
+                                if (empty($businessIds)) {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                // ✅ Only branches of selected businesses
+                                $query->whereIn('business_id', (array) $businessIds);
+                            }
+                        )
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                ]),
+
             \Filament\Schemas\Components\Section::make('Classification')
                 ->columns(4)
                 ->columnSpanFull()

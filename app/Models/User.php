@@ -78,7 +78,23 @@ class User extends Authenticatable
 
     public function branches(): BelongsToMany
     {
-        return $this->belongsToMany(Branch::class)->withTimestamps();
+        return $this->belongsToMany(
+            Branch::class,
+            'branch_users',
+        )
+            ->using(\App\Models\BranchUser::class)
+            ->withTimestamps();
+    }
+
+
+    public function businesses(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Business::class,
+            'business_users'
+        )
+            ->using(\App\Models\BusinessUser::class) // 👈 REQUIRED
+            ->withTimestamps();
     }
 
     public function payrolls(): HasMany

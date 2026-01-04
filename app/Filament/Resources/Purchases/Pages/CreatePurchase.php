@@ -24,10 +24,23 @@ class CreatePurchase extends CreateRecord
             unset($data['items']);
 
             // If merchant is creating, ensure merchant_id set
-            $user = Filament::auth()->user();
-            if ($user && !($user instanceof \App\Models\Admin)) {
-                $data['merchant_id'] = $user->id;
+            $panel = Filament::getCurrentPanel();
+            $guard = $panel?->getAuthGuard();
+            $user  = Filament::auth()->user();
+
+            /*
+            |--------------------------------------------------------------------------
+            | created_by logic
+            |--------------------------------------------------------------------------
+            | Only staff panel should set created_by
+            */
+            if ($guard === 'staff' && $user) {
+                $data['created_by'] = $user->id;
+            } else {
+                $data['created_by'] = null;
             }
+
+//
 
             $subtotal = collect($items)->sum(fn ($i) => (float)($i['line_total'] ?? 0));
             $discount = (float)($data['discount'] ?? 0);

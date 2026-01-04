@@ -97,6 +97,7 @@ class EditMerchantSetting extends EditRecord
                 'photo_url'   => $logo,
             ]);
         }
+        $this->redirect(request()->header('Referer'), navigate: false);
     }
 
 }

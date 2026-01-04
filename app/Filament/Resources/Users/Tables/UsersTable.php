@@ -40,6 +40,21 @@ class UsersTable
                 TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
+                TextColumn::make('businesses.name')
+                    ->label('Businesses')
+                    ->badge()
+                    ->color('primary')
+                    ->separator(', ')
+                    ->sortable(false),
+
+
+                TextColumn::make('branches.name')
+                    ->label('Branches')
+                    ->badge()
+                    ->color('success')
+                    ->separator(', ')
+                    ->sortable(false),
+
                 IconColumn::make('is_active')
                     ->color('primary')
                     ->boolean(),

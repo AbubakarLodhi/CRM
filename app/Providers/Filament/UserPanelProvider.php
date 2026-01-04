@@ -54,6 +54,7 @@ class UserPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->globalSearch(false)
             ->authGuard('staff');
     }
 }

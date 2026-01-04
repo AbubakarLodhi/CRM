@@ -62,7 +62,7 @@ class CreateMerchantSetting extends CreateRecord
         $state = $this->form->getRawState();
         $merchant = auth('merchant')->user();
 
-        dd($merchant);
+//        dd($merchant);
         /* ===== MERCHANT LOGO ===== */
         if ($logo = collect($state['merchant_logo'] ?? null)->first()) {
             $merchant->logo()?->delete();

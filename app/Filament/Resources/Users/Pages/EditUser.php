@@ -8,6 +8,7 @@ use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use Illuminate\Support\Str;
 
 
 class EditUser extends EditRecord
@@ -32,17 +33,50 @@ class EditUser extends EditRecord
     {
         $data = $this->form->getState();
 
-        if (empty($data['profile_photo'])) {
-            return;
+        /*
+        |--------------------------------------------------------------------------
+        | Sync Businesses (pivot has UUID id)
+        |--------------------------------------------------------------------------
+        */
+        if (isset($data['businesses'])) {
+            $syncData = [];
+
+            foreach ($data['businesses'] as $businessId) {
+                $syncData[$businessId] = ['id' => (string) Str::uuid()];
+            }
+
+            $this->record->businesses()->sync($syncData);
         }
 
-        $this->record->profilePhoto()?->delete();
+        /*
+        |--------------------------------------------------------------------------
+        | Sync Branches (pivot has UUID id)
+        |--------------------------------------------------------------------------
+        */
+        if (isset($data['branches'])) {
+            $syncData = [];
 
-        $this->record->profilePhoto()->create([
-            'merchant_id' => $this->record->merchant_id,
-            'type'        => AttachmentType::IMAGE,
-            'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-            'photo_url'   => $data['profile_photo'],
-        ]);
+            foreach ($data['branches'] as $branchId) {
+                $syncData[$branchId] = ['id' => (string) Str::uuid()];
+            }
+
+            $this->record->branches()->sync($syncData);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Profile Photo
+        |--------------------------------------------------------------------------
+        */
+        if (! empty($data['profile_photo'])) {
+            $this->record->profilePhoto()?->delete();
+
+            $this->record->profilePhoto()->create([
+                'merchant_id' => $this->record->merchant_id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
+                'photo_url'   => $data['profile_photo'],
+            ]);
+        }
     }
 }
