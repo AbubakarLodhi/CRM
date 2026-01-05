@@ -6,6 +6,7 @@ use App\Filament\Resources\Merchants\MerchantResource;
 use Filament\Resources\Pages\CreateRecord;
 use App\Enums\AttachmentType;
 use App\Enums\AttachmentMetaType;
+use Illuminate\Support\Facades\Hash;
 
 class CreateMerchant extends CreateRecord
 {
@@ -14,6 +15,16 @@ class CreateMerchant extends CreateRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (! empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        return $data;
+    }
+
 
     protected function afterCreate(): void
     {

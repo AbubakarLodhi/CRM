@@ -4,21 +4,24 @@ namespace App\Models;
 
 use App\Enums\AttachmentMetaType;
 use Filament\Models\Contracts\HasAvatar;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-class Merchant extends Authenticatable implements HasAvatar
+class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordContract
 {
-    use HasUuids, HasRoles;
+    use HasUuids, HasRoles,Notifiable,CanResetPassword;
 
     /** @var string */
     const STATUS_PENDING = 'pending';
@@ -54,16 +57,6 @@ class Merchant extends Authenticatable implements HasAvatar
             self::STATUS_VERIFIED,
             self::STATUS_REJECTED,
         ];
-    }
-
-    /**
-     * @return Attribute
-     */
-    protected function password(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => filled($value) ? Hash::make($value) : null
-        );
     }
 
     /**

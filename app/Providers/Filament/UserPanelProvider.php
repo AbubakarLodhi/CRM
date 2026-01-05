@@ -26,7 +26,9 @@ class UserPanelProvider extends PanelProvider
         return $panel
             ->id('user')
             ->path('staff')
+            ->authGuard('staff')
             ->login()
+            ->passwordReset()
             ->colors([
                 'primary' => Color::Green,
             ])
@@ -54,7 +56,6 @@ class UserPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->globalSearch(false)
-            ->authGuard('staff');
+            ->globalSearch(false);
     }
 }

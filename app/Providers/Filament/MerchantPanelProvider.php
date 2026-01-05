@@ -31,7 +31,9 @@ class MerchantPanelProvider extends PanelProvider
         return $panel
             ->id('merchant')
             ->path('merchant')
+            ->authGuard('merchant')
             ->login()
+            ->passwordReset()
             ->brandLogo(function () {
                 $merchant = Filament::auth()->user();
                 if (! $merchant || ! $merchant->logo) {
@@ -109,8 +111,7 @@ class MerchantPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->globalSearch(false)
-            ->authGuard('merchant');
+            ->globalSearch(false);
 
     }
 }

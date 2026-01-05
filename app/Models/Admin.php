@@ -6,12 +6,16 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 
-class Admin extends Authenticatable
+class Admin extends Authenticatable  implements CanResetPasswordContract
 {
-    use HasUuids, HasRoles;
+    use HasUuids, HasRoles,Notifiable,CanResetPassword;
+
 
     /** @var string[] $fillable */
     protected $fillable = ['name', 'email', 'password', 'status'];
@@ -25,15 +29,6 @@ class Admin extends Authenticatable
     /** @var string $keyType */
     protected $keyType = 'string';
 
-    /**
-     * @return Attribute
-     */
-    protected function password(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => filled($value) ? Hash::make($value) : null
-        );
-    }
 
     /**
      * @return MorphOne

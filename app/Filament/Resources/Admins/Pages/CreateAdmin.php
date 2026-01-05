@@ -6,10 +6,21 @@ use App\Filament\Resources\Admins\AdminResource;
 use Filament\Resources\Pages\CreateRecord;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use Illuminate\Support\Facades\Hash;
 
 class CreateAdmin extends CreateRecord
 {
     protected static string $resource = AdminResource::class;
+
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        if (! empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        return $data;
+    }
 
     protected function getRedirectUrl(): string
     {

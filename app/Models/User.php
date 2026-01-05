@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,10 +15,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
-    use HasFactory, HasRoles, HasUuids, Notifiable;
-
+    use HasUuids, HasRoles,Notifiable,CanResetPassword;
     /** @var string */
     protected $keyType = 'string';
 
@@ -62,13 +63,6 @@ class User extends Authenticatable
             self::STATUS_VERIFIED,
             self::STATUS_REJECTED,
         ];
-    }
-
-    protected function password(): Attribute
-    {
-        return Attribute::make(
-            set: fn ($value) => filled($value) ? Hash::make($value) : null
-        );
     }
 
     public function merchant(): BelongsTo
