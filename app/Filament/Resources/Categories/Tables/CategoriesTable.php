@@ -17,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class CategoriesTable
@@ -31,6 +32,16 @@ class CategoriesTable
                     ? self::subCategoryColumns()
                     : self::categoryColumns()
             )
+            ->filters([
+                    SelectFilter::make('merchant_id')
+                    ->relationship('merchant', 'name')
+                    ->label('Merchant')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user() instanceof Admin
+                    ),
+                ])
             ->recordActions([
                 Action::make('view-subcategories')
                     ->color('secondary')
@@ -131,7 +142,7 @@ class CategoriesTable
                 ->sortable()
                 ->searchable(),
 
-            TextColumn::make('parent.name')
+            BadgeColumn::make('parent.name')
                 ->label('Category')
                 ->sortable()
                 ->searchable(),
@@ -139,7 +150,8 @@ class CategoriesTable
             TextColumn::make('merchant.name')
                 ->label('Merchant')
                 ->sortable()
-                ->searchable(),
+                ->searchable()
+                ->visible(fn () => Filament::auth()->user() instanceof Admin),
         ];
     }
 }

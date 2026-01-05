@@ -7,6 +7,7 @@ use App\Filament\Resources\Brands\BrandsResource;
 use App\Models\Admin;
 use App\Models\BrandCategory;
 use App\Models\BrandModel;
+use App\Models\Category;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -16,6 +17,7 @@ use Filament\Facades\Filament;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class BrandsTable
@@ -75,10 +77,14 @@ class BrandsTable
                 /**
                  * Merchant
                  */
-                TextColumn::make('merchant.name')
+                BadgeColumn::make('merchant.name')
                     ->label('Merchant')
+                    ->color('primary')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user() instanceof Admin
+                    ),
 
                 /**
                  * Assigned date
@@ -87,6 +93,43 @@ class BrandsTable
                     ->label('Assigned At')
                     ->dateTime()
                     ->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('merchant_id')
+                    ->relationship('merchant', 'name')
+                    ->label('Merchant')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user() instanceof Admin
+                    ),
+                SelectFilter::make('category_id')
+                    ->label('Category')
+                    ->searchable()
+                    ->preload()
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        return Category::query()
+                            // ✅ ONLY sub-categories
+                            ->whereNotNull('parent_id')
+
+                            // ✅ Merchant scoping
+                            ->when(
+                                ! $user instanceof Admin,
+                                fn ($q) => $q->where(
+                                    'merchant_id',
+                                    $user->merchant_id ?? $user->id
+                                )
+                            )
+
+                            // Admin sees all
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    }),
+
+
             ])
             ->recordActions([
                 /**

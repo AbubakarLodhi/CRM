@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BrandModels\Tables;
 
 use App\Filament\Resources\Products\ProductResource;
+use App\Models\Admin;
 use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -11,6 +12,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -33,10 +35,14 @@ class BrandModelsTable
                     ->searchable(),
 
 
-                TextColumn::make('brand.merchant.name')
+                BadgeColumn::make('brand.merchant.name')
                     ->label('Merchant')
                     ->sortable()
-                    ->searchable(),
+                    ->color('primary')
+                    ->searchable()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user() instanceof Admin
+                    ),
 
                 TextColumn::make('created_at')
                     ->dateTime()
@@ -49,11 +55,22 @@ class BrandModelsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+
                 SelectFilter::make('merchant_id')
                     ->label('Merchant')
                     ->relationship('brand.merchant', 'name')
                     ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user() instanceof Admin
+                    ),
+                SelectFilter::make('brand_id')
+                    ->label('Brand')
+                    ->relationship('brand', 'name')
+                    ->searchable()
                     ->preload(),
+
+
 
 
 

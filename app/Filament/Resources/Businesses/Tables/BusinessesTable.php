@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Businesses\Tables;
 
+use App\Models\Admin;
 use App\Models\Business;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -49,12 +50,15 @@ class BusinessesTable
                     ->searchable(),
             ])
             ->filters([
-//                SelectFilter::make('merchant_id')
-//                    ->relationship('merchant', 'name')
-//                    ->label('Merchant')
-//                    ->searchable()
-//                    ->preload()
-                //
+                SelectFilter::make('merchant_id')
+                    ->relationship('merchant', 'name')
+                    ->label('Merchant')
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user() instanceof Admin
+                    ),
+
             ])
             ->recordActions([
                 EditAction::make()

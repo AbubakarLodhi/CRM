@@ -25,8 +25,9 @@ class RolesTable
                 TextColumn::make('name')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('guard_name')
+                BadgeColumn::make('guard_name')
                     ->label('Portal')
+                    ->color('primary')
                     ->sortable()
                     ->searchable(),
                 BadgeColumn::make('permissions_count')
@@ -40,6 +41,15 @@ class RolesTable
             ])
             ->filters([
                 //
+                SelectFilter::make('guard_name')
+                    ->label('Portal')
+                    ->options([
+                        'admin' => 'Admin',
+                        'merchant' => 'Merchant',
+                    ])
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => (Filament::auth()->user() instanceof \App\Models\Admin)),
                 SelectFilter::make('id')
                     ->label('Roles')
                     ->options(function () {

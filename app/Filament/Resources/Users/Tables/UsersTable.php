@@ -14,6 +14,8 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
 class UsersTable
@@ -81,6 +83,34 @@ class UsersTable
             ])
             ->filters([
                 //
+                SelectFilter::make('merchant_id')
+                    ->label('Merchants')
+                    ->relationship(
+                        'merchant',
+                        'name',
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->visible(fn () => (Filament::auth()->user() instanceof \App\Models\Admin)),
+                SelectFilter::make('businesses')
+                    ->label('Businesses')
+                    ->relationship('businesses', 'name')
+                    ->searchable()
+                    ->multiple()
+                    ->preload(),
+
+                SelectFilter::make('branches')
+                    ->label('Branches')
+                    ->relationship('branches', 'name')
+                    ->searchable()
+                    ->multiple()
+                    ->preload(),
+
+                TernaryFilter::make('is_active')
+                    ->label('Active Status')
+                    ->trueLabel('Active')
+                    ->falseLabel('Inactive')
+                    ->placeholder('All'),
             ])
             ->recordActions([
                 Action::make('manage_payroll')
