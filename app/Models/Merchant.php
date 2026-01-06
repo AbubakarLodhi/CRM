@@ -184,4 +184,13 @@ class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordCo
         return Storage::disk('public')->url($attachment->photo_url);
     }
 
+    public function permissionModules()
+    {
+        return $this->belongsToMany(
+            PermissionModule::class,
+            'merchant_permission_modules'
+        )->withTimestamps();
+    }
+
+
 }

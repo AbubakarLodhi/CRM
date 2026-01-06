@@ -8,6 +8,7 @@ use App\Filament\Resources\Orders\Schemas\OrderInfolist;
 use App\Filament\Resources\Orders\Tables\OrdersTable;
 use App\Models\Admin;
 use App\Models\Order;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -30,16 +31,21 @@ class OrderResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
 
-        return $user->hasPermissionTo(
-            'orders.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('orders')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('orders.view', $guard);
     }
+
 
     public static function canCreate(): bool
     {

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Filament\Resources\Payrolls\PayrollResource;
+use App\Models\PermissionModule;
 use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -119,15 +120,40 @@ class UsersTable
                     ->label('')
                     ->tooltip('Manage Payroll')
                     ->url(fn (User $record) => PayrollResource::getUrl('index', ['user_id' => $record->id]))
-                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.view', $guard)),
+                    ->visible(function () use ($guard) {
+                        $user = auth($guard)->user();
 
+                        if (! $user) {
+                            return false;
+                        }
+
+                        // 🚫 Module-level hard stop
+                        if (! PermissionModule::isEnabledForCurrentMerchant('payrolls')) {
+                            return false;
+                        }
+
+                        // 🔐 Permission gate
+                        return $user->hasPermissionTo('payrolls.view', $guard);
+                    }),
                 Action::make('create_payroll')
                     ->color('info')
                     ->icon('heroicon-o-plus')
                     ->label('')
                     ->tooltip('Create Payroll')
                     ->url(fn (User $record) => PayrollResource::getUrl('create', ['user_id' => $record->id]))
-                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.create', $guard)),
+                    ->visible(function () use ($guard) {
+                        $user = auth($guard)->user();
+
+                        if (! $user) {
+                            return false;
+                        }
+                        if (! PermissionModule::isEnabledForCurrentMerchant('payrolls')) {
+                            return false;
+                        }
+
+                        // 🔐 Permission gate
+                        return $user->hasPermissionTo('payrolls.create', $guard);
+                    }),
 
                 EditAction::make()
                     ->color('warning')

@@ -9,6 +9,11 @@ class Role extends SpatieRole
 {
     use HasUuids;
 
-    /** @var string $primaryKey */
     protected $primaryKey = 'id';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    protected $casts = [
+        'id' => 'string',
+    ];
 }

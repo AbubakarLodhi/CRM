@@ -10,6 +10,7 @@ use App\Filament\Resources\Purchases\Schemas\PurchaseForm;
 use App\Filament\Resources\Purchases\Schemas\PurchaseInfolist;
 use App\Filament\Resources\Purchases\Tables\PurchasesTable;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use App\Models\Purchase;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -33,16 +34,20 @@ class PurchaseResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('purchases')) {
+            return false;
+        }
 
-        return $user->hasPermissionTo(
-            'purchases.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('purchases.view', $guard);
     }
+
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
