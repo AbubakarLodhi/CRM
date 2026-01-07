@@ -38,7 +38,6 @@ class BranchResource extends Resource
         if (! $user) {
             return false;
         }
-
         // 🔐 Module gate
         if (! PermissionModule::isEnabledForCurrentMerchant('branches')) {
             return false;
@@ -56,14 +55,23 @@ class BranchResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // Admin can see all businesses
-        if ($user instanceof Admin) {
+        if ($user instanceof \App\Models\Admin) {
             return $query;
         }
 
-        // Merchant can see only their businesses
-        return $query->where('merchant_id', $user->id);
+        if ($user instanceof \App\Models\Merchant) {
+            return $query->where('merchant_id', $user->id);
+        }
+
+        // ✅ Staff: only branches assigned to them
+        if ($user instanceof \App\Models\User) {
+            return $query->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
+        }
+
+        return $query;
     }
+
+
 
     /**
      * @param Schema $schema
@@ -83,9 +91,7 @@ class BranchResource extends Resource
         return BranchesTable::configure($table);
     }
 
-    /**
-     * @return array|\class-string[]|\Filament\Resources\RelationManagers\RelationGroup[]|\Filament\Resources\RelationManagers\RelationManagerConfiguration[]
-     */
+
     public static function getRelations(): array
     {
         return [

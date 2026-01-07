@@ -44,6 +44,14 @@ class Branch extends Model
         ];
     }
 
+    protected static function booted()
+    {
+        static::deleting(function (Branch $branch) {
+            $branch->users()->detach();
+            $branch->products()->detach();
+        });
+    }
+
     /**
      * @return BelongsToMany
      */

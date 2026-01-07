@@ -65,7 +65,7 @@ class UserForm
                 Select::make('roles')
                     ->label('Roles')
                     ->multiple()
-                    ->relationship('roles', 'name', fn($query) => $query->where('guard_name', 'merchant'))
+                    ->relationship('roles', 'name', fn($query) => $query->where('guard_name', 'staff'))
                     ->preload()
                     ->required(),
 

@@ -24,6 +24,16 @@ class Business extends Model
     /** @var string $keyType */
     protected $keyType = 'string';
 
+    protected static function booted()
+    {
+        static::deleting(function (Business $business) {
+            $business->users()->detach();
+
+            $business->branches()->delete();
+        });
+    }
+
+
     /**
      * @return BelongsTo
      */
@@ -89,6 +99,7 @@ class Business extends Model
         )->using(\App\Models\BusinessUser::class)
             ->withTimestamps();
     }
+
 
 
 }

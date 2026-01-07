@@ -74,6 +74,7 @@ class DatabaseSeeder extends Seeder
             BranchesSeeder::class,
             BranchUsersSeeder::class,
             CustomersSeeder::class,
+            PermissionsModulesSeeder::class,
 
             // ZGN Merchant Seeders
             ZGNSolarCategoriesSeeder::class,

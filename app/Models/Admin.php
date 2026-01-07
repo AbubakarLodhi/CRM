@@ -29,6 +29,15 @@ class Admin extends Authenticatable  implements CanResetPasswordContract
     /** @var string $keyType */
     protected $keyType = 'string';
 
+    /**
+     * @return Attribute
+     */
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: fn($value) => filled($value) ? Hash::make($value) : null
+        );
+    }
 
     /**
      * @return MorphOne

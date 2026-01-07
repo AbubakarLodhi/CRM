@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Models\Admin;
 use App\Models\Customer;
+use App\Models\Merchant;
+use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -64,8 +66,20 @@ class CustomerForm
                     ->visible(fn() => Filament::auth()->user() instanceof Admin),
 
                 Hidden::make('merchant_id')
-                    ->default(fn() => Filament::auth()->user()?->id)
-                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
+                    ->default(function () {
+                        $user = Filament::auth()->user();
+
+                        if ($user instanceof Merchant) {
+                            return $user->id;
+                        }
+
+                        if ($user instanceof User) {
+                            return $user->merchant_id;
+                        }
+
+                        return null;
+                    })
+                    ->visible(fn () => ! (Filament::auth()->user() instanceof Admin)),
 
                 TextInput::make('reference')
                     ->label('Reference Customer')

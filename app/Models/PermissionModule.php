@@ -57,12 +57,28 @@ class PermissionModule extends Model
     public static function isEnabledForCurrentMerchant(string $module): bool
     {
         $user = Filament::auth()->user();
+
+        // ✅ Admin sees everything
         if ($user instanceof \App\Models\Admin) {
             return true;
         }
-        return $user->permissionModules()
-            ->where('module', $module)
-            ->exists();
+
+        // ✅ Merchant owns modules
+        if ($user instanceof \App\Models\Merchant) {
+            return $user->permissionModules()
+                ->where('module', $module)
+                ->exists();
+        }
+
+        // ✅ Staff inherits from merchant
+        if ($user instanceof \App\Models\User) {
+            return optional($user->merchant)
+                ->permissionModules()
+                ->where('module', $module)
+                ->exists() ?? false;
+        }
+
+        return false;
     }
 }
 

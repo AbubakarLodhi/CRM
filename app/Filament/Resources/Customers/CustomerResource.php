@@ -9,7 +9,9 @@ use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Models\Admin;
 use App\Models\Customer;
+use App\Models\Merchant;
 use App\Models\PermissionModule;
+use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -53,14 +55,25 @@ class CustomerResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // Admin can see all businesses
+        // ✅ Admin → see all customers
         if ($user instanceof Admin) {
             return $query;
         }
 
-        // Merchant can see only their businesses
-        return $query->where('merchant_id', $user->id);
+        // ✅ Merchant → customers of their merchant_id
+        if ($user instanceof Merchant) {
+            return $query->where('merchant_id', $user->id);
+        }
+
+        // ✅ Staff → customers of staff->merchant_id
+        if ($user instanceof User) {
+            return $query->where('merchant_id', $user->merchant_id);
+        }
+
+        // ❌ Safety fallback
+        return $query->whereRaw('1 = 0');
     }
+
 
     public static function form(Schema $schema): Schema
     {

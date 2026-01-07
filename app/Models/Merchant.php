@@ -192,5 +192,13 @@ class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordCo
         )->withTimestamps();
     }
 
-
+    /**
+     * @return Attribute
+     */
+    protected function password(): Attribute
+    {
+        return Attribute::make(
+            set: fn($value) => filled($value) ? Hash::make($value) : null
+        );
+    }
 }

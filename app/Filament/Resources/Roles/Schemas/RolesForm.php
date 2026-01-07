@@ -11,6 +11,7 @@ use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Auth;
 
 class RolesForm
 {
@@ -33,15 +34,17 @@ class RolesForm
                             ->required()
                             ->maxLength(255),
 //                         //   ->unique(ignoreRecord: true),
-//                        Select::make('guard_name')
-//                            ->label('Portal')
-//                            ->required()
-//                            ->options([
-//                                $currentGuard => $guardLabels[$currentGuard] ?? ucfirst($currentGuard),
-//                            ])
-//                            ->default($currentGuard)
-//                            ->hidden()  // keeps the value in the form submission but not visible to user
-//                            ->reactive(),
+                        Select::make('guard_name')
+                            ->label('Portal')
+                            ->required()
+                            ->options([
+                                'admin'    => 'Admin',
+                                'staff'    => 'Staff',
+                                'merchant' => 'Merchant',
+                            ])
+                            ->default('admin')
+                            ->visible(fn () => Auth::user() instanceof \App\Models\Admin),
+
 
         ])
                     ->columns(1),

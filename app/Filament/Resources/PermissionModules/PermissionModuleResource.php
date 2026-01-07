@@ -31,7 +31,6 @@ class PermissionModuleResource extends Resource
         if (! $user) {
             return false;
         }
-
         return $user->hasPermissionTo(
             'admins.view',
             'admin'

@@ -85,14 +85,24 @@ class EditRoles extends EditRecord
             'customers' => 'Customers',
         ];
     }
-    protected function handleRecordUpdate(\Illuminate\Database\Eloquent\Model $record, array $data): \Illuminate\Database\Eloquent\Model
+    protected function handleRecordUpdate(
+        \Illuminate\Database\Eloquent\Model $record,
+        array $data
+    ): \Illuminate\Database\Eloquent\Model
     {
         $permissions = $data['permissions'] ?? [];
         unset($data['permissions']);
 
+        $guard_name = \Filament\Facades\Filament::getCurrentPanel()->getAuthGuard();
+
+        if ($guard_name === 'merchant') {
+            $data['guard_name'] = 'staff';
+        }
+
         return DB::transaction(function () use ($record, $data, $permissions) {
             $record->update([
-                'name' => $data['name'],
+                'name'       => $data['name'],
+                'guard_name' => $data['guard_name'] ?? $record->guard_name,
             ]);
 
             RolesResource::afterUpdate($record, $permissions);
@@ -100,6 +110,7 @@ class EditRoles extends EditRecord
             return $record;
         }, 3);
     }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

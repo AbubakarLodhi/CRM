@@ -51,13 +51,23 @@ class BusinessResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // Admin can see all businesses
         if ($user instanceof Admin) {
             return $query;
         }
 
-        // Merchant can see only their businesses
-        return $query->where('merchant_id', $user->id);
+        // Merchant → own businesses
+        if ($user instanceof \App\Models\Merchant) {
+            return $query->where('merchant_id', $user->id);
+        }
+
+        // Staff → ONLY assigned businesses
+        if ($user instanceof \App\Models\User) {
+            return $query->whereHas('users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            );
+        }
+
+        return $query->whereRaw('1 = 0'); // safety
     }
 
     public static function form(Schema $schema): Schema

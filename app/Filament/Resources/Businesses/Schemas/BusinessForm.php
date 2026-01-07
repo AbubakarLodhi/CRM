@@ -14,8 +14,11 @@ use Filament\Schemas\Schema;
 
 class BusinessForm
 {
+
     public static function configure(Schema $schema): Schema
     {
+
+        $user = Filament::auth()->user();
         return $schema
             ->components([
                 TextInput::make('name')
@@ -67,9 +70,12 @@ class BusinessForm
                     ->visible(fn() => Filament::auth()->user() instanceof Admin),
 
                 Hidden::make('merchant_id')
-                    ->default(fn() => Filament::auth()->user()?->id)
-                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
-
+                    ->default(fn () =>
+                    $user instanceof \App\Models\User
+                        ? $user->merchant_id
+                        : $user?->id
+                    )
+                    ->visible(fn () => ! ($user instanceof Admin)),
             ]);
 
 

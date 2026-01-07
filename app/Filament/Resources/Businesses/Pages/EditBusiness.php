@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Businesses\Pages;
 
 use App\Filament\Resources\Businesses\BusinessResource;
+use App\Models\Admin;
+use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
@@ -16,6 +18,29 @@ class EditBusiness extends EditRecord
         return $this->getResource()::getUrl('index');
     }
 
+    /**
+     * 🔐 Prevent ownership tampering
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $user = Filament::auth()->user();
+
+        // Staff → cannot change ownership
+        if ($user instanceof User) {
+            unset($data['merchant_id']);
+        }
+
+        // Merchant → cannot reassign merchant
+        if ($user instanceof \App\Models\Merchant) {
+            unset($data['merchant_id']);
+        }
+
+        return $data;
+    }
+
+    /**
+     * 🔐 Header actions
+     */
     protected function getHeaderActions(): array
     {
         return [
