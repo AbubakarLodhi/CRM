@@ -4,6 +4,7 @@ namespace App\Filament\Resources\BrandModels\Tables;
 
 use App\Filament\Resources\Products\ProductResource;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class BrandModelsTable
 {
@@ -89,9 +91,27 @@ class BrandModelsTable
                     )
 
                     // ✅ SHOW ONLY IF PRODUCTS EXIST FOR THIS MODEL
-                    ->visible(fn ($record) =>
-                    Product::where('brand_model_id', $record->id)->exists()
-                    )
+                    ->visible(function ($record) {
+                        if (! $record) {
+                            return false;
+                        }
+
+                        $guard = Filament::getCurrentPanel()->getAuthGuard();
+                        $user  = Auth::guard($guard)->user();
+
+                        // 🧩 1. Module toggle
+                        if (! PermissionModule::isEnabledForCurrentMerchant('products')) {
+                            return false;
+                        }
+
+                        // 🔐 2. Permission gate
+                        if (! $user?->hasPermissionTo('products.view', $guard)) {
+                            return false;
+                        }
+
+                        // 📦 3. Products must exist for this model
+                        return Product::where('brand_model_id', $record->id)->exists();
+                    })
                     ->openUrlInNewTab(false),
 
                 EditAction::make()

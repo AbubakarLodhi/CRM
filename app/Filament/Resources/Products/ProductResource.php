@@ -8,6 +8,7 @@ use App\Filament\Resources\Products\Pages\ListProducts;
 use App\Filament\Resources\Products\Schemas\ProductForm;
 use App\Filament\Resources\Products\Tables\ProductsTable;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use App\Models\Product;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -24,6 +25,23 @@ class ProductResource extends Resource
     protected static string | \UnitEnum | null $navigationGroup = 'Inventory';
     protected static ?int $navigationSort = 3;
     protected static ?string $recordTitleAttribute = 'Product';
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('products')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('products.view', $guard);
+    }
 
     /**
      * @return \Illuminate\Database\Eloquent\Builder

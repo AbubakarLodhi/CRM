@@ -11,6 +11,7 @@ use App\Filament\Resources\Payrolls\Schemas\PayrollInfolist;
 use App\Filament\Resources\Payrolls\Tables\PayrollsTable;
 use App\Models\Admin;
 use App\Models\Payroll;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -35,15 +36,18 @@ class PayrollResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('payrolls')) {
+            return false;
+        }
 
-        return $user->hasPermissionTo(
-            'payrolls.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('payrolls.view', $guard);
     }
 
     public static function canCreate(): bool

@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Roles\Pages;
 
 use App\Filament\Resources\Roles\RolesResource;
+use App\Models\PermissionModule;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
@@ -28,11 +29,15 @@ class EditRoles extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        $permissions = $this->record->permissions->pluck('name')->toArray();
+        $enabledModules = PermissionModule::enabledForCurrentMerchant();
 
-        // Initialize all modules with default false values
+        $permissions = $this->record->permissions
+            ->pluck('name')
+            ->toArray();
+
         $permissionsData = [];
-        foreach (static::getPermissionModules() as $module => $label) {
+
+        foreach ($enabledModules as $module) {
             $permissionsData[$module] = [
                 'select_all' => false,
                 'view' => false,
@@ -42,17 +47,17 @@ class EditRoles extends EditRecord
             ];
         }
 
-        // Set true for existing permissions
         foreach ($permissions as $permission) {
             [$module, $action] = explode('.', $permission);
+
             if (isset($permissionsData[$module][$action])) {
                 $permissionsData[$module][$action] = true;
             }
         }
 
-        // Calculate select_all for each module
         foreach ($permissionsData as $module => &$moduleData) {
-            $moduleData['select_all'] = $moduleData['view']
+            $moduleData['select_all'] =
+                $moduleData['view']
                 && $moduleData['create']
                 && $moduleData['update']
                 && $moduleData['delete'];

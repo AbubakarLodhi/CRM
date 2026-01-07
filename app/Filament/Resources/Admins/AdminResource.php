@@ -8,6 +8,7 @@ use App\Filament\Resources\Admins\Pages\ListAdmins;
 use App\Filament\Resources\Admins\Schemas\AdminForm;
 use App\Filament\Resources\Admins\Tables\AdminsTable;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -34,10 +35,12 @@ class AdminResource extends Resource
         if (! $user) {
             return false;
         }
+        if (! PermissionModule::isEnabledForCurrentMerchant('admins')) {
+            return false;
+        }
 
         return $user->hasPermissionTo(
             'admins.view','admin'
-            //Filament::getCurrentPanel()->getAuthGuard()
         );
     }
 

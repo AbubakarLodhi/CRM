@@ -9,6 +9,7 @@ use App\Filament\Resources\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Categories\Tables\CategoriesTable;
 use App\Models\Admin;
 use App\Models\Category;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -32,13 +33,19 @@ class CategoryResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
-        return $user
-            ? $user->hasPermissionTo(
-                'categories.view',
-                Filament::getCurrentPanel()->getAuthGuard()
-            )
-            : false;
+        if (! $user) {
+            return false;
+        }
+
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('categories')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('categories.view', $guard);
     }
 
     public static function form(Schema $schema): Schema

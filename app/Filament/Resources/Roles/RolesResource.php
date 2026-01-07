@@ -7,6 +7,7 @@ use App\Filament\Resources\Roles\Pages\EditRoles;
 use App\Filament\Resources\Roles\Pages\ListRoles;
 use App\Filament\Resources\Roles\Schemas\RolesForm;
 use App\Filament\Resources\Roles\Tables\RolesTable;
+use App\Models\PermissionModule;
 use App\Models\Role;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -37,6 +38,9 @@ class RolesResource extends Resource
             return false;
         }
 
+        if (! PermissionModule::isEnabledForCurrentMerchant('roles_permissions')) {
+            return false;
+        }
         return $user->hasPermissionTo(
             'roles_permissions.view',
             $guard
@@ -74,16 +78,23 @@ class RolesResource extends Resource
 
     protected static function syncPermissions($record, array $data)
     {
+        $enabledModules = PermissionModule::enabledForCurrentMerchant();
+
         $permissions = [];
+
         foreach ($data ?? [] as $module => $actions) {
+
+            if (! in_array($module, $enabledModules)) {
+                continue;
+            }
+
             foreach ($actions as $action => $checked) {
                 if ($checked && $action !== 'select_all') {
-                    $name = "{$module}.{$action}";
-
-                    $permissions[] = $name;
+                    $permissions[] = "{$module}.{$action}";
                 }
             }
         }
+
         $record->syncPermissions($permissions);
     }
     public static function getPages(): array

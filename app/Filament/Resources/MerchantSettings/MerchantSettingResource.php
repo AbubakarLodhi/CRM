@@ -8,6 +8,7 @@ use App\Filament\Resources\MerchantSettings\Pages\ListMerchantSettings;
 use App\Filament\Resources\MerchantSettings\Schemas\MerchantSettingForm;
 use App\Filament\Resources\MerchantSettings\Tables\MerchantSettingsTable;
 use App\Models\MerchantSetting;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -30,6 +31,24 @@ class MerchantSettingResource extends Resource
     protected static ?string $recordTitleAttribute = 'MerchantSetting';
 
     protected static ?int $navigationSort = 8;
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('merchant_settings')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('merchant_settings.view', $guard);
+    }
 
     public static function shouldRegisterNavigation(): bool
     {

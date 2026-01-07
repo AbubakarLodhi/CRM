@@ -8,6 +8,7 @@ use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -38,6 +39,9 @@ class UserResource extends Resource
             return false;
         }
 
+        if (! PermissionModule::isEnabledForCurrentMerchant('users')) {
+            return false;
+        }
         return $user->hasPermissionTo(
             'users.view',
             $guard

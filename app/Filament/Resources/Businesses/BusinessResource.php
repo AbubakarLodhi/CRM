@@ -9,6 +9,7 @@ use App\Filament\Resources\Businesses\Schemas\BusinessForm;
 use App\Filament\Resources\Businesses\Tables\BusinessesTable;
 use App\Models\Admin;
 use App\Models\Business;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Builder;
@@ -30,15 +31,19 @@ class BusinessResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
 
-        return $user->hasPermissionTo(
-            'businesses.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('businesses')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('businesses.view', $guard);
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

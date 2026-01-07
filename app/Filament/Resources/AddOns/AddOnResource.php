@@ -8,6 +8,7 @@ use App\Filament\Resources\AddOns\Pages\ListAddOns;
 use App\Filament\Resources\AddOns\Schemas\AddOnForm;
 use App\Filament\Resources\AddOns\Tables\AddOnsTable;
 use App\Models\AddOn;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -30,16 +31,20 @@ class AddOnResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('addons')) {
+            return false;
+        }
 
-        return $user->hasPermissionTo(
-            'categories.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('addons.view', $guard);
     }
+
 
     public static function form(Schema $schema): Schema
     {

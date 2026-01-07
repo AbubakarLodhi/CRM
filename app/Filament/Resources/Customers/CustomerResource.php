@@ -9,6 +9,7 @@ use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Models\Admin;
 use App\Models\Customer;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -29,15 +30,19 @@ class CustomerResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
 
-        return $user->hasPermissionTo(
-            'customers.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('customers')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('customers.view', $guard);
     }
 
     /**

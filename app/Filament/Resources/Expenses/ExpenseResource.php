@@ -11,6 +11,7 @@ use App\Filament\Resources\Expenses\Schemas\ExpenseInfolist;
 use App\Filament\Resources\Expenses\Tables\ExpensesTable;
 use App\Models\Admin;
 use App\Models\Expense;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -33,15 +34,18 @@ class ExpenseResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('expenses')) {
+            return false;
+        }
 
-        return $user->hasPermissionTo(
-            'expenses.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('expenses.view', $guard);
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

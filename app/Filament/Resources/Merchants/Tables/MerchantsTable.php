@@ -6,6 +6,7 @@ use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Models\Branch;
 use App\Models\Merchant;
+use App\Models\MerchantPermissionModule;
 use App\Models\MerchantSetting;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -25,6 +26,14 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Arr;
+use App\Models\PermissionModule;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Toggle;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+
 
 class MerchantsTable
 {
@@ -115,7 +124,62 @@ class MerchantsTable
                     ->preload()
             ])
             ->recordActions([
-                Action::make('settings')
+                Action::make('modules')
+                    ->label('')
+                    ->icon('heroicon-o-key')
+                    ->tooltip('Manage Permission Modules')
+                    ->modalHeading('Enable Modules for Merchant')
+                    ->modalSubmitActionLabel('Save')
+                    ->modalWidth('lg')
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()
+                        ?->hasPermissionTo('merchants.update', 'admin')
+                    )
+
+                    // ================= FORM =================
+                    ->form([
+                        CheckboxList::make('modules')
+                            ->label('Enabled Modules')
+                            ->options(
+                                PermissionModule::orderBy('label')
+                                    ->pluck('label', 'id')
+                                    ->toArray()
+                            )
+                            ->columns(2)
+                            ->searchable(),
+                    ])
+
+                    // ================= FILL =================
+                    ->fillForm(function (Merchant $record): array {
+                        return [
+                            'modules' => MerchantPermissionModule::where('merchant_id', $record->id)
+                                ->pluck('permission_module_id')
+                                ->toArray(),
+                        ];
+                    })
+
+                    // ================= SAVE =================
+                    ->action(function (array $data, Merchant $record) {
+
+                        DB::transaction(function () use ($data, $record) {
+
+                            // 🔥 DELETE existing
+                            MerchantPermissionModule::where('merchant_id', $record->id)->delete();
+
+                            // 🔥 INSERT enabled modules WITH UUID
+                            foreach (($data['modules'] ?? []) as $moduleId) {
+                                MerchantPermissionModule::create([
+                                    'id' => Str::uuid(),
+                                    'merchant_id' => $record->id,
+                                    'permission_module_id' => $moduleId,
+                                ]);
+                            }
+                        });
+                    }),
+
+
+        Action::make('settings')
                     ->label('')
                     ->icon('heroicon-o-cog-6-tooth')
                     ->tooltip('Merchant Settings')

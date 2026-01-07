@@ -7,6 +7,7 @@ use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\Admin;
 use App\Models\BrandCategory;
 use App\Models\Category;
+use App\Models\PermissionModule;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class CategoriesTable
 {
@@ -53,7 +55,24 @@ class CategoriesTable
                         ? CategoryResource::getUrl('index', ['parent_id' => $record->id])
                         : null
                     )
-                    ->visible(fn () => ! request()->filled('parent_id')),
+                    ->visible(function () {
+                        $guard = Filament::getCurrentPanel()->getAuthGuard();
+                        $user  = Auth::guard($guard)->user();
+
+                        // 🧩 1. Module toggle check
+                        if (! PermissionModule::isEnabledForCurrentMerchant('sub_categories')) {
+                            return false;
+                        }
+
+                        // 🔐 2. Permission check
+                        if (! $user?->hasPermissionTo('sub_categories.view', $guard)) {
+                            return false;
+                        }
+
+                        // 🧠 3. UI condition (only top-level categories)
+                        return ! request()->filled('parent_id');
+                    }),
+
 
                 Action::make('view-brands')
                     ->color('secondary')
@@ -67,10 +86,25 @@ class CategoriesTable
                     )
 
                     ->visible(function (?Category $record) {
+                        $guard = Filament::getCurrentPanel()->getAuthGuard();
+                        $user  = Auth::guard($guard)->user();
+
+                        // 🧩 1. Module toggle
+                        if (! PermissionModule::isEnabledForCurrentMerchant('brands')) {
+                            return false;
+                        }
+
+                        // 🔐 2. Permission gate
+                        if (! $user?->hasPermissionTo('brands.view', $guard)) {
+                            return false;
+                        }
+
+                        // 🧠 3. Only show for sub-categories
                         if (! request()->filled('parent_id') || ! $record) {
                             return false;
                         }
 
+                        // 🔍 4. Category must have brands
                         return BrandCategory::where('category_id', $record->id)->exists();
                     }),
 
