@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Brands\Schemas;
 
-use App\Models\Admin;
 use App\Models\Category;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
@@ -44,21 +43,13 @@ class BrandsForm
                         return Category::query()
                             // ✅ Only sub-categories
                             ->whereNotNull('parent_id')
-
-                            // ✅ Merchant scoping
                             ->when(
-                                ! $user instanceof Admin,
                                 fn ($q) => $q->where(
                                     'merchant_id',
                                     $user->merchant_id ?? $user->id
                                 )
                             )
 
-                            // (Optional) Admin sees all merchants’ categories
-                            ->when(
-                                $user instanceof Admin,
-                                fn ($q) => $q
-                            )
 
                             ->orderBy('name')
                             ->pluck('name', 'id')

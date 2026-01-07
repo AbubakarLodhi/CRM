@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Branches\Pages;
 
 use App\Filament\Resources\Branches\BranchResource;
-use App\Models\Admin;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
@@ -15,11 +14,6 @@ class CreateBranch extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $user = Filament::auth()->user();
-
-        // Admin: merchant_id already chosen in form (we will add it back below)
-        if ($user instanceof Admin) {
-            return $data;
-        }
 
         // Merchant creating branch
         if ($user instanceof \App\Models\Merchant) {

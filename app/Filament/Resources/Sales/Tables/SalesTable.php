@@ -91,12 +91,6 @@ class SalesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => Filament::auth()->user() instanceof \App\Models\Admin),
 
                 SelectFilter::make('customer_id')
                     ->relationship('customer', 'name')

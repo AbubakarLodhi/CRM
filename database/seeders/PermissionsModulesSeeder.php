@@ -13,7 +13,6 @@ class PermissionsModulesSeeder extends Seeder
         $modules = [
             'dashboard' => 'Dashboard',
             'users' => 'Users',
-            'admins' => 'Admins',
             'settings' => 'Settings',
             'roles_permissions' => 'Roles & Permissions',
             'merchants' => 'Merchants',

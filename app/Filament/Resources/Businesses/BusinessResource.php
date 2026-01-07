@@ -7,7 +7,6 @@ use App\Filament\Resources\Businesses\Pages\EditBusiness;
 use App\Filament\Resources\Businesses\Pages\ListBusinesses;
 use App\Filament\Resources\Businesses\Schemas\BusinessForm;
 use App\Filament\Resources\Businesses\Tables\BusinessesTable;
-use App\Models\Admin;
 use App\Models\Business;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -51,9 +50,6 @@ class BusinessResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         // Merchant → own businesses
         if ($user instanceof \App\Models\Merchant) {

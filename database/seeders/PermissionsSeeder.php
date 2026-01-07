@@ -15,7 +15,6 @@ class PermissionsSeeder extends Seeder
         $modules = [
             'dashboard' => ['view', 'create', 'update', 'delete'],
             'users' => ['view', 'create', 'update', 'delete'],
-            'admins' => ['view', 'create', 'update', 'delete'],
             'settings' => ['view', 'create', 'update', 'delete'],
             'roles_permissions' => ['view', 'create', 'update', 'delete'],
             'merchants' => ['view', 'create', 'update', 'delete'],
@@ -40,7 +39,6 @@ class PermissionsSeeder extends Seeder
 
         foreach ($modules as $module => $actions) {
             foreach ($actions as $action) {
-                Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => 'admin']);
                 Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => 'staff']);
                 Permission::firstOrCreate(['name' => "$module.$action", 'guard_name' => 'merchant']);
             }

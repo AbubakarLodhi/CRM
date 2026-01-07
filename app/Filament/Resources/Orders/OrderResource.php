@@ -6,7 +6,6 @@ use App\Filament\Resources\Orders\Pages\ListOrders;
 use App\Filament\Resources\Orders\Pages\ViewOrder;
 use App\Filament\Resources\Orders\Schemas\OrderInfolist;
 use App\Filament\Resources\Orders\Tables\OrdersTable;
-use App\Models\Admin;
 use App\Models\Order;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -61,11 +60,6 @@ class OrderResource extends Resource
     {
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
-
-        // Admin can see all orders
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         // Merchant can see only their orders
         return $query->where('merchant_id', $user->id);

@@ -38,7 +38,7 @@ class CreateSale extends CreateRecord
             } else {
                 $data['created_by'] = null;
             }
-            if ($user && ! ($user instanceof \App\Models\Admin)) {
+            if ($user) {
                 $data['merchant_id'] = $user->id;
             }
 

@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Brands\Pages;
 
 use App\Filament\Resources\Brands\BrandsResource;
 use App\Filament\Resources\Categories\CategoryResource;
-use App\Models\Admin;
 use App\Models\Brand;
 use App\Models\Category;
 use Filament\Actions\Action;
@@ -27,7 +26,6 @@ class ListBrands extends ListRecords
         return Brand::query()
             // Merchant scoping
             ->when(
-                ! $user instanceof Admin,
                 fn (Builder $query) =>
                 $query->where('merchant_id', $user->id)
             )

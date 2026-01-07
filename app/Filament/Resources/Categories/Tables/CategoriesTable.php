@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Categories\Tables;
 
 use App\Filament\Resources\Brands\BrandsResource;
 use App\Filament\Resources\Categories\CategoryResource;
-use App\Models\Admin;
 use App\Models\BrandCategory;
 use App\Models\Category;
 use App\Models\PermissionModule;
@@ -35,14 +34,7 @@ class CategoriesTable
                     : self::categoryColumns()
             )
             ->filters([
-                    SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user() instanceof Admin
-                    ),
+
                 ])
             ->recordActions([
                 Action::make('view-subcategories')
@@ -160,11 +152,7 @@ class CategoriesTable
                 ),
 
 
-            BadgeColumn::make('merchant.name')
-                ->label('Merchant')
-                ->sortable()
-                ->searchable()
-                ->visible(fn () => Filament::auth()->user() instanceof Admin),
+
         ];
     }
 
@@ -181,11 +169,7 @@ class CategoriesTable
                 ->sortable()
                 ->searchable(),
 
-            TextColumn::make('merchant.name')
-                ->label('Merchant')
-                ->sortable()
-                ->searchable()
-                ->visible(fn () => Filament::auth()->user() instanceof Admin),
+
         ];
     }
 }

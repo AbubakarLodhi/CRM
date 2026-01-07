@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Branches\Schemas;
 
-use App\Models\Admin;
 use App\Models\Branch;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -59,14 +58,6 @@ class BranchForm
                 ->placeholder('e.g. 54000')
                 ->maxLength(12)
                 ->required(),
-            // ✅ Admin chooses merchant
-            Select::make('merchant_id')
-                ->label('Merchant')
-                ->relationship('merchant', 'name')
-                ->searchable()
-                ->preload()
-                ->required()
-                ->visible(fn () => Filament::auth()->user() instanceof Admin),
 
 
             // ✅ Business scoped for Admin / Merchant / Staff
@@ -77,11 +68,6 @@ class BranchForm
                     titleAttribute: 'name',
                     modifyQueryUsing: function (Builder $query) {
                         $user = Filament::auth()->user();
-
-                        // Admin => all businesses
-                        if ($user instanceof Admin) {
-                            return;
-                        }
 
                         // Merchant => only their businesses
                         if ($user instanceof \App\Models\Merchant) {

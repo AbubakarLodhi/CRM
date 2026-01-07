@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Admin;
 use App\Models\Sale;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -41,7 +40,7 @@ class SalesSummary extends Page implements HasTable
                 Sale::query()
                     ->with(['merchant', 'business', 'branch', 'customer', 'items'])
                     ->when(
-                        $user && ! $user instanceof Admin,
+                        $user ,
                         fn (Builder $query) => $query->where('merchant_id', $user->id)
                     )
             )
@@ -55,8 +54,7 @@ class SalesSummary extends Page implements HasTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->searchable()
-                    ->sortable()
-                    ->toggleable(fn () => $user instanceof Admin),
+                    ->sortable(),
 
                 TextColumn::make('business.name')->label('Business')->searchable()->sortable()->toggleable(),
 
@@ -78,11 +76,7 @@ class SalesSummary extends Page implements HasTable
                     ->weight('bold'),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => $user instanceof Admin),
+
 
                 SelectFilter::make('customer_id')
                     ->relationship('customer', 'name')
@@ -95,7 +89,7 @@ class SalesSummary extends Page implements HasTable
                         'business',
                         'name',
                         modifyQueryUsing: function (Builder $query) use ($user) {
-                            if ($user && ! $user instanceof Admin) {
+                            if ($user ) {
                                 $query->where('merchant_id', $user->id);
                             }
                         }
@@ -109,7 +103,7 @@ class SalesSummary extends Page implements HasTable
                         'branch',
                         'name',
                         modifyQueryUsing: function (Builder $query) use ($user) {
-                            if ($user && ! $user instanceof Admin) {
+                            if ($user) {
                                 $query->where('merchant_id', $user->id);
                             }
                         }

@@ -7,7 +7,6 @@ use App\Filament\Resources\Brands\Pages\EditBrands;
 use App\Filament\Resources\Brands\Pages\ListBrands;
 use App\Filament\Resources\Brands\Schemas\BrandsForm;
 use App\Filament\Resources\Brands\Tables\BrandsTable;
-use App\Models\Admin;
 use App\Models\Brand;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -55,10 +54,6 @@ class BrandsResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        if ($user instanceof Admin) {
-            return $query;
-
-        }
 
         return $query->where('merchant_id', $user->id);
     }

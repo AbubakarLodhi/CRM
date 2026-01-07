@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Payrolls\Schemas;
 
-use App\Models\Admin;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -38,9 +37,6 @@ class PayrollForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
-                                if ($user instanceof Admin) {
-                                    return;
-                                }
                                 if ($user instanceof \App\Models\Merchant) {
                                     $query->where('merchant_id', $user->id);
                                 } else {
@@ -107,17 +103,9 @@ class PayrollForm
                         ->displayFormat('d/m/Y')
                         ->visible(fn (callable $get) => $get('status') === 'paid'),
 
-                    Select::make('merchant_id')
-                        ->label('Merchant')
-                        ->relationship('merchant', 'name')
-                        ->visible(fn () => Filament::auth()->user() instanceof Admin)
-                        ->required(fn () => Filament::auth()->user() instanceof Admin)
-                        ->searchable()
-                        ->preload(),
 
                     Hidden::make('merchant_id')
                         ->default(fn () => Filament::auth()->user()?->id)
-                        ->visible(fn () => ! (Filament::auth()->user() instanceof Admin))
                         ->required(),
 
                     Hidden::make('created_by')

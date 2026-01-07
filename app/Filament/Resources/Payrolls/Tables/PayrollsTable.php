@@ -80,8 +80,7 @@ class PayrollsTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
-                    ->searchable()
-                    ->toggleable(fn () => $user instanceof \App\Models\Admin),
+                    ->searchable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Created By')
@@ -121,12 +120,6 @@ class PayrollsTable
                         return $years;
                     }),
 
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => $user instanceof \App\Models\Admin),
             ])
             ->recordActions([
                 ViewAction::make()

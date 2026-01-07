@@ -130,7 +130,6 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
-use App\Models\Admin;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -170,10 +169,6 @@ class ProductForm
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
 
-                                // Admin → all businesses
-                                if ($user instanceof Admin) {
-                                    return;
-                                }
 
                                 // Merchant → only their businesses
                                 $query->where('merchant_id', $user->id);
@@ -223,10 +218,6 @@ class ProductForm
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
 
-                                if (! $user instanceof Admin) {
-                                    $query->where('merchant_id', $user->id);
-                                }
-
                                 // parent categories only
                                 $query->whereNull('parent_id');
                             }
@@ -241,11 +232,7 @@ class ProductForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
-
-                                if (! $user instanceof Admin) {
-                                    $query->where('merchant_id', $user->id);
-                                }
-
+                                $query->where('merchant_id', $user->id);
                                 if ($categoryId = $get('category_id')) {
                                     $query->where('parent_id', $categoryId);
                                 } else {
@@ -268,11 +255,7 @@ class ProductForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
-
-                                // ✅ Merchant scoping
-                                if (! $user instanceof Admin) {
-                                    $query->where('merchant_id', $user->id);
-                                }
+                                $query->where('merchant_id', $user->id);
 
                                 $subCategoryId = $get('sub_category_id');
 

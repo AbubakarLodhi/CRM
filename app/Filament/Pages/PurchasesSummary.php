@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Admin;
+
 use App\Models\Purchase;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -41,7 +41,7 @@ class PurchasesSummary extends Page implements HasTable
                 Purchase::query()
                     ->with(['merchant', 'business', 'branch', 'items'])
                     ->when(
-                        $user && ! $user instanceof Admin,
+                        $user ,
                         fn (Builder $query) => $query->where('merchant_id', $user->id)
                     )
             )
@@ -59,8 +59,7 @@ class PurchasesSummary extends Page implements HasTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->searchable()
-                    ->sortable()
-                    ->toggleable(fn () => $user instanceof Admin),
+                    ->sortable(),
 
                 TextColumn::make('business.name')
                     ->label('Business')
@@ -103,12 +102,7 @@ class PurchasesSummary extends Page implements HasTable
                     ->weight('bold'),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => $user instanceof Admin),
+
 
                 SelectFilter::make('business_id')
                     ->relationship('business', 'name')

@@ -43,10 +43,6 @@ class PermissionModule extends Model
     {
         $user = Filament::auth()->user();
 
-        // Admin sees everything
-        if ($user instanceof \App\Models\Admin) {
-            return self::pluck('module')->toArray();
-        }
 
         // Merchant → only enabled modules
         return $user->permissionModules()
@@ -57,11 +53,6 @@ class PermissionModule extends Model
     public static function isEnabledForCurrentMerchant(string $module): bool
     {
         $user = Filament::auth()->user();
-
-        // ✅ Admin sees everything
-        if ($user instanceof \App\Models\Admin) {
-            return true;
-        }
 
         // ✅ Merchant owns modules
         if ($user instanceof \App\Models\Merchant) {

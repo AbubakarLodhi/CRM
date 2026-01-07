@@ -9,7 +9,6 @@ use App\Filament\Resources\Payrolls\Pages\ViewPayroll;
 use App\Filament\Resources\Payrolls\Schemas\PayrollForm;
 use App\Filament\Resources\Payrolls\Schemas\PayrollInfolist;
 use App\Filament\Resources\Payrolls\Tables\PayrollsTable;
-use App\Models\Admin;
 use App\Models\Payroll;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -97,9 +96,6 @@ class PayrollResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         // Merchants see all payrolls for their staff
         if ($user instanceof \App\Models\Merchant) {

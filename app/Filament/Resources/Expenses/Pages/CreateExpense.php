@@ -24,7 +24,7 @@ class CreateExpense extends CreateRecord
             unset($data['items']);
 
             $user = Filament::auth()->user();
-            if ($user && ! ($user instanceof \App\Models\Admin)) {
+            if ($user) {
                 $data['merchant_id'] = $user->id;
             }
 

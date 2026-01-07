@@ -67,7 +67,6 @@ class DatabaseSeeder extends Seeder
             RolesSeeder::class,
             CountriesSeeder::class,
             CitiesSeeder::class,
-            AdminsSeeder::class,
             MerchantsSeeder::class,
             StaffsSeeder::class,
             BusinessesSeeder::class,
@@ -75,6 +74,7 @@ class DatabaseSeeder extends Seeder
             BranchUsersSeeder::class,
             CustomersSeeder::class,
             PermissionsModulesSeeder::class,
+            MerchantPermissionModulesSeeder::class,
 
             // ZGN Merchant Seeders
             ZGNSolarCategoriesSeeder::class,

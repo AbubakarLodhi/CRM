@@ -7,7 +7,6 @@ use App\Filament\Resources\Branches\Pages\EditBranch;
 use App\Filament\Resources\Branches\Pages\ListBranches;
 use App\Filament\Resources\Branches\Schemas\BranchForm;
 use App\Filament\Resources\Branches\Tables\BranchesTable;
-use App\Models\Admin;
 use App\Models\Branch;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -55,9 +54,6 @@ class BranchResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        if ($user instanceof \App\Models\Admin) {
-            return $query;
-        }
 
         if ($user instanceof \App\Models\Merchant) {
             return $query->where('merchant_id', $user->id);

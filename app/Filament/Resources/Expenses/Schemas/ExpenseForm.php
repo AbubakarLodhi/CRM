@@ -57,10 +57,6 @@ class ExpenseForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
-                                if ($user instanceof Admin) {
-                                    return;
-                                }
-
                                 $query->where('merchant_id', $user->id);
                             }
                         )
@@ -83,12 +79,9 @@ class ExpenseForm
                                     $query->whereRaw('1=0');
                                     return;
                                 }
-
-                                if (!($user instanceof Admin)) {
                                     $query->where('merchant_id', $user->id);
-                                }
 
-                                $query->where('business_id', $businessId);
+                                     $query->where('business_id', $businessId);
                             }
                         )
                         ->searchable()

@@ -35,7 +35,6 @@ class BrandsTable
                 BrandCategory::query()
                     ->with(['brand.logo', 'category', 'merchant'])
                     ->when(
-                        !$user instanceof Admin,
                         fn($query) => $query->where('merchant_id', $user->id)
                     )
                     ->when(
@@ -77,18 +76,6 @@ class BrandsTable
                     ->sortable(),
 
                 /**
-                 * Merchant
-                 */
-                BadgeColumn::make('merchant.name')
-                    ->label('Merchant')
-                    ->color('primary')
-                    ->searchable()
-                    ->sortable()
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user() instanceof Admin
-                    ),
-
-                /**
                  * Assigned date
                  */
                 TextColumn::make('created_at')
@@ -97,14 +84,6 @@ class BrandsTable
                     ->sortable(),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user() instanceof Admin
-                    ),
                 SelectFilter::make('category_id')
                     ->label('Category')
                     ->searchable()
@@ -118,7 +97,6 @@ class BrandsTable
 
                             // ✅ Merchant scoping
                             ->when(
-                                ! $user instanceof Admin,
                                 fn ($q) => $q->where(
                                     'merchant_id',
                                     $user->merchant_id ?? $user->id

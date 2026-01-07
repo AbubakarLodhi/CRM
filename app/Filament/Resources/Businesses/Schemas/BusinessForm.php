@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Businesses\Schemas;
 
-use App\Models\Admin;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -64,10 +63,6 @@ class BusinessForm
 
                 Toggle::make('status')
                     ->required(),
-                Select::make('merchant_id')
-                    ->label('Merchant')
-                    ->relationship('merchant', 'name')
-                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
 
                 Hidden::make('merchant_id')
                     ->default(fn () =>
@@ -75,7 +70,6 @@ class BusinessForm
                         ? $user->merchant_id
                         : $user?->id
                     )
-                    ->visible(fn () => ! ($user instanceof Admin)),
             ]);
 
 

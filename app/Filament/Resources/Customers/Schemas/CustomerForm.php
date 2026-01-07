@@ -60,10 +60,6 @@ class CustomerForm
                     ->preload()
                     ->required(),
 
-                Select::make('merchant_id')
-                    ->label('Merchant')
-                    ->relationship('merchant', 'name')
-                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
 
                 Hidden::make('merchant_id')
                     ->default(function () {
@@ -78,9 +74,7 @@ class CustomerForm
                         }
 
                         return null;
-                    })
-                    ->visible(fn () => ! (Filament::auth()->user() instanceof Admin)),
-
+                    }),
                 TextInput::make('reference')
                     ->label('Reference Customer')
                     ->nullable(),

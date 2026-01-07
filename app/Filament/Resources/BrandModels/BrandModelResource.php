@@ -7,7 +7,6 @@ use App\Filament\Resources\BrandModels\Pages\EditBrandModel;
 use App\Filament\Resources\BrandModels\Pages\ListBrandModels;
 use App\Filament\Resources\BrandModels\Schemas\BrandModelForm;
 use App\Filament\Resources\BrandModels\Tables\BrandModelsTable;
-use App\Models\Admin;
 use App\Models\BrandModel;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -38,7 +37,6 @@ class BrandModelResource extends Resource
     {
         $user = Filament::auth()->user();
         $guard = Filament::getCurrentPanel()->getAuthGuard();
-
         if (! $user) {
             return false;
         }
@@ -47,7 +45,6 @@ class BrandModelResource extends Resource
         if (! PermissionModule::isEnabledForCurrentMerchant('models')) {
             return false;
         }
-
         // 🔐 Permission gate
         return $user->hasPermissionTo('models.view', $guard);
     }
@@ -56,11 +53,6 @@ class BrandModelResource extends Resource
     {
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
-
-        if ($user instanceof Admin) {
-            return $query;
-
-        }
 
         return $query->where('merchant_id', $user->id);
     }

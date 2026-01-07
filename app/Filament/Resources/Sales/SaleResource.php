@@ -9,7 +9,6 @@ use App\Filament\Resources\Sales\Pages\ViewSale;
 use App\Filament\Resources\Sales\Schemas\SaleForm;
 use App\Filament\Resources\Sales\Schemas\SaleInfolist;
 use App\Filament\Resources\Sales\Tables\SalesTable;
-use App\Models\Admin;
 use App\Models\PermissionModule;
 use App\Models\Sale;
 use BackedEnum;
@@ -54,10 +53,6 @@ class SaleResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // Admin can see all sales
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         // Merchant can see only their sales
         return $query->where('merchant_id', $user->id);

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Categories\Schemas;
 
 use Filament\Forms\Components\FileUpload;
-use App\Models\Admin;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -30,9 +29,6 @@ class CategoryForm
                             $user = Filament::auth()->user();
 
                             $query->whereNull('parent_id');
-                            if ($user instanceof Admin) {
-                                return;
-                            }
                             $query->where('merchant_id', $user->merchant_id ?? $user->id);
                         }
                     )
@@ -59,14 +55,9 @@ class CategoryForm
                     ->dehydrated(false)
                     ->visible(fn ($get) => blank($get('parent_id'))),
 
-                Select::make('merchant_id')
-                    ->label('Merchant')
-                    ->relationship('merchant', 'name')
-                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
 
                 Hidden::make('merchant_id')
-                    ->default(fn() => Filament::auth()->user()?->id)
-                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
+                    ->default(fn() => Filament::auth()->user()?->id),
 
             ]);
     }

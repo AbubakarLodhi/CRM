@@ -2,7 +2,7 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Admin;
+
 use App\Models\Product;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -74,7 +74,7 @@ class StockReport extends Page implements HasTable
                     ->where('products.is_active', true)
                     ->where('products.track_inventory', true)
                     ->when(
-                        $user && ! $user instanceof Admin,
+                        $user,
                         fn (Builder $q) => $q->where('products.merchant_id', $user->id)
                     )
                     ->select('products.*')
@@ -165,7 +165,7 @@ class StockReport extends Page implements HasTable
                             $user = Filament::auth()->user();
 
                             // Merchant-scoped branches for merchants
-                            if ($user && ! $user instanceof Admin) {
+                            if ($user) {
                                 $query->where('branches.merchant_id', $user->id);
                             }
                         }

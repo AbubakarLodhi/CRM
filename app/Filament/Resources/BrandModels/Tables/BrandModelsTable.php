@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\BrandModels\Tables;
 
 use App\Filament\Resources\Products\ProductResource;
-use App\Models\Admin;
 use App\Models\PermissionModule;
 use App\Models\Product;
 use Filament\Actions\Action;
@@ -37,15 +36,6 @@ class BrandModelsTable
                     ->searchable(),
 
 
-                BadgeColumn::make('brand.merchant.name')
-                    ->label('Merchant')
-                    ->sortable()
-                    ->color('primary')
-                    ->searchable()
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user() instanceof Admin
-                    ),
-
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -58,14 +48,6 @@ class BrandModelsTable
             ])
             ->filters([
 
-                SelectFilter::make('merchant_id')
-                    ->label('Merchant')
-                    ->relationship('brand.merchant', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user() instanceof Admin
-                    ),
                 SelectFilter::make('brand_id')
                     ->label('Brand')
                     ->relationship('brand', 'name')

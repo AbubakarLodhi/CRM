@@ -68,9 +68,6 @@ class CategoryResource extends Resource
 
         $query = parent::getEloquentQuery();
 
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         return $query->where('merchant_id', $user->id);
     }

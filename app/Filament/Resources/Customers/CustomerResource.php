@@ -7,7 +7,6 @@ use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
-use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Merchant;
 use App\Models\PermissionModule;
@@ -55,10 +54,7 @@ class CustomerResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // ✅ Admin → see all customers
-        if ($user instanceof Admin) {
-            return $query;
-        }
+
 
         // ✅ Merchant → customers of their merchant_id
         if ($user instanceof Merchant) {

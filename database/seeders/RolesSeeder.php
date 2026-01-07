@@ -22,6 +22,7 @@ class RolesSeeder extends Seeder
                 'dashboard.*',
                 'users.*',
                 'orders.*',
+                'models.*',
                 'sales.*',
                 'purchases.*',
                 'expenses.*',
@@ -94,7 +95,7 @@ class RolesSeeder extends Seeder
         /**
          * Only seed roles for these guards
          */
-        $allowedGuards = ['admin', 'merchant'];
+        $allowedGuards = [ 'merchant'];
 
         foreach ($rolesPermissions as $roleName => $permissions) {
 

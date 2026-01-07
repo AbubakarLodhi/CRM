@@ -34,16 +34,7 @@ class RolesForm
                             ->required()
                             ->maxLength(255),
 //                         //   ->unique(ignoreRecord: true),
-                        Select::make('guard_name')
-                            ->label('Portal')
-                            ->required()
-                            ->options([
-                                'admin'    => 'Admin',
-                                'staff'    => 'Staff',
-                                'merchant' => 'Merchant',
-                            ])
-                            ->default('admin')
-                            ->visible(fn () => Auth::user() instanceof \App\Models\Admin),
+
 
 
         ])

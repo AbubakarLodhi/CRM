@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
-use App\Models\Admin;
+
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
@@ -53,14 +53,9 @@ class UserForm
                     ->preload()
                     ->searchable()
                     ->default('pending'),
-                Select::make('merchant_id')
-                    ->label('Merchant')
-                    ->relationship('merchant', 'name')
-                    ->visible(fn() => Filament::auth()->user() instanceof Admin),
 
                 Hidden::make('merchant_id')
-                    ->default(fn() => Filament::auth()->user()?->id)
-                    ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
+                    ->default(fn() => Filament::auth()->user()?->id),
 
                 Select::make('roles')
                     ->label('Roles')
@@ -80,10 +75,10 @@ class UserForm
                             ->relationship(
                                 'businesses',
                                 'name',
-                                fn ($query) =>
-                                ! Filament::auth()->user() instanceof Admin
-                                    ? $query->where('merchant_id', Filament::auth()->id())
-                                    : $query
+                                fn ($query) => $query->where(
+                                    'merchant_id',
+                                    Filament::auth()->id()
+                                )
                             )
                             ->preload()
                             ->searchable()
@@ -95,7 +90,7 @@ class UserForm
                                 }
                             }),
 
-                        Select::make('branches')
+        Select::make('branches')
                             ->label('Branches')
                             ->multiple()
                             ->searchable()
@@ -129,7 +124,6 @@ class UserForm
                                 return \App\Models\Branch::query()
                                     ->whereIn('business_id', $businessIds)
                                     ->when(
-                                        ! Filament::auth()->user() instanceof Admin,
                                         fn ($q) => $q->where('merchant_id', Filament::auth()->id())
                                     )
                                     ->pluck('name', 'id')

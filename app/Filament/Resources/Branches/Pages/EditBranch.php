@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Branches\Pages;
 
 use App\Filament\Resources\Branches\BranchResource;
-use App\Models\Admin;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;

@@ -1,8 +1,6 @@
 <?php
 
 namespace App\Filament\Resources\BrandModels\Schemas;
-
-use App\Models\Admin;
 use App\Models\Brand;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
@@ -28,11 +26,6 @@ class BrandModelForm
                         titleAttribute: 'name',
                         modifyQueryUsing: function (Builder $query) {
                             $user = Filament::auth()->user();
-
-                            if ($user instanceof Admin) {
-                                return;
-                            }
-
                             $query->where('merchant_id', $user->merchant_id ?? $user->id);
                         }
                     )

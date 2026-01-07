@@ -25,7 +25,6 @@ class ListBrandModels extends ListRecords
 
         return BrandModel::query()
             ->when(
-                ! $user instanceof Admin,
                 fn (Builder $query) => $query->where('merchant_id', $user->id)
             )
             ->when(

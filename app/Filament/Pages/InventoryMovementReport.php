@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\Models\Admin;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
@@ -135,7 +134,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         $purchaseItems = \App\Models\PurchaseItem::query()
             ->with(['purchase', 'product'])
             ->when(
-                $user && ! $user instanceof Admin,
+                $user,
                 fn (Builder $q) =>
                 $q->whereHas('purchase', fn ($p) => $p->where('merchant_id', $user->id))
             )
@@ -156,7 +155,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         $saleItems = \App\Models\SaleItem::query()
             ->with(['sale', 'product'])
             ->when(
-                $user && ! $user instanceof Admin,
+                $user,
                 fn (Builder $q) =>
                 $q->whereHas('sale', fn ($s) => $s->where('merchant_id', $user->id))
             )

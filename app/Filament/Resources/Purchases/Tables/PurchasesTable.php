@@ -86,13 +86,6 @@ class PurchasesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->relationship('merchant', 'name')
-                    ->label('Merchant')
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => Filament::auth()->user() instanceof \App\Models\Admin),
-
                 SelectFilter::make('business_id')
                     ->relationship('business', 'name')
                     ->label('Business')

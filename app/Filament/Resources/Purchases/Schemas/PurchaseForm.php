@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Purchases\Schemas;
 
-use App\Models\Admin;
 use App\Models\Product;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -38,17 +37,10 @@ class PurchaseForm
                         ->required()
                         ->displayFormat('d/m/Y'),
 
-                    Select::make('merchant_id')
-                        ->label('Merchant')
-                        ->relationship('merchant', 'name')
-                        ->visible(fn() => Filament::auth()->user() instanceof Admin)
-                        ->required(fn() => Filament::auth()->user() instanceof Admin)
-                        ->searchable()
-                        ->preload(),
+
 
                     Hidden::make('merchant_id')
                         ->default(fn() => Filament::auth()->user()?->id)
-                        ->visible(fn() => !(Filament::auth()->user() instanceof Admin))
                         ->required(),
 
                     Select::make('business_id')
@@ -58,9 +50,6 @@ class PurchaseForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
-                                if ($user instanceof Admin) {
-                                    return;
-                                }
 
                                 $query->where('merchant_id', $user->id);
                             }
@@ -85,10 +74,7 @@ class PurchaseForm
                                     $query->whereRaw('1=0');
                                     return;
                                 }
-
-                                if (!($user instanceof Admin)) {
-                                    $query->where('merchant_id', $user->id);
-                                }
+                                $query->where('merchant_id', $user->id);
 
                                 $query->where('business_id', $businessId);
                             }
@@ -136,9 +122,6 @@ class PurchaseForm
                                                 ->where('branch_products.branch_id', $branchId);
                                         });
 
-                                    if (! $user instanceof Admin) {
-                                        $query->where('products.merchant_id', $user->id);
-                                    }
 
                                     return $query
                                         ->orderBy('products.name')
@@ -188,9 +171,6 @@ class PurchaseForm
                                                 ->orWhere('products.sku', 'ilike', "%{$search}%");
                                         });
 
-                                    if (! $user instanceof Admin) {
-                                        $query->where('products.merchant_id', $user->id);
-                                    }
 
                                     return $query
                                         ->limit(50)

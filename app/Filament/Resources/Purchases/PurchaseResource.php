@@ -9,7 +9,6 @@ use App\Filament\Resources\Purchases\Pages\ViewPurchase;
 use App\Filament\Resources\Purchases\Schemas\PurchaseForm;
 use App\Filament\Resources\Purchases\Schemas\PurchaseInfolist;
 use App\Filament\Resources\Purchases\Tables\PurchasesTable;
-use App\Models\Admin;
 use App\Models\PermissionModule;
 use App\Models\Purchase;
 use BackedEnum;
@@ -54,10 +53,6 @@ class PurchaseResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // Admin can see all purchases
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         // Merchant can see only their purchases
         return $query->where('merchant_id', $user->id);

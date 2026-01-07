@@ -51,15 +51,6 @@ class BranchesTable
                     ->searchable(),
             ])
             ->filters([
-                SelectFilter::make('merchant_id')
-                    ->label('Merchants')
-                    ->relationship(
-                        'merchant',
-                        'name',
-                    )
-                    ->searchable()
-                    ->preload()
-                    ->visible(fn () => (Filament::auth()->user() instanceof \App\Models\Admin)),
                 SelectFilter::make('business_id')
                     ->label('Businesses')
                     ->relationship(
