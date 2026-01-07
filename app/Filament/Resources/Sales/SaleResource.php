@@ -10,6 +10,7 @@ use App\Filament\Resources\Sales\Schemas\SaleForm;
 use App\Filament\Resources\Sales\Schemas\SaleInfolist;
 use App\Filament\Resources\Sales\Tables\SalesTable;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use App\Models\Sale;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -33,16 +34,20 @@ class SaleResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('sales')) {
+            return false;
+        }
 
-        return $user->hasPermissionTo(
-            'sales.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('sales.view', $guard);
     }
+
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {

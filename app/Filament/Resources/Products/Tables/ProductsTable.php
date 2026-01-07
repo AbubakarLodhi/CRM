@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Models\PermissionModule;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Filament\Actions\Action;
@@ -9,10 +10,12 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class ProductsTable
 {
@@ -89,11 +92,25 @@ class ProductsTable
                         'category_id'    => $record->category_id,
                     ])
                     )
-
                     // ✅ SHOW ONLY IF VARIANTS EXIST FOR THIS PRODUCT
-                    ->visible(fn ($record) =>
-                    ProductVariant::where('product_id', $record->id)->exists()
-                    )
+                    ->visible(function ($record) {
+                        if (! $record) {
+                            return false;
+                        }
+
+                        $guard = Filament::getCurrentPanel()->getAuthGuard();
+                        $user  = Auth::guard($guard)->user();
+
+                        if (! PermissionModule::isEnabledForCurrentMerchant('products_variants')) {
+                            return false;
+                        }
+                        if (! $user?->hasPermissionTo('products_variants.view', $guard)) {
+                            return false;
+                        }
+
+                        // 📦 3. Variants must exist for this product
+                        return ProductVariant::where('product_id', $record->id)->exists();
+                    })
                     ->openUrlInNewTab(false),
                 EditAction::make()
                     ->color('warning')

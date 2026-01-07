@@ -8,6 +8,7 @@ use App\Models\Admin;
 use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use App\Models\Category;
+use App\Models\PermissionModule;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class BrandsTable
 {
@@ -156,8 +158,27 @@ class BrandsTable
                     )
 
                     // ✅ BRAND-ONLY CHECK (CORRECT)
-                    ->visible(fn($record) => BrandModel::where('brand_id', $record->brand_id)->exists()
-                    ),
+                    ->visible(function ($record) {
+                        if (! $record) {
+                            return false;
+                        }
+
+                        $guard = Filament::getCurrentPanel()->getAuthGuard();
+                        $user  = Auth::guard($guard)->user();
+
+                        // 🧩 1. Module toggle
+                        if (! PermissionModule::isEnabledForCurrentMerchant('models')) {
+                            return false;
+                        }
+
+                        // 🔐 2. Permission gate
+                        if (! $user?->hasPermissionTo('models.view', $guard)) {
+                            return false;
+                        }
+
+                        // 🔍 3. Brand must have models
+                        return BrandModel::where('brand_id', $record->brand_id)->exists();
+                    }),
 
 
                 /**

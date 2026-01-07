@@ -8,6 +8,7 @@ use App\Filament\Resources\ProductVariants\Pages\ListVariants;
 use App\Filament\Resources\ProductVariants\Schemas\VariantForm;
 use App\Filament\Resources\ProductVariants\Tables\VariantsTable;
 use App\Models\Admin;
+use App\Models\PermissionModule;
 use App\Models\ProductVariant;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -26,15 +27,23 @@ class ProductVariantResource extends Resource
     protected static string | UnitEnum | null $navigationGroup = 'Inventory';
     protected static ?int $navigationSort = 4;
 
-//    public static function canViewAny(): bool
-//    {
-//        $user = Filament::auth()->user();
-//
-//        return $user?->hasPermissionTo(
-//            'products.view',
-//            Filament::getCurrentPanel()->getAuthGuard()
-//        ) ?? false;
-//    }
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('products_variants')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('products_variants.view', $guard);
+    }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {

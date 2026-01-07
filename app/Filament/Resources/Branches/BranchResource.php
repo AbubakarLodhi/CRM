@@ -9,6 +9,7 @@ use App\Filament\Resources\Branches\Schemas\BranchForm;
 use App\Filament\Resources\Branches\Tables\BranchesTable;
 use App\Models\Admin;
 use App\Models\Branch;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Actions\CreateAction;
 use Filament\Facades\Filament;
@@ -32,15 +33,19 @@ class BranchResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
 
-        return $user->hasPermissionTo(
-            'branches.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('branches')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('branches.view', $guard);
     }
 
     /**

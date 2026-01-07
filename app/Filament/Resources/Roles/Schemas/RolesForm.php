@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Schemas;
 
+use App\Models\PermissionModule;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\Select;
@@ -58,39 +59,28 @@ class RolesForm
 
     protected static function getPermissionRows(): array
     {
-        $modules = [
-            'dashboard' => 'Dashboard',
-            'users' => 'Users',
-            'admins' => 'Admins',
-            'settings' => 'Settings',
-            'roles_permissions' => 'Roles & Permissions',
-            'merchants' => 'Merchants',
-            'merchant_settings' => 'Merchant Settings',
-            'businesses' => 'Businesses',
-            'orders' => 'Orders',
-            'branches' => 'Branches',
-            'categories' => 'Categories',
-            'customers' => 'Customers',
-        ];
+        $enabledModules = PermissionModule::enabledForCurrentMerchant();
 
         $actions = ['view', 'create', 'update', 'delete'];
         $rows = [];
 
-        foreach ($modules as $key => $label) {
+        foreach ($enabledModules as $module) {
+            $label = ucfirst(str_replace('_', ' ', $module));
+
             $rows[] = Grid::make()
                 ->schema([
-                    Checkbox::make("{$key}.select_all")
+                    Checkbox::make("{$module}.select_all")
                         ->label($label)
-                        ->afterStateUpdated(function ($state, callable $set) use ($key, $actions) {
+                        ->afterStateUpdated(function ($state, callable $set) use ($module, $actions) {
                             foreach ($actions as $action) {
-                                $set("{$key}.{$action}", $state);
+                                $set("{$module}.{$action}", $state);
                             }
                         })
                         ->reactive()
                         ->dehydrated(false),
 
                     ...collect($actions)->map(fn ($action) =>
-                    Checkbox::make("{$key}.{$action}")
+                    Checkbox::make("{$module}.{$action}")
                         ->label(ucfirst($action))
                         ->default(false)
                         ->reactive()

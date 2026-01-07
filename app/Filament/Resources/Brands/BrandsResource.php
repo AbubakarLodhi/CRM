@@ -9,6 +9,7 @@ use App\Filament\Resources\Brands\Schemas\BrandsForm;
 use App\Filament\Resources\Brands\Tables\BrandsTable;
 use App\Models\Admin;
 use App\Models\Brand;
+use App\Models\PermissionModule;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -33,16 +34,21 @@ class BrandsResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
 
-        return $user->hasPermissionTo(
-            'categories.view',
-            Filament::getCurrentPanel()->getAuthGuard()
-        );
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('brands')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('brands.view', $guard);
     }
+
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
