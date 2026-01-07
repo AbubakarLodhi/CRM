@@ -14,22 +14,23 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class PurchasesSummary extends Page implements HasTable
 {
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingCart;
-
     protected static string|\UnitEnum|null $navigationGroup = 'Reportings';
-
     protected static ?int $navigationSort = 3;
-
     protected static ?string $title = 'Purchases Summary';
-
     protected static ?string $navigationLabel = 'Purchases Summary';
 
     protected string $view = 'filament.pages.purchases-summary';
+
+    /* ============================================================
+     |  TABLE
+     ============================================================ */
 
     public function table(Table $table): Table
     {
@@ -39,7 +40,10 @@ class PurchasesSummary extends Page implements HasTable
             ->query(
                 Purchase::query()
                     ->with(['merchant', 'business', 'branch', 'items'])
-                    ->when($user && ! $user instanceof Admin, fn (Builder $query) => $query->where('merchant_id', $user->id))
+                    ->when(
+                        $user && ! $user instanceof Admin,
+                        fn (Builder $query) => $query->where('merchant_id', $user->id)
+                    )
             )
             ->columns([
                 TextColumn::make('purchase_no')
@@ -54,20 +58,20 @@ class PurchasesSummary extends Page implements HasTable
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
-                    ->sortable()
                     ->searchable()
+                    ->sortable()
                     ->toggleable(fn () => $user instanceof Admin),
 
                 TextColumn::make('business.name')
                     ->label('Business')
-                    ->sortable()
                     ->searchable()
+                    ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('branch.name')
                     ->label('Branch')
-                    ->sortable()
                     ->searchable()
+                    ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('items_count')
@@ -78,41 +82,25 @@ class PurchasesSummary extends Page implements HasTable
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->money('USD')
-                    ->sortable()
-                    ->summarize([
-                        \Filament\Tables\Columns\Summarizers\Sum::make()
-                            ->money('USD'),
-                    ]),
+                    ->sortable(),
 
                 TextColumn::make('discount')
                     ->label('Discount')
                     ->money('USD')
                     ->sortable()
-                    ->toggleable()
-                    ->summarize([
-                        \Filament\Tables\Columns\Summarizers\Sum::make()
-                            ->money('USD'),
-                    ]),
+                    ->toggleable(),
 
                 TextColumn::make('tax')
                     ->label('Tax')
                     ->money('USD')
                     ->sortable()
-                    ->toggleable()
-                    ->summarize([
-                        \Filament\Tables\Columns\Summarizers\Sum::make()
-                            ->money('USD'),
-                    ]),
+                    ->toggleable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('USD')
                     ->sortable()
-                    ->weight('bold')
-                    ->summarize([
-                        \Filament\Tables\Columns\Summarizers\Sum::make()
-                            ->money('USD'),
-                    ]),
+                    ->weight('bold'),
             ])
             ->filters([
                 SelectFilter::make('merchant_id')
@@ -134,6 +122,65 @@ class PurchasesSummary extends Page implements HasTable
                     ->searchable()
                     ->preload(),
             ])
+            ->paginated([10,25, 50, 100])
             ->defaultSort('purchase_date', 'desc');
     }
+
+    /* ============================================================
+     |  IMPORTANT: FILTERED QUERY WITHOUT PAGINATION
+     ============================================================ */
+
+    protected function getFilteredTableQueryWithoutPagination(): Builder
+    {
+        $query = clone $this->getFilteredTableQuery();
+
+        // 🔥 THIS IS THE KEY FIX
+        $query->getQuery()->limit = null;
+        $query->getQuery()->offset = null;
+
+        return $query;
+    }
+
+    /* ============================================================
+     |  STATS (FILTER-AWARE, UNPAGINATED)
+     ============================================================ */
+    public function getPurchaseStats(): array
+    {
+        $filteredQuery = $this->getFilteredTableQueryWithoutPagination();
+
+        $totalPurchases = (clone $filteredQuery)->count();
+
+        $purchaseIds = (clone $filteredQuery)->select('purchases.id');
+
+        // ✅ NEW: item rows count
+        $totalItemLines = DB::table('purchase_items')
+            ->whereIn('purchase_id', $purchaseIds)
+            ->count();
+
+        // ✅ EXISTING: quantity sum
+        $totalItemQuantity = DB::table('purchase_items')
+            ->whereIn('purchase_id', $purchaseIds)
+            ->sum('quantity');
+
+        $totalAmount   = (clone $filteredQuery)->sum('total_amount');
+        $totalDiscount = (clone $filteredQuery)->sum('discount');
+        $totalTax      = (clone $filteredQuery)->sum('tax');
+        $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
+
+        $avgPurchase = $totalPurchases > 0
+            ? $totalAmount / $totalPurchases
+            : 0;
+
+        return [
+            'total_purchases'      => (int) $totalPurchases,
+            'total_items_count'    => (int) $totalItemLines,     // 👈 rows
+            'total_items_quantity' => (float) $totalItemQuantity, // 👈 quantity
+            'total_amount'         => (float) $totalAmount,
+            'total_discount'       => (float) $totalDiscount,
+            'total_tax'            => (float) $totalTax,
+            'total_subtotal'       => (float) $totalSubtotal,
+            'avg_purchase'         => round($avgPurchase, 2),
+        ];
+    }
+
 }
