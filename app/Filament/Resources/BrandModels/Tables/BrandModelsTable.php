@@ -23,6 +23,7 @@ class BrandModelsTable
     public static function configure(Table $table): Table
     {
         return $table
+
             ->columns([
 
                 TextColumn::make('name')
@@ -100,17 +101,17 @@ class BrandModelsTable
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('models.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('models.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('models.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ]);
     }

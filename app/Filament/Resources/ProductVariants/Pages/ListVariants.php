@@ -19,9 +19,17 @@ class ListVariants extends ListRecords
     {
         $user = Filament::auth()->user();
 
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
         return ProductVariant::query()
             ->when(
-                fn (Builder $query) => $query->where('merchant_id', $user->id)
+                $merchantId,
+                fn (Builder $query) => $query->where('merchant_id', $merchantId),
+                fn (Builder $query) => $query->whereRaw('1 = 0')
             )
             ->when(
                 request()->filled('product_id'),
@@ -29,6 +37,7 @@ class ListVariants extends ListRecords
                 $query->where('product_id', request('product_id'))
             );
     }
+
 
     public function getTitle(): string
     {
@@ -54,7 +63,7 @@ class ListVariants extends ListRecords
                 ])
                 ),
             CreateAction::make()
-                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.create', Filament::getCurrentPanel()->getAuthGuard())),
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products_variants.create', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MerchantSettings\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -42,11 +43,13 @@ class MerchantSettingsTable
             ])
             ->recordActions([
                 EditAction::make()
-                    ->color('warning'),
+                    ->color('warning')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('merchant_settings.edit', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('merchant_settings.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ]);
     }

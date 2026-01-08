@@ -57,8 +57,18 @@ class CategoryForm
 
 
                 Hidden::make('merchant_id')
-                    ->default(fn() => Filament::auth()->user()?->id),
-
+                    ->default(fn () => self::resolveMerchantId()),
             ]);
+    }
+
+    private static function resolveMerchantId(): ?string
+    {
+        $user = Filament::auth()->user();
+
+        return match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default => null,
+        };
     }
 }

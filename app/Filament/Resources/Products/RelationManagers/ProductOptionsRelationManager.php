@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\RelationManagers;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -21,7 +22,8 @@ class ProductOptionsRelationManager extends RelationManager
                 TextColumn::make('display_name'),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.create', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->actions([
 //                EditAction::make()
@@ -31,7 +33,8 @@ class ProductOptionsRelationManager extends RelationManager
 //                    )),
 
                 DeleteAction::make()
-                    ->color('danger'),
+                    ->color('danger')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ]);
     }
 }

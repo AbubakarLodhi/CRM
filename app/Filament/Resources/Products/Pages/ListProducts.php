@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Products\ProductResource;
-use App\Models\Admin;
 use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -20,17 +19,20 @@ class ListProducts extends ListRecords
     {
         $user = Filament::auth()->user();
 
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
         return Product::query()
-            ->when(
-                ! $user instanceof Admin,
-                fn (Builder $query) => $query->where('merchant_id', $user->id)
-            )
+            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
             ->when(
                 request()->filled('brand_model_id'),
-                fn (Builder $query) =>
-                $query->where('brand_model_id', request('brand_model_id'))
+                fn ($q) => $q->where('brand_model_id', request('brand_model_id'))
             );
     }
+
 
     public function getTitle(): string
     {

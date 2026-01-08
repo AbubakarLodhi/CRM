@@ -169,9 +169,15 @@ class ProductForm
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
 
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
 
-                                // Merchant → only their businesses
-                                $query->where('merchant_id', $user->id);
+                                if ($merchantId) {
+                                    $query->where('merchant_id', $merchantId);
+                                }
                             }
                         )
                         ->multiple()
@@ -218,8 +224,17 @@ class ProductForm
                             modifyQueryUsing: function (Builder $query) {
                                 $user = Filament::auth()->user();
 
-                                // parent categories only
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
+
                                 $query->whereNull('parent_id');
+
+                                if ($merchantId) {
+                                    $query->where('merchant_id', $merchantId);
+                                }
                             }
                         )
                         ->searchable()
@@ -232,11 +247,20 @@ class ProductForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
-                                $query->where('merchant_id', $user->id);
+
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
+
+                                if ($merchantId) {
+                                    $query->where('merchant_id', $merchantId);
+                                }
+
                                 if ($categoryId = $get('category_id')) {
                                     $query->where('parent_id', $categoryId);
                                 } else {
-                                    // do not show all sub-categories
                                     $query->whereRaw('1 = 0');
                                 }
                             }
@@ -255,28 +279,44 @@ class ProductForm
                             titleAttribute: 'name',
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
-                                $query->where('merchant_id', $user->id);
+
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
+
+                                // ❌ No merchant → no brands
+                                if (! $merchantId) {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                $query->where('merchant_id', $merchantId);
 
                                 $subCategoryId = $get('sub_category_id');
 
-                                // ✅ Only brands linked to selected sub-category
-                                if ($subCategoryId) {
-                                    $query->whereExists(function ($sub) use ($subCategoryId) {
-                                        $sub->selectRaw(1)
-                                            ->from('brand_category')
-                                            ->whereColumn('brand_category.brand_id', 'brands.id')
-                                            ->where('brand_category.category_id', $subCategoryId);
-                                    });
-                                } else {
-                                    // ❌ No sub-category selected → show nothing
+                                // ❌ No sub-category → show nothing
+                                if (! $subCategoryId) {
                                     $query->whereRaw('1 = 0');
+                                    return;
                                 }
+
+                                // ✅ Only brands linked to selected sub-category
+                                $query->whereExists(function ($sub) use ($subCategoryId) {
+                                    $sub->selectRaw(1)
+                                        ->from('brand_category')
+                                        ->whereColumn('brand_category.brand_id', 'brands.id')
+                                        ->where('brand_category.category_id', $subCategoryId);
+                                });
                             }
                         ),
+
                     Select::make('brand_model_id')
                         ->label('Brand Model')
                         ->searchable()
                         ->preload()
+                        ->reactive()
                         ->nullable()
                         ->relationship(
                             name: 'brandModel',
@@ -284,30 +324,33 @@ class ProductForm
                             modifyQueryUsing: function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
 
-                                // ✅ Merchant scoping
-                                if (! $user instanceof Admin) {
-                                    $query->where('merchant_id', $user->id);
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
+
+                                // ❌ No merchant → no models
+                                if (! $merchantId) {
+                                    $query->whereRaw('1 = 0');
+                                    return;
                                 }
+
+                                $query->where('merchant_id', $merchantId);
 
                                 $brandId       = $get('brand_id');
                                 $subCategoryId = $get('sub_category_id');
 
-                                // ❌ No brand selected → show nothing
-                                if (! $brandId) {
+                                // ❌ No brand or no sub-category → show nothing
+                                if (! $brandId || ! $subCategoryId) {
                                     $query->whereRaw('1 = 0');
                                     return;
                                 }
 
-                                // ✅ Brand model must belong to selected brand
+                                // ✅ Must belong to selected brand
                                 $query->where('brand_id', $brandId);
 
-                                // ❌ No sub-category selected → show nothing
-                                if (! $subCategoryId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                // ✅ Ensure brand is linked to selected sub-category (pivot-aware)
+                                // ✅ Ensure brand ↔ sub-category relation exists
                                 $query->whereExists(function ($sub) use ($subCategoryId) {
                                     $sub->selectRaw(1)
                                         ->from('brand_category')
@@ -315,9 +358,9 @@ class ProductForm
                                         ->where('brand_category.category_id', $subCategoryId);
                                 });
                             }
-                        )
-                        ->reactive(),
-                ]),
+                        ),
+
+        ]),
 
             /* =========================
              | PRODUCT
@@ -325,15 +368,18 @@ class ProductForm
             \Filament\Schemas\Components\Section::make('Product')
                 ->columnSpanFull()
                 ->schema([
-
-                    Select::make('merchant_id')
-                        ->label('Merchant')
-                        ->relationship('merchant', 'name')
-                        ->visible(fn() => Filament::auth()->user() instanceof Admin),
-
                     Hidden::make('merchant_id')
-                        ->default(fn() => Filament::auth()->user()?->id)
-                        ->visible(fn() => !(Filament::auth()->user() instanceof Admin)),
+                        ->default(function () {
+                            $user = Filament::auth()->user();
+
+                            return match (true) {
+                                $user instanceof \App\Models\Merchant => $user->id,
+                                $user instanceof \App\Models\User     => $user->merchant_id,
+                                default                               => null,
+                            };
+                        })
+                        ->required(),
+
 
                     TextInput::make('name')
                         ->label('Product Name')

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Categories\Pages;
 
 use App\Filament\Resources\Categories\CategoryResource;
-use App\Models\Admin;
 use App\Models\Category;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
@@ -43,17 +42,20 @@ class ListCategories extends ListRecords
 
         return Category::query()
             ->when(
-                ! $user instanceof Admin,
-                fn (Builder $query) => $query->where('merchant_id', $user->id)
+                $user instanceof \App\Models\Merchant,
+                fn ($q) => $q->where('merchant_id', $user->id)
+            )
+            ->when(
+                $user instanceof \App\Models\User,
+                fn ($q) => $q->where('merchant_id', $user->merchant_id)
             )
             ->when(
                 request()->filled('parent_id'),
-                fn (Builder $query) =>
-                $query->where('parent_id', request('parent_id')),
-                fn (Builder $query) =>
-                $query->whereNull('parent_id')
+                fn ($q) => $q->where('parent_id', request('parent_id')),
+                fn ($q) => $q->whereNull('parent_id')
             );
     }
+
 
     /**
      * ✅ CRITICAL: Action record resolver (what Filament uses to resolve record for Delete/Edit actions)

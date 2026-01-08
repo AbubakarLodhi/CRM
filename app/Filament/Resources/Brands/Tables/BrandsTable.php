@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Brands\Tables;
 
 use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Brands\BrandsResource;
-use App\Models\Admin;
 use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use App\Models\Category;
@@ -26,23 +25,28 @@ class BrandsTable
 {
     public static function configure(Table $table): Table
     {
-        $user = Filament::auth()->user();
+        $user  = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
         return $table
             /**
              * ✅ Each row is a BrandCategory
              */
             ->query(
                 BrandCategory::query()
-                    ->with(['brand.logo', 'category', 'merchant'])
+                    ->with(['brand.logo', 'category'])
                     ->when(
-                        fn($query) => $query->where('merchant_id', $user->id)
+                        $merchantId,
+                        fn ($q) => $q->where('merchant_id', $merchantId)
                     )
                     ->when(
                         request()->filled('category_id'),
-                        fn($query) => $query->where(
-                            'category_id',
-                            request('category_id')
-                        )
+                        fn ($q) => $q->where('category_id', request('category_id'))
                     )
             )
             ->columns([
@@ -145,12 +149,12 @@ class BrandsTable
                         $user  = Auth::guard($guard)->user();
 
                         // 🧩 1. Module toggle
-                        if (! PermissionModule::isEnabledForCurrentMerchant('models')) {
+                        if (! PermissionModule::isEnabledForCurrentMerchant('brands')) {
                             return false;
                         }
 
                         // 🔐 2. Permission gate
-                        if (! $user?->hasPermissionTo('models.view', $guard)) {
+                        if (! $user?->hasPermissionTo('brands.view', $guard)) {
                             return false;
                         }
 
@@ -171,7 +175,7 @@ class BrandsTable
                     ])
                     )
                     ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('categories.update')
+                        ->user()?->hasPermissionTo('brands.update')
                     ),
 
                 /**
@@ -187,7 +191,7 @@ class BrandsTable
                     ->modalCancelActionLabel('Cancel')
                     ->action(fn($record) => $record->delete())
                     ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('categories.delete')
+                        ->user()?->hasPermissionTo('brands.delete')
                     ),
 
 
@@ -198,7 +202,7 @@ class BrandsTable
                         ->label('Remove Category')
                         ->action(fn($records) => $records->each->delete())
                         ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user()?->hasPermissionTo('categories.delete')
+                            ->user()?->hasPermissionTo('brands.delete')
                         ),
                 ]),
             ]);

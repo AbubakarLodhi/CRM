@@ -40,17 +40,15 @@ class BrandsForm
                     ->options(function () {
                         $user = Filament::auth()->user();
 
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
                         return Category::query()
-                            // ✅ Only sub-categories
                             ->whereNotNull('parent_id')
-                            ->when(
-                                fn ($q) => $q->where(
-                                    'merchant_id',
-                                    $user->merchant_id ?? $user->id
-                                )
-                            )
-
-
+                            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
                             ->orderBy('name')
                             ->pluck('name', 'id')
                             ->toArray();
@@ -58,11 +56,20 @@ class BrandsForm
 
 
 
-        Hidden::make('merchant_id')
-                    ->default(fn () => Filament::auth()->id())
+                Hidden::make('merchant_id')
+                    ->default(function () {
+                        $user = Filament::auth()->user();
+
+                        return match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                                => null,
+                        };
+                    })
                     ->required(),
 
-                   ]);
+
+            ]);
 
     }
 }

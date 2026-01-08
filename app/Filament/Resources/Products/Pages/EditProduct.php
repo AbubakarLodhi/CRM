@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\Pages;
 
 use App\Filament\Resources\Products\ProductResource;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
@@ -21,7 +22,8 @@ class EditProduct extends EditRecord
     {
         return [
             DeleteAction::make()
-                ->color('danger'),
+                ->color('danger')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }
 

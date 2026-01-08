@@ -48,11 +48,17 @@ class ProductResource extends Resource
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $user = Filament::auth()->user();
-        $query = parent::getEloquentQuery();
 
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
-        return $query->where('merchant_id', $user->id);
+        return parent::getEloquentQuery()
+            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId));
     }
+
 
     public static function form(Schema $schema): Schema
     {

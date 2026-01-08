@@ -37,7 +37,7 @@ class User extends Authenticatable implements CanResetPasswordContract
     protected $guard_name = 'merchant';
 
     /** @var string[] */
-    protected $fillable = ['name', 'email', 'merchant_id', 'password', 'status', 'is_active'];
+    protected $fillable = ['name', 'email', 'merchant_id','email_verified_at', 'password', 'status', 'is_active'];
 
     /** @var string[] */
     protected $hidden = ['password', 'remember_token'];

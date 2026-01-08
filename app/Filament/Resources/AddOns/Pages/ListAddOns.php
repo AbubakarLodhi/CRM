@@ -15,7 +15,7 @@ class ListAddOns extends ListRecords
     {
         return [
             CreateAction::make()
-                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.create', Filament::getCurrentPanel()->getAuthGuard())),
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('addons.create', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }
 }

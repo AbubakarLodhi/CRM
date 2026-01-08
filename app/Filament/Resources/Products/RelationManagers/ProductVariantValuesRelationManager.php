@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Products\RelationManagers;
 
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -39,11 +40,13 @@ class ProductVariantValuesRelationManager extends RelationManager
                 TextColumn::make('value.value')->label('Value'),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.create', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->actions([
                 DeleteAction::make()
-                    ->color('danger'),
+                    ->color('danger')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ]);
     }
 }

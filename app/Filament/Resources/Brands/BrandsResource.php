@@ -48,15 +48,23 @@ class BrandsResource extends Resource
         return $user->hasPermissionTo('brands.view', $guard);
     }
 
-
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
 
-        return $query->where('merchant_id', $user->id);
+        if ($user instanceof \App\Models\Merchant) {
+            return $query->where('merchant_id', $user->id);
+        }
+
+        if ($user instanceof \App\Models\User) {
+            return $query->where('merchant_id', $user->merchant_id);
+        }
+
+        return $query->whereRaw('1=0');
     }
+
     public static function form(Schema $schema): Schema
     {
         return BrandsForm::configure($schema);

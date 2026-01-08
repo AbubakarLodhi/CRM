@@ -9,7 +9,6 @@ use App\Filament\Resources\Expenses\Pages\ViewExpense;
 use App\Filament\Resources\Expenses\Schemas\ExpenseForm;
 use App\Filament\Resources\Expenses\Schemas\ExpenseInfolist;
 use App\Filament\Resources\Expenses\Tables\ExpensesTable;
-use App\Models\Admin;
 use App\Models\Expense;
 use App\Models\PermissionModule;
 use BackedEnum;
@@ -53,9 +52,6 @@ class ExpenseResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         return $query->where('merchant_id', $user->id);
     }

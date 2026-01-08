@@ -7,7 +7,6 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
-use App\Models\Admin;
 use App\Models\PermissionModule;
 use App\Models\User;
 use BackedEnum;

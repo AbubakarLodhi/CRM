@@ -17,14 +17,24 @@ class VariantForm
             ->components([
                 Select::make('product_id')
                     ->label('Product')
-//                    ->relationship('product', 'name')
                     ->relationship(
                         name: 'product',
                         titleAttribute: 'name',
                         modifyQueryUsing: function (Builder $query) {
                             $user = Filament::auth()->user();
 
-                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
+                            $merchantId = match (true) {
+                                $user instanceof \App\Models\Merchant => $user->id,
+                                $user instanceof \App\Models\User     => $user->merchant_id,
+                                default                               => null,
+                            };
+
+                            if (! $merchantId) {
+                                $query->whereRaw('1 = 0');
+                                return;
+                            }
+
+                            $query->where('merchant_id', $merchantId);
                         }
                     )
                     ->searchable()
@@ -32,10 +42,13 @@ class VariantForm
                     ->required()
                     ->reactive()
                     ->afterStateUpdated(function ($state, callable $set) {
-                        if ($state) {
-                            $product = \App\Models\Product::find($state);
-                            $set('merchant_id', $product?->merchant_id);
+                        if (! $state) {
+                            $set('merchant_id', null);
+                            return;
                         }
+
+                        $product = \App\Models\Product::find($state);
+                        $set('merchant_id', $product?->merchant_id);
                     }),
 
                 TextInput::make('name')
@@ -55,7 +68,18 @@ class VariantForm
                     ->numeric()
                     ->label('Selling Price'),
 
-                Hidden::make('merchant_id')->required(),
-            ]);
+                Hidden::make('merchant_id')
+                    ->default(function () {
+                        $user = Filament::auth()->user();
+
+                        return match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+                    })
+                    ->required(),
+
+        ]);
     }
 }

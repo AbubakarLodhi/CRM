@@ -3,48 +3,78 @@
 namespace App\Filament\Resources\AddOns\Tables;
 
 use Filament\Actions\DeleteAction;
-use Filament\Facades\Filament;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use App\Models\BrandModel;
-use App\Models\Merchant;
+use Filament\Facades\Filament;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 
 class AddOnsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->columns([
-                TextColumn::make('name')->label('Add-On Name')->searchable(),
-                TextColumn::make('price')->label('Price')->sortable(),
-                TextColumn::make('model.name')->label('Brand Model')->sortable()->searchable(),
-                TextColumn::make('merchant.name')->label('Merchant')->sortable()->searchable(),
-                TextColumn::make('created_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
+            ->modifyQueryUsing(fn ($query) =>
+            $query->with(['brandModel', 'merchant'])
+            )
 
+            ->columns([
+                TextColumn::make('name')
+                    ->label('Add-On Name')
+                    ->searchable(),
+
+                TextColumn::make('price')
+                    ->label('Price')
+                    ->sortable(),
+
+                TextColumn::make('brandModel.name')
+                    ->label('Brand Model'),
+
+                TextColumn::make('merchant.name')
+                    ->label('Merchant'),
+
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
+
             ->recordActions([
                 EditAction::make()
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()
+                        ?->hasPermissionTo('addons.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
+
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()
+                        ?->hasPermissionTo('addons.delete', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
             ])
+
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                        ->visible(fn () =>
+                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()
+                            ?->hasPermissionTo('addons.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        ),
                 ]),
             ]);
     }

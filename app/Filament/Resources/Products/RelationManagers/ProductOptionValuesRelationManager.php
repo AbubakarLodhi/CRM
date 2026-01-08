@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Products\RelationManagers;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
@@ -39,9 +40,11 @@ class ProductOptionValuesRelationManager extends RelationManager
             ])
             ->actions([
                 EditAction::make()
-                    ->color('warning'),
+                    ->color('warning')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.edit', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
-                    ->color('danger'),
+                    ->color('danger')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ]);
     }
 }

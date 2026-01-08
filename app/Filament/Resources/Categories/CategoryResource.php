@@ -7,9 +7,10 @@ use App\Filament\Resources\Categories\Pages\EditCategory;
 use App\Filament\Resources\Categories\Pages\ListCategories;
 use App\Filament\Resources\Categories\Schemas\CategoryForm;
 use App\Filament\Resources\Categories\Tables\CategoriesTable;
-use App\Models\Admin;
 use App\Models\Category;
+use App\Models\Merchant;
 use App\Models\PermissionModule;
+use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Resources\Resource;
@@ -69,7 +70,17 @@ class CategoryResource extends Resource
         $query = parent::getEloquentQuery();
 
 
-        return $query->where('merchant_id', $user->id);
+        if ($user instanceof Merchant) {
+            return $query->where('merchant_id', $user->id);
+        }
+
+        if ($user instanceof User) {
+            dd(123);
+            return $query->where('merchant_id', $user->merchant_id);
+        }
+
+        // Safety fallback
+        return $query->whereRaw('1 = 0');
     }
 
     public static function getPages(): array

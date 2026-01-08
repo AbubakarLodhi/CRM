@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Customers\Schemas;
 
-use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Merchant;
 use App\Models\User;

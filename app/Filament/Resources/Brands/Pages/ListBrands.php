@@ -23,18 +23,18 @@ class ListBrands extends ListRecords
     {
         $user = Filament::auth()->user();
 
-        return Brand::query()
-            // Merchant scoping
-            ->when(
-                fn (Builder $query) =>
-                $query->where('merchant_id', $user->id)
-            )
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
-            // ✅ FIX: Filter via brand_category
+        return Brand::query()
+            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
             ->when(
                 request()->filled('category_id'),
-                fn (Builder $query) =>
-                $query->whereExists(function ($sub) {
+                fn ($q) =>
+                $q->whereExists(function ($sub) {
                     $sub->selectRaw(1)
                         ->from('brand_category')
                         ->whereColumn('brand_category.brand_id', 'brands.id')
@@ -42,6 +42,7 @@ class ListBrands extends ListRecords
                 })
             );
     }
+
     /**
      * Optional: better title UX
      */
@@ -71,7 +72,7 @@ class ListBrands extends ListRecords
                 ->visible(fn () =>
                 auth(Filament::getCurrentPanel()->getAuthGuard())
                     ->user()?->hasPermissionTo(
-                        'categories.create',
+                        'brands.create',
                         Filament::getCurrentPanel()->getAuthGuard()
                     ))
         ];

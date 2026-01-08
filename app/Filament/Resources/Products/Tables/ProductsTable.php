@@ -115,11 +115,13 @@ class ProductsTable
                 EditAction::make()
                     ->color('warning')
                     ->label('')
-                    ->tooltip('Edit'),
+                    ->tooltip('Edit')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
-                    ->tooltip('Delete'),
+                    ->tooltip('Delete')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
 
             ])
             ->toolbarActions([

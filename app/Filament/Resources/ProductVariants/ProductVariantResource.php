@@ -48,10 +48,18 @@ class ProductVariantResource extends Resource
     {
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
-        
 
-        return $query->where('merchant_id', $user->id);
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
+        return $merchantId
+            ? $query->where('merchant_id', $merchantId)
+            : $query->whereRaw('1 = 0');
     }
+
 
     public static function form(Schema $schema): Schema
     {

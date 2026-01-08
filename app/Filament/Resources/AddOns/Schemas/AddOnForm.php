@@ -27,7 +27,7 @@ class AddOnForm
 
                 Select::make('brand_model_id')
                     ->label('Brand Model')
-                    ->relationship('brandModel', 'name') // make sure AddOn model has correct relation 'model'
+                    ->relationship('brandModel', 'name')
                     ->preload()
                     ->searchable()
                     ->required()

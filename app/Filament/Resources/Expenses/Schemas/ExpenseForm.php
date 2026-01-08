@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Expenses\Schemas;
 
-use App\Models\Admin;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -37,17 +36,9 @@ class ExpenseForm
                         ->required()
                         ->displayFormat('d/m/Y'),
 
-                    Select::make('merchant_id')
-                        ->label('Merchant')
-                        ->relationship('merchant', 'name')
-                        ->visible(fn() => Filament::auth()->user() instanceof Admin)
-                        ->required(fn() => Filament::auth()->user() instanceof Admin)
-                        ->searchable()
-                        ->preload(),
 
                     Hidden::make('merchant_id')
                         ->default(fn() => Filament::auth()->user()?->id)
-                        ->visible(fn() => !(Filament::auth()->user() instanceof Admin))
                         ->required(),
 
                     Select::make('business_id')

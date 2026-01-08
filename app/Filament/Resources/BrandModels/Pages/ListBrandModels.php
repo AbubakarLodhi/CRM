@@ -23,16 +23,20 @@ class ListBrandModels extends ListRecords
     {
         $user = Filament::auth()->user();
 
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
         return BrandModel::query()
-            ->when(
-                fn (Builder $query) => $query->where('merchant_id', $user->id)
-            )
+            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
             ->when(
                 request()->filled('brand_id'),
-                fn (Builder $query) =>
-                $query->where('brand_id', request('brand_id'))
+                fn ($q) => $q->where('brand_id', request('brand_id'))
             );
     }
+
     public function getTitle(): string
     {
         return request()->filled('brand_id')
@@ -58,7 +62,7 @@ class ListBrandModels extends ListRecords
                 ->visible(fn () =>
                 auth(Filament::getCurrentPanel()->getAuthGuard())
                     ->user()?->hasPermissionTo(
-                        'categories.create',
+                        'models.create',
                         Filament::getCurrentPanel()->getAuthGuard()
                     )
                 ),

@@ -43,7 +43,17 @@ class BrandModelForm
                     })
                     ->required(),
 
-                Hidden::make('merchant_id'),
+                Hidden::make('merchant_id')
+                    ->default(function () {
+                        $user = Filament::auth()->user();
+
+                        return match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+                    })
+                    ->required(),
             ]);
     }
 }
