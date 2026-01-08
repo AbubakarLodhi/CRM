@@ -11,6 +11,7 @@ use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SalesTable
 {
@@ -99,16 +100,82 @@ class SalesTable
                     ->preload(),
 
                 SelectFilter::make('business_id')
-                    ->relationship('business', 'name')
                     ->label('Business')
-                    ->searchable()
-                    ->preload(),
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = \App\Models\Business::query()
+                            ->where('merchant_id', $merchantId);
+
+                        // 🔵 Staff → assigned businesses only
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                            $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query->pluck('name', 'id')->toArray();
+                    })
+                    ->query(fn (Builder $query, array $data) =>
+                    filled($data['value'])
+                        ? $query->where('business_id', $data['value'])
+                        : null
+                    ),
+
 
                 SelectFilter::make('branch_id')
-                    ->relationship('branch', 'name')
                     ->label('Branch')
-                    ->searchable()
-                    ->preload(),
+                    ->options(function ($livewire) {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        // ✅ Filament v3 safe
+                        $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
+
+                        $query = \App\Models\Branch::query()
+                            ->where('merchant_id', $merchantId);
+
+                        if ($businessId) {
+                            $query->where('business_id', $businessId);
+                        }
+
+                        // 🔵 Staff → assigned branches only
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                            $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(fn (Builder $query, array $data) =>
+                    filled($data['value'])
+                        ? $query->where('branch_id', $data['value'])
+                        : null
+                    ),
+
             ])
             ->recordActions([
                 ViewAction::make()

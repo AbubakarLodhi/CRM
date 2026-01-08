@@ -58,12 +58,35 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
+        $user  = Filament::auth()->user();
 
-        // Merchant can see only their orders
-        return $query->where('merchant_id', $user->id);
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
+        if (! $merchantId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // 🟢 Merchant → all orders
+        if ($user instanceof \App\Models\Merchant) {
+            return $query->where('merchant_id', $merchantId);
+        }
+
+        // 🔵 Staff → pivot-restricted orders
+        return $query
+            ->where('merchant_id', $merchantId)
+            ->whereHas('business.users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            )
+            ->whereHas('branch.users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            );
     }
+
 
     public static function infolist(Schema $schema): Schema
     {

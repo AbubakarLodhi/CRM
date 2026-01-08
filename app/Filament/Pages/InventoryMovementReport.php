@@ -129,14 +129,26 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
     protected function getRecords(): Collection
     {
         $user = Filament::auth()->user();
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
-        // Purchases (IN)
         $purchaseItems = \App\Models\PurchaseItem::query()
             ->with(['purchase', 'product'])
-            ->when(
-                $user,
-                fn (Builder $q) =>
-                $q->whereHas('purchase', fn ($p) => $p->where('merchant_id', $user->id))
+            ->when($merchantId, fn ($q) =>
+            $q->whereHas('purchase', fn ($p) =>
+            $p->where('merchant_id', $merchantId)
+            )
+            )
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereHas('purchase.business.users', fn ($u) =>
+            $u->where('users.id', $user->id)
+            )
+                ->whereHas('purchase.branch.users', fn ($u) =>
+                $u->where('users.id', $user->id)
+                )
             )
             ->get()
             ->map(fn ($item) => [
@@ -151,13 +163,22 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 'total'        => $item->line_total,
                 'direction'    => 'in',
             ]);
+
         // Sales (OUT)
         $saleItems = \App\Models\SaleItem::query()
             ->with(['sale', 'product'])
-            ->when(
-                $user,
-                fn (Builder $q) =>
-                $q->whereHas('sale', fn ($s) => $s->where('merchant_id', $user->id))
+            ->when($merchantId, fn ($q) =>
+            $q->whereHas('sale', fn ($s) =>
+            $s->where('merchant_id', $merchantId)
+            )
+            )
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereHas('sale.business.users', fn ($u) =>
+            $u->where('users.id', $user->id)
+            )
+                ->whereHas('sale.branch.users', fn ($u) =>
+                $u->where('users.id', $user->id)
+                )
             )
             ->get()
             ->map(fn ($item) => [
@@ -172,6 +193,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 'total'        => $item->line_total,
                 'direction'    => 'out',
             ]);
+
 
         $records = $purchaseItems
             ->concat($saleItems)

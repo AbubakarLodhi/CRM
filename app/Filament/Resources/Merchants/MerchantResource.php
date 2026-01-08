@@ -29,7 +29,7 @@ class MerchantResource extends Resource
     {
         $user = Filament::auth()->user();
         return false;
-   
+
     }
 
     public static function form(Schema $schema): Schema

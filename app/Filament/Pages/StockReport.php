@@ -33,31 +33,55 @@ class StockReport extends Page implements HasTable
      |  Expressions used ONLY for table display
      ============================================================ */
 
-    protected function purchasedExpression(): string
+    protected function purchasedExpression(string $userId): string
     {
         return "
-            COALESCE(
-                (SELECT SUM(pi.quantity)
-                 FROM purchase_items pi
-                 WHERE pi.product_id = products.id),
-            0)
-        ";
+        COALESCE(
+            (
+                SELECT SUM(pi.quantity)
+                FROM purchase_items pi
+                JOIN purchases p ON p.id = pi.purchase_id
+                WHERE pi.product_id = products.id
+                  AND p.branch_id IN (
+                      SELECT branch_id
+                      FROM branch_users
+                      WHERE user_id = '{$userId}'
+                  )
+            ),
+        0)
+    ";
     }
 
-    protected function soldExpression(): string
+
+
+    protected function soldExpression(string $userId): string
     {
         return "
-            COALESCE(
-                (SELECT SUM(si.quantity)
-                 FROM sale_items si
-                 WHERE si.product_id = products.id),
-            0)
-        ";
+        COALESCE(
+            (
+                SELECT SUM(si.quantity)
+                FROM sale_items si
+                JOIN sales s ON s.id = si.sale_id
+                WHERE si.product_id = products.id
+                  AND s.branch_id IN (
+                      SELECT branch_id
+                      FROM branch_users
+                      WHERE user_id = '{$userId}'
+                  )
+            ),
+        0)
+    ";
     }
 
-    protected function stockExpression(): string
+
+
+    protected function stockExpression(string $userId): string
     {
-        return '(' . $this->purchasedExpression() . ' - ' . $this->soldExpression() . ')';
+        return '('
+            . $this->purchasedExpression($userId)
+            . ' - '
+            . $this->soldExpression($userId)
+            . ')';
     }
 
     /* ============================================================
@@ -67,20 +91,71 @@ class StockReport extends Page implements HasTable
     public function table(Table $table): Table
     {
         $user = Filament::auth()->user();
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
         return $table
             ->query(
                 Product::query()
                     ->where('products.is_active', true)
                     ->where('products.track_inventory', true)
-                    ->when(
-                        $user,
-                        fn (Builder $q) => $q->where('products.merchant_id', $user->id)
+                    ->when($merchantId, fn ($q) =>
+                    $q->where('products.merchant_id', $merchantId)
+                    )
+
+                    ->when($user instanceof \App\Models\User, fn ($q) =>
+                    $q->whereHas('branches.users', fn ($u) =>
+                    $u->where('users.id', $user->id)
+                    )
                     )
                     ->select('products.*')
-                    ->selectRaw($this->purchasedExpression() . ' as total_purchased')
-                    ->selectRaw($this->soldExpression() . ' as total_sold')
-                    ->selectRaw($this->stockExpression() . ' as current_stock')
+                    ->selectRaw(
+                        $user instanceof \App\Models\User
+                            ? $this->purchasedExpression($user->id) . ' as total_purchased'
+                            : '
+                       COALESCE(
+                          (SELECT SUM(pi.quantity)
+                          FROM purchase_items pi
+                          WHERE pi.product_id = products.id),
+                                0)
+                             as total_purchased'
+                    )
+                    ->selectRaw(
+                        $user instanceof \App\Models\User
+                            ? $this->soldExpression($user->id) . ' as total_sold'
+                            : '
+                                      COALESCE(
+                                                (SELECT SUM(si.quantity)
+                                                    FROM sale_items si
+                                             WHERE si.product_id = products.id),
+                                                     0)
+                                              as total_sold'
+                    )
+                    ->selectRaw(
+                        $user instanceof \App\Models\User
+                            ? $this->stockExpression($user->id) . ' as current_stock'
+                            : '
+                     (
+                        COALESCE(
+                              (SELECT SUM(pi.quantity)
+                              FROM purchase_items pi
+                              WHERE pi.product_id = products.id),
+                             0)
+                                   -
+                        COALESCE(
+                            (SELECT SUM(si.quantity)
+                            FROM sale_items si
+                            WHERE si.product_id = products.id),
+                         0)
+            )
+            as current_stock
+          '
+                    )
+
+
             )
             ->columns([
                 TextColumn::make('name')
@@ -156,22 +231,28 @@ class StockReport extends Page implements HasTable
                     ->searchable()
                     ->preload(),
 
-                SelectFilter::make('branches')
+                SelectFilter::make('branch_id')
                     ->label('Branch')
                     ->relationship(
                         'branches',
                         'name',
-                        modifyQueryUsing: function (Builder $query) {
-                            $user = Filament::auth()->user();
-
-                            // Merchant-scoped branches for merchants
-                            if ($user) {
-                                $query->where('branches.merchant_id', $user->id);
-                            }
-                        }
+                        fn (Builder $query) =>
+                        Filament::auth()->user() instanceof \App\Models\User
+                            ? $query->whereHas('users', fn ($u) =>
+                        $u->where('users.id', Filament::auth()->id())
+                        )
+                            : null
                     )
+                    ->query(function (Builder $query, array $data) {
+                        if (filled($data['value'])) {
+                            $query->whereHas('branches', fn ($b) =>
+                            $b->where('branches.id', $data['value'])
+                            );
+                        }
+                    })
                     ->searchable()
                     ->preload(),
+
 
             ])
             ->striped()
@@ -195,7 +276,8 @@ class StockReport extends Page implements HasTable
         $filteredQuery = $this->filteredProductsQuery();
 
         // Product IDs in scope
-        $productIds = (clone $filteredQuery)->select('products.id');
+        $productIds = (clone $filteredQuery)->pluck('products.id');
+
 
         // Quantities
         $totalProducts = (clone $filteredQuery)->count();
