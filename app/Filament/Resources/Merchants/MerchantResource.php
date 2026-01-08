@@ -28,15 +28,8 @@ class MerchantResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        return $user->hasPermissionTo(
-            'merchants.view',
-            'admin'
-        );
+        return false;
+   
     }
 
     public static function form(Schema $schema): Schema
