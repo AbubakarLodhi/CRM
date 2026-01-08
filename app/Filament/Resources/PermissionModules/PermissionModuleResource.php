@@ -27,14 +27,8 @@ class PermissionModuleResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
+        return false;
 
-        if (! $user) {
-            return false;
-        }
-        return $user->hasPermissionTo(
-            'admins.view',
-            'admin'
-        );
     }
 
     public static function form(Schema $schema): Schema
