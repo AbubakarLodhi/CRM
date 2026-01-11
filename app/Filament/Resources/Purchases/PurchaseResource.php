@@ -17,6 +17,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Schema\Builder;
 
 class PurchaseResource extends Resource
 {
@@ -47,16 +48,39 @@ class PurchaseResource extends Resource
         return $user->hasPermissionTo('purchases.view', $guard);
     }
 
-
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
+        $user  = Filament::auth()->user();
 
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
-        // Merchant can see only their purchases
-        return $query->where('merchant_id', $user->id);
+        if (! $merchantId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // 🟢 MERCHANT → all purchases
+        if ($user instanceof \App\Models\Merchant) {
+            return $query->where('merchant_id', $merchantId);
+        }
+
+        // 🔵 STAFF → via pivots (business_users + branch_users)
+        return $query
+            ->where('merchant_id', $merchantId)
+            ->whereHas('business.users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            )
+            ->whereHas('branch.users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            );
     }
+
+
+
 
     public static function form(Schema $schema): Schema
     {

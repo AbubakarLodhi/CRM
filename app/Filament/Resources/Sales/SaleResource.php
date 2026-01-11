@@ -47,16 +47,37 @@ class SaleResource extends Resource
         return $user->hasPermissionTo('sales.view', $guard);
     }
 
-
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
+        $user  = Filament::auth()->user();
 
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
-        // Merchant can see only their sales
-        return $query->where('merchant_id', $user->id);
+        if (! $merchantId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // 🟢 Merchant → all sales
+        if ($user instanceof \App\Models\Merchant) {
+            return $query->where('merchant_id', $merchantId);
+        }
+
+        // 🔵 Staff → pivot-based scope
+        return $query
+            ->where('merchant_id', $merchantId)
+            ->whereHas('business.users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            )
+            ->whereHas('branch.users', fn ($q) =>
+            $q->where('users.id', $user->id)
+            );
     }
+
 
     public static function form(Schema $schema): Schema
     {

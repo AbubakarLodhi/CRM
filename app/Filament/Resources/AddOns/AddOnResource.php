@@ -20,7 +20,7 @@ class AddOnResource extends Resource
 {
     protected static ?string $model = AddOn::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::PuzzlePiece;
 
     protected static ?string $recordTitleAttribute = 'AddOn';
 

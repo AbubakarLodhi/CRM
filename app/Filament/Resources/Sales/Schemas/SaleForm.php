@@ -45,61 +45,118 @@ class SaleForm
                     Select::make('customer_id')
                         ->label('Customer')
                         ->relationship(
-                            name: 'customer',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query) {
+                            'customer',
+                            'name',
+                            function (Builder $query) {
                                 $user = Filament::auth()->user();
 
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
 
-                                $query->where('merchant_id', $user->id);
+                                if (! $merchantId) {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                $query->where('merchant_id', $merchantId);
                             }
                         )
                         ->searchable()
                         ->preload()
                         ->required(),
 
-                    Select::make('business_id')
+
+                     Select::make('business_id')
                         ->label('Business')
                         ->relationship(
-                            name: 'business',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query) {
+                            'business',
+                            'name',
+                            function (Builder $query) {
                                 $user = Filament::auth()->user();
-                                $query->where('merchant_id', $user->id);
+
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
+
+                                if (! $merchantId) {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                $query->where('merchant_id', $merchantId);
+
+                                // 🔵 Staff → assigned businesses only
+                                if ($user instanceof \App\Models\User) {
+                                    $query->whereHas('users', fn ($q) =>
+                                    $q->where('users.id', $user->id)
+                                    );
+                                }
                             }
                         )
                         ->searchable()
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(fn(callable $set) => $set('branch_id', null)),
+                        ->afterStateUpdated(fn (callable $set) => $set('branch_id', null)),
+
 
                     Select::make('branch_id')
                         ->label('Branch')
                         ->relationship(
-                            name: 'branch',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query, callable $get) {
+                            'branch',
+                            'name',
+                            function (Builder $query, callable $get) {
                                 $user = Filament::auth()->user();
-
-                                // Always filter by selected business_id. If none, show none.
                                 $businessId = $get('business_id');
-                                if (!$businessId) {
-                                    $query->whereRaw('1=0');
+
+                                if (! $businessId) {
+                                    $query->whereRaw('1 = 0');
                                     return;
                                 }
-                                    $query->where('merchant_id', $user->id);
 
+                                $merchantId = match (true) {
+                                    $user instanceof \App\Models\Merchant => $user->id,
+                                    $user instanceof \App\Models\User     => $user->merchant_id,
+                                    default                               => null,
+                                };
 
-                                $query->where('business_id', $businessId);
+                                if (! $merchantId) {
+                                    $query->whereRaw('1 = 0');
+                                    return;
+                                }
+
+                                $query
+                                    ->where('merchant_id', $merchantId)
+                                    ->where('business_id', $businessId);
+
+                                // 🔵 Staff → assigned branches only
+                                if ($user instanceof \App\Models\User) {
+                                    $query->whereHas('users', fn ($q) =>
+                                    $q->where('users.id', $user->id)
+                                    );
+                                }
                             }
                         )
                         ->searchable()
                         ->preload()
                         ->required(),
 
-                    Hidden::make('created_by')
-                        ->default(fn() => Filament::auth()->id()),
+
+                    Hidden::make('merchant_id')
+                        ->default(fn () => match (true) {
+                            Filament::auth()->user() instanceof \App\Models\Merchant
+                            => Filament::auth()->user()->id,
+                            Filament::auth()->user() instanceof \App\Models\User
+                            => Filament::auth()->user()->merchant_id,
+                            default => null,
+                        })
+                        ->required(),
+
                 ]),
 
             Section::make('Sale Items')
@@ -112,7 +169,6 @@ class SaleForm
                                 ->searchable()
                                 ->preload()
                                 ->reactive()
-
                                 ->options(function (callable $get): array {
 
                                     $businessId = $get('../../business_id');
@@ -143,7 +199,14 @@ class SaleForm
                                         });
 
 
-                                        $query->where('products.merchant_id', $user->id);
+                                    $merchantId = match (true) {
+                                        $user instanceof \App\Models\Merchant => $user->id,
+                                        $user instanceof \App\Models\User     => $user->merchant_id,
+                                        default                               => null,
+                                    };
+
+                                    $query->where('products.merchant_id', $merchantId);
+
 
 
                                     return $query

@@ -33,14 +33,16 @@ class CreateSale extends CreateRecord
             |--------------------------------------------------------------------------
             | Only staff panel should set created_by
             */
-            if ($guard === 'staff' && $user) {
-                $data['created_by'] = $user->id;
-            } else {
-                $data['created_by'] = null;
-            }
-            if ($user) {
+            if ($user instanceof \App\Models\Merchant) {
                 $data['merchant_id'] = $user->id;
+                $data['created_by']  = null;
             }
+
+            if ($user instanceof \App\Models\User) {
+                $data['merchant_id'] = $user->merchant_id;
+                $data['created_by']  = $user->id;
+            }
+
 
             $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
             $discount = (float) ($data['discount'] ?? 0);

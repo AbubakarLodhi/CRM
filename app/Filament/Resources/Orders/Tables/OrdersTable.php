@@ -90,16 +90,79 @@ class OrdersTable
                     ->label('Status'),
 
                 SelectFilter::make('business_id')
-                    ->relationship('business', 'name')
                     ->label('Business')
-                    ->searchable()
-                    ->preload(),
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = \App\Models\Business::query()
+                            ->where('merchant_id', $merchantId);
+
+                        // 🔵 Staff → assigned businesses only
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                            $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query->pluck('name', 'id')->toArray();
+                    })
+                    ->query(fn (\Illuminate\Database\Eloquent\Builder $query, array $data) =>
+                    filled($data['value'])
+                        ? $query->where('business_id', $data['value'])
+                        : null
+                    ),
+
 
                 SelectFilter::make('branch_id')
-                    ->relationship('branch', 'name')
                     ->label('Branch')
-                    ->searchable()
-                    ->preload(),
+                    ->options(function ($livewire) {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
+
+                        $query = \App\Models\Branch::query()
+                            ->where('merchant_id', $merchantId);
+
+                        if ($businessId) {
+                            $query->where('business_id', $businessId);
+                        }
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                            $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(fn (\Illuminate\Database\Eloquent\Builder $query, array $data) =>
+                    filled($data['value'])
+                        ? $query->where('branch_id', $data['value'])
+                        : null
+                    ),
+
             ])
             ->recordActions([
                 ViewAction::make()

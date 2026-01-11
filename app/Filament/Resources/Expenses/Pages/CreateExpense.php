@@ -23,10 +23,25 @@ class CreateExpense extends CreateRecord
             $items = $data['items'] ?? [];
             unset($data['items']);
 
-            $user = Filament::auth()->user();
-            if ($user) {
+            $panel = Filament::getCurrentPanel();
+            $guard = $panel?->getAuthGuard();
+            $user  = Filament::auth()->user();
+
+            /*
+            |--------------------------------------------------------------------------
+            | merchant_id + created_by (CORRECT LOGIC)
+            |--------------------------------------------------------------------------
+            */
+            if ($user instanceof \App\Models\Merchant) {
                 $data['merchant_id'] = $user->id;
+                $data['created_by']  = null;
             }
+
+            if ($user instanceof \App\Models\User) {
+                $data['merchant_id'] = $user->merchant_id;
+                $data['created_by']  = $user->id;
+            }
+
 
             $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
             $discount = (float) ($data['discount'] ?? 0);
