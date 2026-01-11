@@ -173,15 +173,28 @@ class PurchasesTable
             ])
 
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                ViewAction::make()
+                    ->color('info')
+                    ->label('')
+                    ->tooltip('View')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())),
+                EditAction::make()
+                    ->color('warning')
+                    ->label('')
+                    ->tooltip('Edit')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())),
+                DeleteAction::make()
+                    ->color('danger')
+                    ->label('')
+                    ->tooltip('Delete')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ])
-
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('purchase_date', 'desc');
     }
 }

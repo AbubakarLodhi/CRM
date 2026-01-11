@@ -20,7 +20,7 @@ class MerchantSettingResource extends Resource
 {
     protected static ?string $model = MerchantSetting::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Cog8Tooth;
 //    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?string $navigationLabel = 'Merchant Settings';
