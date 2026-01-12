@@ -11,6 +11,7 @@ class ViewPayroll extends ViewRecord
 {
     protected static string $resource = PayrollResource::class;
 
+
     protected function getHeaderActions(): array
     {
         return [

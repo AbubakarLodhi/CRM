@@ -9,7 +9,9 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
+use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Database\Eloquent\Builder;
 
 class BranchForm
@@ -25,12 +27,20 @@ class BranchForm
 
             Select::make('status')
                 ->options([
-                    Branch::STATUS_PENDING => 'Pending',
+                    Branch::STATUS_PENDING  => 'Pending',
                     Branch::STATUS_VERIFIED => 'Verified',
                     Branch::STATUS_REJECTED => 'Rejected',
                 ])
                 ->required()
-                ->default(Branch::STATUS_PENDING),
+                ->default(Branch::STATUS_PENDING)
+                ->live()
+                ->afterStateUpdated(function (callable $set, $state) {
+                    if ($state === Branch::STATUS_VERIFIED) {
+                        $set('is_active', true);
+                    } else {
+                        $set('is_active', false);
+                    }
+                }),
 
             Select::make('country_id')
                 ->label('Country')
@@ -56,6 +66,8 @@ class BranchForm
             TextInput::make('postal_code')
                 ->label('Postal Code')
                 ->placeholder('e.g. 54000')
+                ->numeric()
+                ->rules(['digits_between:1,12'])
                 ->maxLength(12)
                 ->required(),
 
@@ -87,6 +99,12 @@ class BranchForm
                 ->searchable()
                 ->preload()
                 ->required(),
+
+            Toggle::make('is_active')
+                ->label('Active')
+                ->default(false)
+                ->disabled(fn (callable $get) => $get('status') !== Branch::STATUS_VERIFIED)
+                ->dehydrated(),
         ]);
     }
 }

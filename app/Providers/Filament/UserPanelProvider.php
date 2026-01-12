@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,6 +33,7 @@ class UserPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
+            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Greaan Pvt')
             ->viteTheme('resources/css/filament/merchant/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')

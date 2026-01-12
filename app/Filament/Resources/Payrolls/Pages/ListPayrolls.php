@@ -3,12 +3,19 @@
 namespace App\Filament\Resources\Payrolls\Pages;
 
 use App\Filament\Resources\Payrolls\PayrollResource;
+use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListPayrolls extends ListRecords
 {
     protected static string $resource = PayrollResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
 
     protected function getTableQuery(): Builder
     {
@@ -24,6 +31,8 @@ class ListPayrolls extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            CreateAction::make()
+        ];
     }
 }

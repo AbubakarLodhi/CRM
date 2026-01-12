@@ -40,7 +40,6 @@ class PayrollForm
                                 if ($user instanceof \App\Models\Merchant) {
                                     $query->where('merchant_id', $user->id);
                                 } else {
-                                    // Staff members can only select from their merchant's staff
                                     $query->where('merchant_id', $user->merchant_id);
                                 }
                             }
@@ -108,8 +107,6 @@ class PayrollForm
                         ->default(fn () => Filament::auth()->user()?->id)
                         ->required(),
 
-                    Hidden::make('created_by')
-                        ->default(fn () => Filament::auth()->id()),
                 ]),
 
             Section::make('Salary Details')

@@ -35,6 +35,8 @@ class CustomerForm
 
                 TextInput::make('postal_code')
                     ->label('Postal Code')
+                    ->numeric()
+                    ->rules(['digits_between:1,12'])
                     ->maxLength(20)
                     ->nullable(),
 
@@ -45,19 +47,27 @@ class CustomerForm
                     ->preload()
                     ->required()
                     ->live()
-                    ->afterStateUpdated(fn (callable $set) => $set('city_id', null)),
+                    ->afterStateUpdated(function (callable $set, $state, $old, $livewire) {
+                        $set('city_id', null);
+                        $livewire->resetValidation('data.country_id');
+                        $livewire->resetErrorBag('data.country_id');
+                    }),
 
                 Select::make('city_id')
                     ->label('City')
                     ->relationship(
                         'city',
                         'name',
-                        fn ($query, callable $get) =>
-                        $query->where('country_id', $get('country_id'))
+                        fn ($query, callable $get) => $query->where('country_id', $get('country_id'))
                     )
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.city_id');
+                        $livewire->resetErrorBag('data.city_id');
+                    }),
 
 
                 Hidden::make('merchant_id')

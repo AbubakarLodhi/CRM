@@ -36,36 +36,63 @@ class UsersTable
                         : asset('images/placeholder.jpg')
                     ),
                 TextColumn::make('name')
+                    ->limit(30)
                     ->searchable(),
                 TextColumn::make('email')
                     ->label('Email address')
+                    ->limit(30)
                     ->searchable(),
                 TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
-                TextColumn::make('businesses.name')
+                TextColumn::make('businesses')
                     ->label('Businesses')
                     ->badge()
                     ->color('primary')
-                    ->separator(', ')
+                    ->getStateUsing(function (User $record) {
+                        $names = $record->businesses->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    })
                     ->sortable(false),
 
 
-                TextColumn::make('branches.name')
+
+                TextColumn::make('branches')
                     ->label('Branches')
                     ->badge()
                     ->color('success')
-                    ->separator(', ')
+                    ->getStateUsing(function (User $record) {
+                        $names = $record->branches->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    })
                     ->sortable(false),
+
 
                 IconColumn::make('is_active')
                     ->color('primary')
                     ->boolean(),
                 BadgeColumn::make('status')
+                    ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->colors([
                         'warning' => 'pending',
                         'primary' => 'verified',
-                        'danger' => 'rejected',
+                        'danger'  => 'rejected',
                     ])
                     ->sortable()
                     ->toggleable(),
@@ -117,8 +144,6 @@ class UsersTable
                         if (! $user) {
                             return false;
                         }
-
-                        // 🚫 Module-level hard stop
                         if (! PermissionModule::isEnabledForCurrentMerchant('payrolls')) {
                             return false;
                         }

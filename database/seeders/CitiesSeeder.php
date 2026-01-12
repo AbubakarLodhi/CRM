@@ -21,7 +21,7 @@ class CitiesSeeder extends Seeder
                 'Mardan', 'Swat', 'Chaman', 'Gwadar', 'Turbat', 'Khuzdar', 'Dera Ghazi Khan',
                 'Rahim Yar Khan', 'Okara', 'Kasur', 'Vehari', 'Khanewal', 'Mingora',
                 'Mansehra', 'Nowshera', 'Charsadda', 'Haripur', 'Attock', 'Taxila',
-                'Hafizabad', 'Jhang', 'Toba Tek Singh', 'Pakpattan',
+                'Hafizabad', 'Jhang', 'Toba Tek Singh', 'Pakpattan','Chunian',
             ],
 
             // 🇺🇸 USA

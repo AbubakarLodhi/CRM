@@ -34,9 +34,9 @@ class UserResource extends Resource
         $user = Filament::auth()->user();
 
         $guard=Filament::getCurrentPanel()->getAuthGuard();
-        if (! $user || $guard=='staff') {
-            return false;
-        }
+//        if (! $user || $guard=='staff') {
+//            return false;
+//        }
 
         if (! PermissionModule::isEnabledForCurrentMerchant('users')) {
             return false;
@@ -52,13 +52,9 @@ class UserResource extends Resource
         $user = Filament::auth()->user();
         $query = parent::getEloquentQuery();
 
-        // Admin can see all businesses
-        if ($user instanceof Admin) {
-            return $query;
-        }
 
         // Merchant can see only their businesses
-        return $query->where('merchant_id', $user->id);
+        return $query->where('merchant_id', $user->merchant_id ?? $user->id);
     }
 
     public static function form(Schema $schema): Schema

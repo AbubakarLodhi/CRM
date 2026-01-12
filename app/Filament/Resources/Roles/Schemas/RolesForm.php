@@ -20,7 +20,6 @@ class RolesForm
         $currentGuard = Filament::getCurrentPanel()->getAuthGuard();
 
         $guardLabels = [
-            'admin' => 'admin',
             'merchant' => 'merchant',
             'staff' => 'staff',
         ];
@@ -70,14 +69,14 @@ class RolesForm
                                 $set("{$module}.{$action}", $state);
                             }
                         })
-                        ->reactive()
+                        //->reactive()
                         ->dehydrated(false),
 
                     ...collect($actions)->map(fn ($action) =>
                     Checkbox::make("{$module}.{$action}")
                         ->label(ucfirst($action))
                         ->default(false)
-                        ->reactive()
+                        //->reactive()
                     )->toArray(),
                 ])
                 ->columns(5);

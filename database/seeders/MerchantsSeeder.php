@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Merchant;
 use App\Models\Role;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class MerchantsSeeder extends Seeder
@@ -39,7 +40,8 @@ class MerchantsSeeder extends Seeder
                     'website' => $data['website'],
                     'status' => 'verified',
                     'is_active' => true,
-                    'password' => 'DD@2025@DD',
+                    'password' => Hash::make('DD@2025@DD'),
+
                 ]
             );
 

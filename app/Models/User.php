@@ -102,13 +102,4 @@ class User extends Authenticatable implements CanResetPasswordContract
             ->where('meta_type', \App\Enums\AttachmentMetaType::PROFILE_PHOTO);
     }
 
-    /**
-     * @return Attribute
-     */
-    protected function password(): Attribute
-    {
-        return Attribute::make(
-            set: fn($value) => filled($value) ? Hash::make($value) : null
-        );
-    }
 }

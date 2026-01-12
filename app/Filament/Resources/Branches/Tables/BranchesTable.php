@@ -10,8 +10,10 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\BadgeColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -26,13 +28,24 @@ class BranchesTable
                 TextColumn::make('phone')
                     ->searchable(),
                 BadgeColumn::make('status')
+                    ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->colors([
-                        'primary' => 'pending',
-                        'success' => 'verified',
-                        'danger' => 'rejected',
+                        'warning' => 'pending',
+                        'primary' => 'verified',
+                        'danger'  => 'rejected',
                     ])
                     ->sortable()
                     ->toggleable(),
+
+                IconColumn::make('is_active')
+                    ->label('Active')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('danger')
+                    ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -41,16 +54,23 @@ class BranchesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('merchant.name')
-                    ->label('Merchant')
-                    ->sortable()
-                    ->searchable(),
                 TextColumn::make('business.name')
                     ->label('Business')
                     ->sortable()
                     ->searchable(),
+                TextColumn::make('merchant.name')
+                    ->label('Merchant')
+                    ->sortable()
+                    ->searchable(),
+
             ])
             ->filters([
+                TernaryFilter::make('is_active')
+                    ->label('Active Status')
+                    ->trueLabel('Active')
+                    ->falseLabel('Inactive')
+                    ->placeholder('All'),
+
                 SelectFilter::make('business_id')
                     ->label('Businesses')
                     ->relationship(

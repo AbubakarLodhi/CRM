@@ -12,6 +12,12 @@ class EditPayroll extends EditRecord
 {
     protected static string $resource = PayrollResource::class;
 
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+
     protected function getHeaderActions(): array
     {
         $guard = Filament::getCurrentPanel()->getAuthGuard();

@@ -75,7 +75,6 @@ class CategoryResource extends Resource
         }
 
         if ($user instanceof User) {
-            dd(123);
             return $query->where('merchant_id', $user->merchant_id);
         }
 

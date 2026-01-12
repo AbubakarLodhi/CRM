@@ -125,18 +125,18 @@ class PayrollsTable
                 ViewAction::make()
                     ->color('info')
                     ->label('')
-                    ->tooltip('View')
-                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.view', $guard)),
+                    ->tooltip('View'),
+                    //->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.view', $guard)),
                 EditAction::make()
                     ->color('warning')
                     ->label('')
-                    ->tooltip('Edit')
-                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.update', $guard)),
+                    ->tooltip('Edit'),
+                  //  ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.update', $guard)),
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
-                    ->tooltip('Delete')
-                    ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.delete', $guard)),
+                    ->tooltip('Delete'),
+                  //  ->visible(fn () => auth($guard)->user()?->hasPermissionTo('payrolls.delete', $guard)),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

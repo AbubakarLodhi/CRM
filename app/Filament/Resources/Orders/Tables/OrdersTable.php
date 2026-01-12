@@ -31,9 +31,11 @@ class OrdersTable
                     ->sortable()
                     ->searchable(),
 
+
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
+                    ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
                         'processing' => 'info',

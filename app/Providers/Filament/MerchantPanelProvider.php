@@ -48,7 +48,7 @@ class MerchantPanelProvider extends PanelProvider
 
                 return asset('storage/'.$path);
             })
-            ->brandName(fn () => Filament::auth()->user()?->name ?? 'Sales_Crm')
+            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Greaan Pvt')
             ->brandLogoHeight('2.5rem')
             ->userMenuItems([
                 Action::make('editProfile')

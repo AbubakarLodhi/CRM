@@ -3,29 +3,78 @@
 namespace App\Filament\Resources\Payrolls\Pages;
 
 use App\Filament\Resources\Payrolls\PayrollResource;
+use App\Models\Payroll;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Facades\Filament;
+use App\Models\User;
+use App\Models\Merchant;
+use Illuminate\Validation\ValidationException;
+
 
 class CreatePayroll extends CreateRecord
 {
     protected static string $resource = PayrollResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['allowances'] = $data['allowances'] ?? [];
         $data['deductions'] = $data['deductions'] ?? [];
 
-        // Pre-fill user_id from query parameter if provided
-        if (request()->has('user_id') && ! isset($data['user_id'])) {
-            $data['user_id'] = request()->get('user_id');
+        $authUser = Filament::auth()->user();
+
+        if ($authUser instanceof \App\Models\User) {
+            $merchantId = $authUser->merchant_id;
+            $data['created_by'] = $authUser->id;
+        } elseif ($authUser instanceof \App\Models\Merchant) {
+            $merchantId = $authUser->id;
+            $data['created_by'] = null;
+        } else {
+            Notification::make()
+                ->title('Invalid creator')
+                ->danger()
+                ->send();
+
+            throw ValidationException::withMessages([
+                'user_id' => 'Invalid creator context.',
+            ]);
+        }
+
+        $data['merchant_id'] = $merchantId;
+
+        $exists = \App\Models\Payroll::query()
+            ->where('merchant_id', $merchantId)
+            ->where('user_id', $data['user_id'])
+            ->where('period_month', $data['period_month'])
+            ->where('period_year', $data['period_year'])
+            ->exists();
+
+        if ($exists) {
+            Notification::make()
+                ->title('Duplicate payroll')
+                ->body('A payroll already exists for this employee and period.')
+                ->danger()
+                ->send();
+
+            throw ValidationException::withMessages([
+                'period_year' => 'Payroll for this employee and period already exists.',
+            ]);
         }
 
         return $data;
     }
 
+
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Pre-fill user_id from query parameter if provided
-        if (request()->has('user_id') && ! isset($data['user_id'])) {
+        // Pre-fill user_id from query param if passed
+        if (request()->has('user_id') && empty($data['user_id'])) {
             $data['user_id'] = request()->get('user_id');
         }
 

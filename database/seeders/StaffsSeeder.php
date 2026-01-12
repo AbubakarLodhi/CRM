@@ -72,7 +72,7 @@ class StaffsSeeder extends Seeder
                 'id' => Str::uuid(),
                 'name' => $name,
                 'merchant_id' => $merchant->id,
-                'password' => 'DD@2025@DD',
+                'password' => Hash::make('DD@2025@DD'),
                 'status' => 'verified',
                 'is_active' => true,
             ]

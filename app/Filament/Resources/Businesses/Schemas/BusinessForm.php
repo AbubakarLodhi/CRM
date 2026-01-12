@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Businesses\Schemas;
 
+use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -9,6 +10,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 
 class BusinessForm
@@ -54,16 +56,25 @@ class BusinessForm
                     ->preload()
                     ->required(),
 
-                TextInput::make('postal_code')
-                    ->label('Postal Code')
-                    ->placeholder('e.g. 54000')
-                    ->maxLength(12)
-                    ->required(),
+                Grid::make(2)
+                    ->schema([
+                        TextInput::make('postal_code')
+                            ->label('Postal Code')
+                            ->placeholder('e.g. 54000')
+                            ->numeric()
+                            ->rules(['digits_between:1,12'])
+                            ->maxLength(12)
+                            ->required(),
 
 
-                Toggle::make('status')
-                    ->required(),
 
+                    ])
+                    ->columnSpanFull()
+                    ->columns(2),
+
+
+                    Toggle::make('status')
+                        ->required(),
                 Hidden::make('merchant_id')
                     ->default(fn () =>
                     $user instanceof \App\Models\User
