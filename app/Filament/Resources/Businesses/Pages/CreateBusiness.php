@@ -19,22 +19,27 @@ class CreateBusiness extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $data = $this->form->getState();
+        $data = $this->form->getRawState();
 
-        $path = is_array($data['business_logo'] ?? null)
-            ? $data['business_logo'][0]
-            : $data['business_logo'] ?? null;
-
-        if ($path) {
-            $this->record->logo()?->delete();
-
-            $this->record->logo()->create([
-                'merchant_id' => $this->record->merchant_id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::BUSINESS_LOGO,
-                'photo_url'   => $path, // ✅ STRING ONLY
-            ]);
+        if (empty($data['business_logo']) || ! is_array($data['business_logo'])) {
+            return;
         }
+
+        // ✅ Always extract the FIRST VALUE, not index 0
+        $path = collect($data['business_logo'])->first();
+
+        if (! $path) {
+            return;
+        }
+
+        $this->record->logo()?->delete();
+
+        $this->record->logo()->create([
+            'merchant_id' => $this->record->merchant_id,
+            'type'        => AttachmentType::IMAGE,
+            'meta_type'   => AttachmentMetaType::BUSINESS_LOGO,
+            'photo_url'   => $path, // ✅ ALWAYS STRING
+        ]);
     }
 
 }

@@ -63,26 +63,34 @@ class EditBusiness extends EditRecord
      */
     protected function afterSave(): void
     {
-        $data = $this->form->getState();
+        $data = $this->form->getRawState();
 
-        $path = is_array($data['business_logo'] ?? null)
-            ? $data['business_logo'][0]
-            : $data['business_logo'] ?? null;
-        // If same image, do nothing
+        if (empty($data['business_logo']) || ! is_array($data['business_logo'])) {
+            return;
+        }
+
+        // ✅ Extract FIRST VALUE from keyed array
+        $path = collect($data['business_logo'])->first();
+
+        if (! $path) {
+            return;
+        }
+
+        // ✅ Do nothing if same image
         if ($this->record->logo?->photo_url === $path) {
             return;
         }
-        if ($path) {
-            $this->record->logo()?->delete();
 
-            $this->record->logo()->create([
-                'merchant_id' => $this->record->merchant_id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::BUSINESS_LOGO,
-                'photo_url'   => $path,
-            ]);
-        }
+        $this->record->logo()?->delete();
+
+        $this->record->logo()->create([
+            'merchant_id' => $this->record->merchant_id,
+            'type'        => AttachmentType::IMAGE,
+            'meta_type'   => AttachmentMetaType::BUSINESS_LOGO,
+            'photo_url'   => $path, // ✅ STRING ONLY
+        ]);
     }
+
 
 
     /**
