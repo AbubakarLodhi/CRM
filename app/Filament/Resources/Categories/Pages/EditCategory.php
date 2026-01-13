@@ -32,6 +32,16 @@ class EditCategory extends EditRecord
     }
 
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if ($this->record->icon) {
+            // ✅ FileUpload EXPECTS ARRAY
+            $data['category_icon'] = [$this->record->icon->photo_url];
+        }
+
+        return $data;
+    }
+
     protected function afterSave(): void
     {
         $state = $this->form->getRawState();
@@ -48,9 +58,10 @@ class EditCategory extends EditRecord
             'merchant_id' => $this->record->merchant_id,
             'type'        => AttachmentType::IMAGE,
             'meta_type'   => AttachmentMetaType::CATEGORY_ICON,
-            'photo_url'   => $path,
+            'photo_url'   => $path, // ✅ STRING
         ]);
     }
+
 
 
 }

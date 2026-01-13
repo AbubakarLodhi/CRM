@@ -72,6 +72,7 @@ class SalesSummary extends Page implements HasTable
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
+                    ->toggleable()
                     ->searchable()
                     ->sortable(),
 
@@ -82,9 +83,10 @@ class SalesSummary extends Page implements HasTable
                 TextColumn::make('items_count')
                     ->label('Items')
                     ->counts('items')
+                    ->toggleable()
                     ->sortable(),
 
-                TextColumn::make('subtotal')->money('USD')->sortable(),
+                TextColumn::make('subtotal')->money('USD')->sortable()->toggleable(),
                 TextColumn::make('discount')->money('USD')->sortable()->toggleable(),
                 TextColumn::make('tax')->money('USD')->sortable()->toggleable(),
 

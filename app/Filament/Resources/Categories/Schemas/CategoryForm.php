@@ -49,11 +49,12 @@ class CategoryForm
                     ->image()
                     ->disk('public')
                     ->directory('categories/icons')
+                    ->visibility('public')
                     ->imagePreviewHeight(120)
                     ->maxSize(2048)
                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
-                    ->dehydrated(false)
-                    ->visible(fn ($get) => blank($get('parent_id'))),
+                    ->visible(fn ($get) => blank($get('parent_id')))
+                    ->dehydrated(false),
 
 
                 Hidden::make('merchant_id')

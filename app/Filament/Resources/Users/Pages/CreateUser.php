@@ -47,12 +47,17 @@ class CreateUser extends CreateRecord
             }
         }
 
-        if (! empty($data['profile_photo'])) {
+        // ✅ NORMALIZE profile photo
+        $path = is_array($data['profile_photo'] ?? null)
+            ? $data['profile_photo'][0]
+            : $data['profile_photo'] ?? null;
+
+        if ($path) {
             $this->record->profilePhoto()->create([
                 'merchant_id' => $this->record->merchant_id,
                 'type'        => AttachmentType::IMAGE,
                 'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                'photo_url'   => $data['profile_photo'],
+                'photo_url'   => $path, // ✅ STRING
             ]);
         }
     }

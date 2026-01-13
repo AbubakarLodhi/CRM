@@ -31,21 +31,24 @@ class ProductsTable
                     ->size(50)
                     ->square()
                     ->getStateUsing(fn (Product $record) =>
-                    $record->icon
-                        ? asset('storage/' .  $record->productImage->photo_url)
+                    $record->productImage
+                        ? asset('storage/' . $record->productImage->photo_url)
                         : asset('images/placeholder.jpg')
                     ),
 
 
 
 
-        TextColumn::make('sku')
+
+                TextColumn::make('sku')
                     ->searchable(),
 
                 TextColumn::make('type')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->badge(),
 
                 TextColumn::make('unit')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->badge(),
 
 //                TextColumn::make('selling_price')
@@ -58,6 +61,7 @@ class ProductsTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
 //                TextColumn::make('business.name')
@@ -67,10 +71,12 @@ class ProductsTable
 
                 TextColumn::make('category.name')
                     ->label('Category')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->toggleable(),
 
                 TextColumn::make('brand.name')
                     ->label('Brand')
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->toggleable(),
 
                 TextColumn::make('created_at')

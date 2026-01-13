@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
@@ -69,7 +70,11 @@ class EditProfile extends Page
                     ->image()
                     ->disk('public')
                     ->directory('merchants/profile-photos')
-                    ->imagePreviewHeight(120),
+                    ->imagePreviewHeight(120)
+                    ->getUploadedFileNameForStorageUsing(function ($file) {
+                        $ext = $file->getClientOriginalExtension();
+                        return 'profile-photo-' . now()->format('YmdHis') . '.' . $ext;
+                    }),
             ]);
     }
 
@@ -110,7 +115,10 @@ class EditProfile extends Page
             ->success()
             ->send();
 
-        $this->redirect(static::getUrl());
+        $this->redirect(
+            Filament::getCurrentPanel()->getUrl()
+        );
+
     }
 
 }

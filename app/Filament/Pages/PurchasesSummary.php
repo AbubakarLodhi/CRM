@@ -79,6 +79,7 @@ class PurchasesSummary extends Page implements HasTable
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
+                    ->toggleable()
                     ->searchable()
                     ->sortable(),
 
@@ -96,11 +97,13 @@ class PurchasesSummary extends Page implements HasTable
 
                 TextColumn::make('items_count')
                     ->label('Items')
+                    ->toggleable()
                     ->counts('items')
                     ->sortable(),
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
+                    ->toggleable()
                     ->money('USD')
                     ->sortable(),
 

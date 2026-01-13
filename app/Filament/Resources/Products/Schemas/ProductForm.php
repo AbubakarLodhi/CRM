@@ -391,12 +391,12 @@ class ProductForm
                         ->image()
                         ->disk('public')
                         ->directory('products/images')
+                        ->visibility('public')
                         ->imagePreviewHeight(150)
                         ->maxSize(2048)
                         ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                        ->saveUploadedFileUsing(fn ($file) =>
-                        $file->store('products/images', 'public')
-                        ),
+                        ->dehydrated(false),
+
 
                     TextInput::make('sku')
                         ->label('SKU')

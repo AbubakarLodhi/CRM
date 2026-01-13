@@ -27,11 +27,24 @@ class EditProduct extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if ($this->record->productImage) {
+            $data['product_image'] = [
+                $this->record->productImage->photo_url
+            ];
+        }
+
+        return $data;
+    }
+
     protected function afterSave(): void
     {
-        $data = $this->form->getState();
+        $state = $this->form->getRawState();
 
-        if (empty($data['product_image'])) {
+        $path = collect($state['product_image'] ?? null)->first();
+
+        if (! $path) {
             return;
         }
 
@@ -41,9 +54,9 @@ class EditProduct extends EditRecord
             'merchant_id' => $this->record->merchant_id,
             'type'        => AttachmentType::IMAGE,
             'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
-            'photo_url'   => $data['product_image'],
+            'photo_url'   => $path,
         ]);
-
     }
+
 
 }

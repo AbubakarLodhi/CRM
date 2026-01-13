@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Filament\Resources\Payrolls\PayrollResource;
+use Illuminate\Support\Facades\Storage;
 use App\Models\PermissionModule;
 use App\Models\User;
 use Filament\Actions\Action;
@@ -27,15 +28,26 @@ class UsersTable
 
         return $table
             ->columns([
-                ImageColumn::make('profile_photo')
+
+                ImageColumn::make('profilePhoto.photo_url')
                     ->label('Photo')
                     ->size(50)
                     ->square()
-                    ->getStateUsing(fn (User $record) => $record->icon
-                        ? asset('storage/'.$record->profilePhoto->photo_url)
-                        : asset('images/placeholder.jpg')
-                    ),
-                TextColumn::make('name')
+                    ->getStateUsing(function (User $record) {
+                        if (! $record->profilePhoto) {
+                            return asset('images/placeholder.jpg');
+                        }
+
+                        $path = $record->profilePhoto->photo_url;
+
+                        if (! Storage::disk('public')->exists($path)) {
+                            return asset('images/placeholder.jpg');
+                        }
+
+                        return asset('storage/' . $path);
+                    }),
+
+             TextColumn::make('name')
                     ->limit(30)
                     ->searchable(),
                 TextColumn::make('email')
@@ -45,9 +57,16 @@ class UsersTable
                 TextColumn::make('email_verified_at')
                     ->dateTime()
                     ->sortable(),
+                TextColumn::make('merchant.name')
+                    ->label('Merchant')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(),
+
                 TextColumn::make('businesses')
                     ->label('Businesses')
                     ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->color('primary')
                     ->getStateUsing(function (User $record) {
                         $names = $record->businesses->pluck('name');
@@ -68,6 +87,7 @@ class UsersTable
                 TextColumn::make('branches')
                     ->label('Branches')
                     ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->color('success')
                     ->getStateUsing(function (User $record) {
                         $names = $record->branches->pluck('name');
@@ -104,10 +124,7 @@ class UsersTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('merchant.name')
-                    ->label('Merchant')
-                    ->sortable()
-                    ->searchable(),
+
             ])
             ->filters([
 

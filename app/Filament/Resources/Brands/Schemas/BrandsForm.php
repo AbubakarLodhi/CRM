@@ -26,6 +26,7 @@ class BrandsForm
                     ->image()
                     ->disk('public')
                     ->directory('brands/logos')
+                    ->visibility('public')
                     ->imagePreviewHeight(120)
                     ->maxSize(2048)
                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])

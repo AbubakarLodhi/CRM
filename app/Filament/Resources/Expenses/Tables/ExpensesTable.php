@@ -48,11 +48,13 @@ class ExpensesTable
 
                 TextColumn::make('items_count')
                     ->label('Items')
+                    ->toggleable()
                     ->counts('items')
                     ->sortable(),
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
+                    ->toggleable()
                     ->money('USD')
                     ->sortable(),
 

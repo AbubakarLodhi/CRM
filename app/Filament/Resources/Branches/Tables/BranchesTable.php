@@ -54,14 +54,19 @@ class BranchesTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('business.name')
-                    ->label('Business')
-                    ->sortable()
-                    ->searchable(),
+
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
+
+                TextColumn::make('business.name')
+                    ->label('Business')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable()
+                    ->searchable(),
+
 
             ])
             ->filters([

@@ -103,16 +103,16 @@ class CreateProduct extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $data    = $this->form->getState();
+        $state   = $this->form->getRawState();
         $product = $this->record;
 
         /* -------------------------
          | Attach Businesses
          |--------------------------*/
-        if (! empty($data['businesses'])) {
-            foreach ($data['businesses'] as $businessId) {
+        if (! empty($state['businesses'])) {
+            foreach ($state['businesses'] as $businessId) {
                 $product->businesses()->attach($businessId, [
-                    'id' => (string) Str::uuid(),
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
                 ]);
             }
         }
@@ -120,10 +120,10 @@ class CreateProduct extends CreateRecord
         /* -------------------------
          | Attach Branches
          |--------------------------*/
-        if (! empty($data['branches'])) {
-            foreach ($data['branches'] as $branchId) {
+        if (! empty($state['branches'])) {
+            foreach ($state['branches'] as $branchId) {
                 $product->branches()->attach($branchId, [
-                    'id' => (string) Str::uuid(),
+                    'id' => (string) \Illuminate\Support\Str::uuid(),
                 ]);
             }
         }
@@ -131,17 +131,22 @@ class CreateProduct extends CreateRecord
         /* -------------------------
          | Product Image
          |--------------------------*/
-        if (! empty($data['product_image'])) {
-            $product->productImage()?->delete();
+        $path = collect($state['product_image'] ?? null)->first();
 
-            $product->productImage()->create([
-                'merchant_id' => $product->merchant_id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
-                'photo_url'   => $data['product_image'],
-            ]);
+        if (! $path) {
+            return;
         }
+
+        $product->productImage()?->delete();
+
+        $product->productImage()->create([
+            'merchant_id' => $product->merchant_id,
+            'type'        => AttachmentType::IMAGE,
+            'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
+            'photo_url'   => $path,
+        ]);
     }
+
 
 
 }

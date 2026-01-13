@@ -34,7 +34,9 @@ class EditBrands extends EditRecord
         $data['category_ids'] = BrandCategory::where('brand_id', $this->record->id)
             ->pluck('category_id')
             ->toArray();
-
+        if ($this->record->logo) {
+            $data['brand_logo'] = [$this->record->logo->photo_url];
+        }
         return $data;
     }
 

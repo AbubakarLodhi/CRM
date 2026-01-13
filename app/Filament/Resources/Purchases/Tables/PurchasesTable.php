@@ -52,11 +52,13 @@ class PurchasesTable
                 TextColumn::make('items_count')
                     ->label('Items')
                     ->counts('items')
+                    ->toggleable()
                     ->sortable(),
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->money('USD')
+                    ->toggleable()
                     ->sortable(),
 
                 TextColumn::make('discount')

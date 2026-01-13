@@ -32,10 +32,12 @@ class VariantsTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
                 TextColumn::make('selling_price')
                     ->money('PKR') // change currency if needed
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
 
                 TextColumn::make('created_at')

@@ -43,12 +43,14 @@ class CustomersTable
                     ->label('Merchant')
                     ->color('primary')
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
                 // Show reference customer name instead of ID
                 TextColumn::make('reference')
                     ->label('Reference Customer')
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
             ])
             ->filters([

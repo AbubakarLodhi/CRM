@@ -20,3 +20,22 @@
     align-items: center;
 }
 
+/* --------------------------------------------
+ | FilePond – hide filename & size text
+ |---------------------------------------------
+ */
+
+/* Hide filename text */
+.filepond--file-info-main {
+    display: none !important;
+}
+
+/* Hide file size text */
+.filepond--file-info-sub {
+    display: none !important;
+}
+
+/* Optional: hide the entire info bar */
+.filepond--file-info {
+    display: none !important;
+}

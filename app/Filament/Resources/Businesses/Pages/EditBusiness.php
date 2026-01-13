@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Businesses\Pages;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
 use App\Filament\Resources\Businesses\BusinessResource;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
@@ -16,6 +18,25 @@ class EditBusiness extends EditRecord
     {
         return $this->getResource()::getUrl('index');
     }
+
+    /**
+     * 🔁 Hydrate existing logo into form (SAME AS USER)
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if ($this->record->logo?->photo_url) {
+            $data['business_logo'] = [
+                $this->record->logo->photo_url, // relative path only
+            ];
+        } else {
+            $data['business_logo'] = [];
+        }
+
+
+
+        return $data;
+    }
+
 
     /**
      * 🔐 Prevent ownership tampering
@@ -38,6 +59,33 @@ class EditBusiness extends EditRecord
     }
 
     /**
+     * 💾 Save / replace business logo (SAME AS USER)
+     */
+    protected function afterSave(): void
+    {
+        $data = $this->form->getState();
+
+        $path = is_array($data['business_logo'] ?? null)
+            ? $data['business_logo'][0]
+            : $data['business_logo'] ?? null;
+        // If same image, do nothing
+        if ($this->record->logo?->photo_url === $path) {
+            return;
+        }
+        if ($path) {
+            $this->record->logo()?->delete();
+
+            $this->record->logo()->create([
+                'merchant_id' => $this->record->merchant_id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::BUSINESS_LOGO,
+                'photo_url'   => $path,
+            ]);
+        }
+    }
+
+
+    /**
      * 🔐 Header actions
      */
     protected function getHeaderActions(): array
@@ -45,7 +93,14 @@ class EditBusiness extends EditRecord
         return [
             DeleteAction::make()
                 ->color('danger')
-                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('businesses.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                ->visible(fn () =>
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo(
+                        'businesses.delete',
+                        Filament::getCurrentPanel()->getAuthGuard()
+                    )
+                ),
         ];
     }
 }

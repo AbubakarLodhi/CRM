@@ -13,6 +13,7 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 
 class BusinessesTable
 {
@@ -22,15 +23,25 @@ class BusinessesTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable(),
-                ImageColumn::make('business_logo')
+                ImageColumn::make('logo.photo_url')
                     ->label('Logo')
                     ->size(50)
                     ->square()
-                    ->getStateUsing(fn (Business $record) =>
-                    $record->icon
-                        ? asset('storage/' . $record->logo->photo_url)
-                        : asset('images/placeholder.jpg')
-                    ),
+                    ->getStateUsing(function (Business $record) {
+                        if (! $record->logo) {
+                            return asset('images/placeholder.jpg');
+                        }
+
+                        $path = $record->logo->photo_url;
+
+                        // File missing on disk → placeholder
+                        if (! Storage::disk('public')->exists($path)) {
+                            return asset('images/placeholder.jpg');
+                        }
+
+                        // ✅ Correct public URL
+                        return asset('storage/' . $path);
+                    }),
                 IconColumn::make('status')
                     ->label('Active')
                     ->color('primary')
@@ -46,6 +57,7 @@ class BusinessesTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
             ])
             ->filters([

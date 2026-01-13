@@ -29,15 +29,22 @@ class EditUser extends EditRecord
         ];
     }
 
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        if ($this->record->profilePhoto) {
+            // ✅ FileUpload expects ARRAY
+            $data['profile_photo'] = [$this->record->profilePhoto->photo_url];
+        }
+
+        return $data;
+    }
+
+
     protected function afterSave(): void
     {
         $data = $this->form->getState();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Sync Businesses (pivot has UUID id)
-        |--------------------------------------------------------------------------
-        */
+        // Sync businesses
         if (isset($data['businesses'])) {
             $syncData = [];
 
@@ -48,11 +55,7 @@ class EditUser extends EditRecord
             $this->record->businesses()->sync($syncData);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Sync Branches (pivot has UUID id)
-        |--------------------------------------------------------------------------
-        */
+        // Sync branches
         if (isset($data['branches'])) {
             $syncData = [];
 
@@ -63,20 +66,21 @@ class EditUser extends EditRecord
             $this->record->branches()->sync($syncData);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Profile Photo
-        |--------------------------------------------------------------------------
-        */
-        if (! empty($data['profile_photo'])) {
+        // ✅ NORMALIZE profile photo
+        $path = is_array($data['profile_photo'] ?? null)
+            ? $data['profile_photo'][0]
+            : $data['profile_photo'] ?? null;
+
+        if ($path) {
             $this->record->profilePhoto()?->delete();
 
             $this->record->profilePhoto()->create([
                 'merchant_id' => $this->record->merchant_id,
                 'type'        => AttachmentType::IMAGE,
                 'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                'photo_url'   => $data['profile_photo'],
+                'photo_url'   => $path, // ✅ STRING
             ]);
         }
     }
+
 }

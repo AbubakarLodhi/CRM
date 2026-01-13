@@ -86,6 +86,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
                 TextColumn::make('reference')
                     ->label('Reference No.')
+                    ->toggleable()
                     ->searchable()
                     ->sortable(),
 
@@ -99,6 +100,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     ->toggleable(),
 
                 TextColumn::make('quantity')
+                    ->toggleable()
                     ->numeric()
                     ->sortable(),
 
@@ -114,6 +116,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     ->sortable(),
 
                 TextColumn::make('direction')
+                    ->toggleable()
                     ->badge()
                     ->formatStateUsing(fn ($s) => $s === 'in' ? 'In' : 'Out')
                     ->color(fn ($s) => $s === 'in' ? 'success' : 'danger'),

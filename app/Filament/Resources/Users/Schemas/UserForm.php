@@ -47,13 +47,13 @@ class UserForm
                     ->image()
                     ->disk('public')
                     ->directory('staff/profile-photos')
+                    ->visibility('public')   // ✅ ADD THIS
                     ->imagePreviewHeight(150)
                     ->maxSize(2048)
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->saveUploadedFileUsing(fn ($file) =>
-                    $file->store('staff/profile-photos', 'public')
-                    ),
-                Select::make('status')
+                    ->dehydrated(false),
+
+                     Select::make('status')
                     ->options([
                         User::STATUS_PENDING  => 'Pending',
                         User::STATUS_VERIFIED => 'Verified',
