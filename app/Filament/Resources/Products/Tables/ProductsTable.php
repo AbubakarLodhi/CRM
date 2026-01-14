@@ -84,6 +84,15 @@ class ProductsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->recordUrl(fn (Product $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('products.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
             ->recordActions([
                 Action::make('view-variants')
                     ->color('secondary')
@@ -107,10 +116,10 @@ class ProductsTable
                         $guard = Filament::getCurrentPanel()->getAuthGuard();
                         $user  = Auth::guard($guard)->user();
 
-                        if (! PermissionModule::isEnabledForCurrentMerchant('products_variants')) {
+                        if (! PermissionModule::isEnabledForCurrentMerchant('products')) {
                             return false;
                         }
-                        if (! $user?->hasPermissionTo('products_variants.view', $guard)) {
+                        if (! $user?->hasPermissionTo('products.view', $guard)) {
                             return false;
                         }
 
@@ -129,11 +138,12 @@ class ProductsTable
                     ->tooltip('Delete')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
 
-            ])
-            ->toolbarActions([
+            ])->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

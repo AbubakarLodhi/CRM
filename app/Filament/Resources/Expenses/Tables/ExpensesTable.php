@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Expenses\Tables;
 
+use App\Models\Expense;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -168,6 +169,16 @@ class ExpensesTable
                     ),
 
             ])
+            ->recordUrl(fn (Expense $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('expenses.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 ViewAction::make()
                     ->color('info')

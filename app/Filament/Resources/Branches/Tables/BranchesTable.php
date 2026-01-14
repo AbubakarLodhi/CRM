@@ -101,6 +101,16 @@ class BranchesTable
                     ])
                     ->label('Status')
             ])
+            ->recordUrl(fn (Branch $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('branches.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 EditAction::make()
                     ->color('warning')
@@ -118,6 +128,7 @@ class BranchesTable
                     DeleteBulkAction::make()
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('branches.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

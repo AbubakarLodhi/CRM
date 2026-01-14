@@ -33,6 +33,7 @@ class CategoriesTable
                     ? self::subCategoryColumns()
                     : self::categoryColumns()
             )
+            ->defaultSort('created_at', 'desc')
             ->filters([
 
                 ])
@@ -127,7 +128,16 @@ class CategoriesTable
                     })
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
 
-        ])
+        ])->recordUrl(fn (Category $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

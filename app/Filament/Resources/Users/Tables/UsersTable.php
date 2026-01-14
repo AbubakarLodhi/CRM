@@ -148,6 +148,16 @@ class UsersTable
                     ->falseLabel('Inactive')
                     ->placeholder('All'),
             ])
+            ->recordUrl(fn (User $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('users.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 Action::make('manage_payroll')
                     ->color('success')
@@ -204,6 +214,7 @@ class UsersTable
                     DeleteBulkAction::make()
                         ->visible(fn () => auth($guard)->user()?->hasPermissionTo('users.delete', $guard)),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

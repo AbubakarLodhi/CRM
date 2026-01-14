@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BrandModels\Tables;
 
 use App\Filament\Resources\Products\ProductResource;
+use App\Models\BrandModel;
 use App\Models\PermissionModule;
 use App\Models\Product;
 use Filament\Actions\Action;
@@ -60,6 +61,16 @@ class BrandModelsTable
 
 
             ])
+            ->recordUrl(fn (BrandModel $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('models.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 Action::make('view-products')
                     ->color('secondary')
@@ -113,6 +124,7 @@ class BrandModelsTable
                     DeleteBulkAction::make()
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('models.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

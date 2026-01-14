@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Brands\Tables;
 
 use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Brands\BrandsResource;
+use App\Models\Brand;
 use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use App\Models\Category;
@@ -115,6 +116,16 @@ class BrandsTable
 
 
             ])
+            ->recordUrl(fn (Brand $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('brands.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 /**
                  * View models (brand + category aware)
@@ -206,6 +217,7 @@ class BrandsTable
                             ->user()?->hasPermissionTo('brands.delete', Filament::getCurrentPanel()->getAuthGuard())
                         ),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

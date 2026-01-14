@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Sales\Tables;
 
+use App\Models\Product;
+use App\Models\Sale;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -179,6 +181,15 @@ class SalesTable
                     ),
 
             ])
+            ->recordUrl(fn (Sale $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
             ->recordActions([
                 ViewAction::make()
                     ->color('info')

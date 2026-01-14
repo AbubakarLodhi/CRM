@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\ProductVariants\Tables;
 
+use App\Models\Product;
+use App\Models\ProductVariant;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -45,6 +47,15 @@ class VariantsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->recordUrl(fn (ProductVariant $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('products_variants.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
             ->recordActions([
                 EditAction::make()
                     ->color('warning')
@@ -77,6 +88,7 @@ class VariantsTable
                             ->user()?->hasPermissionTo('products_variants.delete', Filament::getCurrentPanel()->getAuthGuard())
                         ),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

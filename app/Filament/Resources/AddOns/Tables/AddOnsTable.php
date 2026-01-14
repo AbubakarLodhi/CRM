@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AddOns\Tables;
 
+use App\Models\AddOn;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\BulkActionGroup;
@@ -44,6 +45,15 @@ class AddOnsTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->recordUrl(fn (AddOn $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('addons.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
 
             ->recordActions([
                 EditAction::make()
@@ -76,6 +86,7 @@ class AddOnsTable
                             ?->hasPermissionTo('addons.delete', Filament::getCurrentPanel()->getAuthGuard())
                         ),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

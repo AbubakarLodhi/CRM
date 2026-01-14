@@ -63,6 +63,16 @@ class BusinessesTable
             ->filters([
 
             ])
+            ->recordUrl(fn (Business $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('businesses.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 EditAction::make()
                     ->color('warning')
@@ -80,6 +90,7 @@ class BusinessesTable
                     DeleteBulkAction::make()
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('businesses.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

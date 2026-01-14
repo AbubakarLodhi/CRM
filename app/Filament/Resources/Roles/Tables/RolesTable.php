@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Tables;
 
+use App\Models\Product;
 use App\Models\Role;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -59,6 +60,15 @@ class RolesTable
                     ->searchable()
                     ->preload()
             ])
+            ->recordUrl(fn (Role $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('roles_permissions.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
             ->recordActions([
                 EditAction::make()
                     ->color('warning')
@@ -76,6 +86,7 @@ class RolesTable
                     DeleteBulkAction::make()
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('roles_permissions.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

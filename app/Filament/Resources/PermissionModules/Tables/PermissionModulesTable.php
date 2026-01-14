@@ -33,6 +33,7 @@ class PermissionModulesTable
                 DeleteAction::make()
                     ->requiresConfirmation(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->toolbarActions([]);
     }
 }

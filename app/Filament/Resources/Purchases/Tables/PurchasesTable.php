@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Purchases\Tables;
 
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\Product;
+use App\Models\Purchase;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -173,6 +175,15 @@ class PurchasesTable
 
 
             ])
+            ->recordUrl(fn (Purchase $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
 
             ->recordActions([
                 ViewAction::make()

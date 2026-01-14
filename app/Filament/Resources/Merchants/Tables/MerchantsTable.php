@@ -123,6 +123,16 @@ class MerchantsTable
                     ->searchable()
                     ->preload()
             ])
+            ->recordUrl(fn (Merchant $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('merchants.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 Action::make('modules')
                     ->label('')
@@ -304,7 +314,7 @@ class MerchantsTable
                             ]);
                         }
                     }),
-        EditAction::make()
+                 EditAction::make()
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
@@ -319,6 +329,7 @@ class MerchantsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('merchants.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 }

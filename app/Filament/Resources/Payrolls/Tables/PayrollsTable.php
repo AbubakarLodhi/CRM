@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payrolls\Tables;
 
+use App\Models\Payroll;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -121,6 +122,16 @@ class PayrollsTable
                     }),
 
             ])
+            ->recordUrl(fn (Payroll $record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('payrolls.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                'record' => $record,
+            ])
+                : null
+            )
+
             ->recordActions([
                 ViewAction::make()
                     ->color('info')
