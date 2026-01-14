@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Customers\Tables;
 
+use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Customer;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -61,7 +62,7 @@ class CustomersTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('customers.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? CustomerResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

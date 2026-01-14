@@ -38,6 +38,11 @@ class BrandsForm
                     ->searchable()
                     ->preload()
                     ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.category_ids');
+                        $livewire->resetErrorBag('data.category_ids');
+                    })
                     ->options(function () {
                         $user = Filament::auth()->user();
 

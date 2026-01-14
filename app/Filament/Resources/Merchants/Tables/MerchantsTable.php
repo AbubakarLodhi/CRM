@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Merchants\Tables;
 
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use App\Filament\Resources\Merchants\MerchantResource;
 use App\Models\Branch;
 use App\Models\Merchant;
 use App\Models\MerchantPermissionModule;
@@ -127,7 +128,7 @@ class MerchantsTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('merchants.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? MerchantResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

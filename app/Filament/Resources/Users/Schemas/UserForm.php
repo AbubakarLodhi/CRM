@@ -27,7 +27,12 @@ class UserForm
                     ->label('Email address')
                     ->email()
                     ->unique(User::class, 'email')
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.email');
+                        $livewire->resetErrorBag('data.email');
+                    }),
                 DateTimePicker::make('email_verified_at')
                     ->label('Email Verified At')
                     ->displayFormat('m/d/Y H:i:s')
@@ -101,10 +106,12 @@ class UserForm
                             ->searchable()
                             ->required()
                             ->live()
-                            ->afterStateUpdated(function (callable $set, callable $get, $state, $old) {
+                            ->afterStateUpdated(function (callable $set, callable $get, $state, $old,$livewire) {
                                 if ($old !== null) {
                                     $set('branches', []);
                                 }
+                                $livewire->resetValidation('data.businesses');
+                                $livewire->resetErrorBag('data.businesses');
                             }),
 
                         Select::make('branches')
@@ -119,9 +126,12 @@ class UserForm
                             ->getOptionLabelUsing(function ($value): ?string {
                                 return \App\Models\Branch::find($value)?->name;
                             })
-
+                            ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                $livewire->resetValidation('data.branches');
+                                $livewire->resetErrorBag('data.branches');
+                            })
                             // ✅ Rehydrate selected branches on edit
-                            ->afterStateHydrated(function (callable $set, ?User $record) {
+                            ->afterStateHydrated(function (callable $set, ?User $record,) {
                                 if ($record) {
                                     $set(
                                         'branches',
@@ -162,7 +172,12 @@ class UserForm
                                 fn ($query) => $query->where('guard_name', 'staff')
                             )
                             ->preload()
-                            ->required(),
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                $livewire->resetValidation('data.roles');
+                                $livewire->resetErrorBag('data.roles');
+                            }),
 
                         Toggle::make('is_active')
                             ->label('Is active')

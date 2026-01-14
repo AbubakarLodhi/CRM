@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MerchantSettings\Tables;
 
+use App\Filament\Resources\MerchantSettings\MerchantSettingResource;
 use App\Models\MerchantSetting;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -42,15 +43,15 @@ class MerchantSettingsTable
             ->filters([
                 //
             ])
-            ->recordUrl(fn (MerchantSetting $record) =>
-            auth(Filament::getCurrentPanel()->getAuthGuard())
-                ->user()
-                ?->hasPermissionTo('merchant_settings.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
-                'record' => $record,
-            ])
-                : null
-            )
+//            ->recordUrl(fn (MerchantSetting $record) =>
+//            auth(Filament::getCurrentPanel()->getAuthGuard())
+//                ->user()
+//                ?->hasPermissionTo('merchant_settings.update', Filament::getCurrentPanel()->getAuthGuard())
+//                ? MerchantSettingResource::getUrl('edit', [
+//                'record' => $record,
+//            ])
+//                : null
+//            )
 
             ->recordActions([
                 EditAction::make()

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Branches\Tables;
 
+use App\Filament\Resources\Branches\BranchResource;
 use App\Models\Branch;
 use App\Models\Merchant;
 use Filament\Actions\BulkActionGroup;
@@ -105,7 +106,7 @@ class BranchesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('branches.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? BranchResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

@@ -81,7 +81,12 @@ class ExpenseForm
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(fn (callable $set) => $set('branch_id', null)),
+                        ->live()
+                        ->afterStateUpdated(function (callable $set,$livewire){
+                            $set('branch_id', null);
+                            $livewire->resetValidation('data.business_id');
+                            $livewire->resetErrorBag('data.business_id');
+                        }),
 
 
         Select::make('branch_id')
@@ -123,7 +128,12 @@ class ExpenseForm
                         )
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live()
+                       ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                              $livewire->resetValidation('data.branch_id');
+                                             $livewire->resetErrorBag('data.branch_id');
+                        }),
 
 
         Hidden::make('created_by')
@@ -139,7 +149,12 @@ class ExpenseForm
                                 ->label('Description')
                                 ->required()
                                 ->maxLength(255)
-                                ->columnSpan(2),
+                                ->columnSpan(2)
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.description');
+                                    $livewire->resetErrorBag('data.items.*.description');
+                                }),
 
                             TextInput::make('quantity')
                                 ->label('Quantity')

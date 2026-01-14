@@ -116,15 +116,6 @@ class BrandsTable
 
 
             ])
-            ->recordUrl(fn (Brand $record) =>
-            auth(Filament::getCurrentPanel()->getAuthGuard())
-                ->user()
-                ?->hasPermissionTo('brands.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
-                'record' => $record,
-            ])
-                : null
-            )
 
             ->recordActions([
                 /**
@@ -208,6 +199,15 @@ class BrandsTable
 
 
             ])
+            ->recordUrl(fn ($record) =>
+            auth(Filament::getCurrentPanel()->getAuthGuard())
+                ->user()
+                ?->hasPermissionTo('brands.update', Filament::getCurrentPanel()->getAuthGuard())
+                ? BrandsResource::getUrl('edit', [
+                'record' => $record->brand_id,
+            ])
+                : null
+            )
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

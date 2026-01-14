@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Roles\Tables;
 
+use App\Filament\Resources\Roles\RolesResource;
 use App\Models\Product;
 use App\Models\Role;
 use Filament\Actions\BulkActionGroup;
@@ -64,7 +65,7 @@ class RolesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('roles_permissions.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? RolesResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

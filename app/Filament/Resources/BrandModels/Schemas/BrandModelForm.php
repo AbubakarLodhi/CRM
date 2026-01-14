@@ -31,8 +31,9 @@ class BrandModelForm
                     )
                     ->preload()
                     ->searchable()
-                    ->reactive() // 👈 key
-                    ->afterStateUpdated(function ($state, callable $set) {
+                    ->reactive()
+                    ->live()// 👈 key
+                    ->afterStateUpdated(function ($state, callable $set,$livewire) {
                         if (! $state) {
                             $set('merchant_id', null);
                             return;
@@ -40,6 +41,8 @@ class BrandModelForm
 
                         $brand = Brand::find($state);
                         $set('merchant_id', $brand?->merchant_id);
+                        $livewire->resetValidation('data.brand_id');
+                        $livewire->resetErrorBag('data.brand_id');
                     })
                     ->required(),
 

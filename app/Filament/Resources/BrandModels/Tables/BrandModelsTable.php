@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\BrandModels\Tables;
 
+use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Products\ProductResource;
 use App\Models\BrandModel;
 use App\Models\PermissionModule;
@@ -65,7 +66,7 @@ class BrandModelsTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('models.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? BrandModelResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

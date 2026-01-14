@@ -43,7 +43,11 @@ class BusinessForm
                     ->preload()
                     ->required()
                     ->live()
-                    ->afterStateUpdated(fn (callable $set) => $set('city_id', null)),
+                    ->afterStateUpdated(function (callable $set, $state, $old, $livewire) {
+                        $set('city_id', null);
+                        $livewire->resetValidation('data.country_id');
+                        $livewire->resetErrorBag('data.country_id');
+                    }),
 
                 Select::make('city_id')
                     ->label('City')
@@ -55,7 +59,12 @@ class BusinessForm
                     )
                     ->searchable()
                     ->preload()
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.city_id');
+                        $livewire->resetErrorBag('data.city_id');
+                    }),
 
                 Grid::make(2)
                     ->schema([

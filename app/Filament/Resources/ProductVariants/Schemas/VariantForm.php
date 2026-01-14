@@ -41,7 +41,7 @@ class VariantForm
                     ->preload()
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set) {
+                    ->afterStateUpdated(function ($state, callable $set,$livewire) {
                         if (! $state) {
                             $set('merchant_id', null);
                             return;
@@ -49,24 +49,44 @@ class VariantForm
 
                         $product = \App\Models\Product::find($state);
                         $set('merchant_id', $product?->merchant_id);
+                        $livewire->resetValidation('data.product_id');
+                        $livewire->resetErrorBag('data.product_id');
                     }),
 
                 TextInput::make('name')
                     ->label('Variant Name')
+                    ->required()
                     ->helperText('Optional (e.g. 72V / 30Ah)')
-                    ->maxLength(255),
+                    ->maxLength(255)
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.name');
+                        $livewire->resetErrorBag('data.name');
+                    }),
 
-                TextInput::make('sku')
-                    ->label('SKU')
-                    ->maxLength(255),
+//                TextInput::make('sku')
+//                    ->label('SKU')
+//                    ->maxLength(255),
 
                 TextInput::make('purchase_price')
                     ->numeric()
-                    ->label('Purchase Price'),
+                    ->required()
+                    ->label('Purchase Price')
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.purchase_price');
+                        $livewire->resetErrorBag('data.purchase_price');
+                    }),
 
                 TextInput::make('selling_price')
+                    ->required()
                     ->numeric()
-                    ->label('Selling Price'),
+                    ->label('Selling Price')
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.selling_price');
+                        $livewire->resetErrorBag('data.selling_price');
+                    }),
 
                 Hidden::make('merchant_id')
                     ->default(function () {

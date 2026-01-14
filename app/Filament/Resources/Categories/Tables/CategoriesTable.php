@@ -132,7 +132,7 @@ class CategoriesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? CategoryResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ProductVariants\Tables;
 
+use App\Filament\Resources\ProductVariants\ProductVariantResource;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Filament\Actions\BulkActionGroup;
@@ -51,7 +52,7 @@ class VariantsTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('products_variants.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? ProductVariantResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

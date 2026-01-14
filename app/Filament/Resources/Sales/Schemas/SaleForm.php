@@ -66,7 +66,12 @@ class SaleForm
                         )
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation('data.customer_id');
+                            $livewire->resetErrorBag('data.customer_id');
+                        }),
 
 
                      Select::make('business_id')
@@ -102,8 +107,12 @@ class SaleForm
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(fn (callable $set) => $set('branch_id', null)),
-
+                         ->live()
+                         ->afterStateUpdated(function (callable $set,$livewire){
+                             $set('branch_id', null);
+                             $livewire->resetValidation('data.business_id');
+                             $livewire->resetErrorBag('data.business_id');
+                         }),
 
                     Select::make('branch_id')
                         ->label('Branch')
@@ -144,7 +153,12 @@ class SaleForm
                         )
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation('data.branch_id');
+                            $livewire->resetErrorBag('data.branch_id');
+                        }),
 
 
                     Hidden::make('merchant_id')
@@ -285,8 +299,9 @@ class SaleForm
                                 })
 
                                 ->required()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
-
+                                ->afterStateUpdated(function ($state, callable $set, callable $get,$livewire) {
+                                    $livewire->resetValidation('data.items.*.product_id');
+                                    $livewire->resetErrorBag('data.items.*.product_id');
                                     if (! $state) {
                                         return;
                                     }

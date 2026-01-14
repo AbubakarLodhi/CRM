@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Businesses\Tables;
 
+use App\Filament\Resources\Businesses\BusinessResource;
 use App\Models\Business;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -67,7 +68,7 @@ class BusinessesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('businesses.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? BusinessResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

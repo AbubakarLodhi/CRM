@@ -184,7 +184,12 @@ class ProductForm
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->reactive(),
+                        ->reactive()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation('data.businesses');
+                             $livewire->resetErrorBag('data.businesses');
+                }),
 
                     /* =========================
                      | BRANCH SELECT
@@ -210,7 +215,12 @@ class ProductForm
                         ->multiple()
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation('data.branch_id');
+                            $livewire->resetErrorBag('data.branch_id');
+                        }),
                 ]),
 
             \Filament\Schemas\Components\Section::make('Classification')

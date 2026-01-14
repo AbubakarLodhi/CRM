@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AddOns\Tables;
 
+use App\Filament\Resources\AddOns\AddOnResource;
 use App\Models\AddOn;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -49,7 +50,7 @@ class AddOnsTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('addons.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? AddOnResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

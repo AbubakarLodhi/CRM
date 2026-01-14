@@ -32,16 +32,20 @@ class AddOnForm
                     ->searchable()
                     ->required()
                     ->reactive()
-                    ->afterStateUpdated(function ($state, callable $set) {
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set,$livewire) {
                         if ($state) {
                             $brandModel = BrandModel::find($state);
                             if ($brandModel) {
                                 $set('merchant_id', $brandModel->merchant_id);
                             }
                         }
+                        $livewire->resetValidation('data.brand_model_id');
+                        $livewire->resetErrorBag('data.brand_model_id');
                     }),
 
                 Hidden::make('merchant_id')->required(),
             ]);
     }
 }
+

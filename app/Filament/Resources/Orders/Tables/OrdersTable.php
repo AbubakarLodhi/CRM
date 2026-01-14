@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Orders\Tables;
 
+use App\Filament\Resources\Orders\OrderResource;
 use App\Models\Order;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
@@ -171,7 +172,7 @@ class OrdersTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('orders.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? OrderResource::getUrl('view', [
                 'record' => $record,
             ])
                 : null

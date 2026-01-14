@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Payrolls\Tables;
 
+use App\Filament\Resources\Payrolls\PayrollResource;
 use App\Models\Payroll;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -126,7 +127,7 @@ class PayrollsTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('payrolls.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? PayrollResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

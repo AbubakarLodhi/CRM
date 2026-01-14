@@ -84,7 +84,12 @@ class PurchaseForm
                         ->preload()
                         ->required()
                         ->reactive()
-                        ->afterStateUpdated(fn (callable $set) => $set('branch_id', null)),
+                        ->live()
+                        ->afterStateUpdated(function (callable $set,$livewire){
+                             $set('branch_id', null);
+                            $livewire->resetValidation('data.business_id');
+                            $livewire->resetErrorBag('data.business_id');
+                    }),
 
 
                     Select::make('branch_id')
@@ -126,7 +131,14 @@ class PurchaseForm
                         )
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required()
+                         ->reactive()
+                        ->live()
+                        ->afterStateUpdated(function ($livewire){
+
+                            $livewire->resetValidation('data.branch_id');
+                            $livewire->resetErrorBag('data.branch_id');
+                        }),
 
 
         ]),
@@ -139,6 +151,7 @@ class PurchaseForm
                             Select::make('product_id')
                                 ->label('Product')
                                 ->searchable()
+                                ->live()
                                 ->preload()
                                 ->options(function (callable $get): array {
 
@@ -251,8 +264,10 @@ class PurchaseForm
 
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get,$livewire) {
 
+                                    $livewire->resetValidation('data.items.*.product_id');
+                                    $livewire->resetErrorBag('data.items.*.product_id');
                                     if (! $state) {
                                         return;
                                     }

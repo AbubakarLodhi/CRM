@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sales\Tables;
 
+use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Product;
 use App\Models\Sale;
 use Filament\Actions\BulkActionGroup;
@@ -185,7 +186,7 @@ class SalesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? SaleResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

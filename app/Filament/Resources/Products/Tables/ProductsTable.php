@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Filament\Resources\Products\ProductResource;
 use App\Models\PermissionModule;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -88,7 +89,7 @@ class ProductsTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('products.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? \App\Filament\Resources\Users\UserResource::getUrl('edit', [
+                ? ProductResource::getUrl('edit', [
                 'record' => $record,
             ])
                 : null

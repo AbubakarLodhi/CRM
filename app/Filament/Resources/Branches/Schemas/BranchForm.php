@@ -49,7 +49,11 @@ class BranchForm
                 ->preload()
                 ->required()
                 ->live()
-                ->afterStateUpdated(fn (callable $set) => $set('city_id', null)),
+                ->afterStateUpdated(function (callable $set, $state, $old, $livewire) {
+                    $set('city_id', null);
+                    $livewire->resetValidation('data.country_id');
+                    $livewire->resetErrorBag('data.country_id');
+                }),
 
             Select::make('city_id')
                 ->label('City')
@@ -61,7 +65,12 @@ class BranchForm
                 )
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                    $livewire->resetValidation('data.city_id');
+                    $livewire->resetErrorBag('data.city_id');
+                }),
 
             TextInput::make('postal_code')
                 ->label('Postal Code')
@@ -69,7 +78,8 @@ class BranchForm
                 ->numeric()
                 ->rules(['digits_between:1,12'])
                 ->maxLength(12)
-                ->required(),
+                ->required()
+                ,
 
 
             // ✅ Business scoped for Admin / Merchant / Staff
@@ -98,7 +108,12 @@ class BranchForm
                 )
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                    $livewire->resetValidation('data.business_id');
+                    $livewire->resetErrorBag('data.business_id');
+                }),
 
             Toggle::make('is_active')
                 ->label('Active')
