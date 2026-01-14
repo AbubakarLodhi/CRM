@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Sales\Schemas;
 
 use App\Models\Product;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
@@ -13,6 +14,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use App\Models\Customer;
+use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use Illuminate\Database\Eloquent\Builder;
 
 class SaleForm
@@ -42,6 +45,36 @@ class SaleForm
                         ->default(fn() => Filament::auth()->user()?->id)
                         ->required(),
 
+//                    Select::make('customer_id')
+//                        ->label('Customer')
+//                        ->relationship(
+//                            'customer',
+//                            'name',
+//                            function (Builder $query) {
+//                                $user = Filament::auth()->user();
+//
+//                                $merchantId = match (true) {
+//                                    $user instanceof \App\Models\Merchant => $user->id,
+//                                    $user instanceof \App\Models\User     => $user->merchant_id,
+//                                    default                               => null,
+//                                };
+//
+//                                if (! $merchantId) {
+//                                    $query->whereRaw('1 = 0');
+//                                    return;
+//                                }
+//
+//                                $query->where('merchant_id', $merchantId);
+//                            }
+//                        )
+//                        ->searchable()
+//                        ->preload()
+//                        ->required()
+//                        ->live()
+//                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+//                            $livewire->resetValidation('data.customer_id');
+//                            $livewire->resetErrorBag('data.customer_id');
+//                        }),
                     Select::make('customer_id')
                         ->label('Customer')
                         ->relationship(
@@ -68,13 +101,45 @@ class SaleForm
                         ->preload()
                         ->required()
                         ->live()
+
+                        /* =========================================================
+                         | ➕ INLINE CREATE CUSTOMER (MODAL)
+                         ========================================================= */
+                        ->suffixAction(
+                            Action::make('createCustomer')
+                                ->icon('heroicon-o-plus')
+                                ->tooltip('Create Customer')
+                                ->modalHeading('Create Customer')
+                                ->modalSubmitActionLabel('Create')
+                                ->modalWidth('lg')
+
+                                // ⭐⭐⭐ THIS IS THE FIX ⭐⭐⭐
+                                ->model(Customer::class)
+
+                                ->visible(fn () =>
+                                Filament::auth()
+                                    ->user()
+                                    ?->hasPermissionTo(
+                                        'customers.create',
+                                        Filament::getCurrentPanel()->getAuthGuard()
+                                    )
+                                )
+
+                                ->form(CustomerForm::components())
+
+                                ->action(function (array $data, callable $set) {
+                                    $customer = Customer::create($data);
+                                    $set('customer_id', $customer->id);
+                                })
+                        )
+
+                        // 🧼 Validation cleanup
                         ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                             $livewire->resetValidation('data.customer_id');
                             $livewire->resetErrorBag('data.customer_id');
                         }),
 
-
-                     Select::make('business_id')
+                      Select::make('business_id')
                         ->label('Business')
                         ->relationship(
                             'business',
