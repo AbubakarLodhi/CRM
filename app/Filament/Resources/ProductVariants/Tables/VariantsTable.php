@@ -21,6 +21,7 @@ class VariantsTable
             ->columns([
                 TextColumn::make('name')
                     ->label('Variant')
+                    ->limit(30)
                     ->searchable(),
 
                 TextColumn::make('sku')
@@ -30,11 +31,13 @@ class VariantsTable
                 TextColumn::make('product.name')
                     ->label('Product')
                     ->sortable()
+                    ->limit(30)
                     ->searchable(),
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 

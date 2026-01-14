@@ -415,6 +415,7 @@ class ProductForm
                         ->helperText('Auto-generated on save.'),
 
                     Textarea::make('description')
+                        ->maxLength(255)
                         ->columnSpanFull(),
 
                     \Filament\Schemas\Components\Section::make('Basics')
@@ -495,6 +496,7 @@ class ProductForm
 
                             TextInput::make('name')
                                 ->label('Label')
+                                ->maxLength(255)
                                 ->required(),
 //
 //                            TextInput::make('display_name')

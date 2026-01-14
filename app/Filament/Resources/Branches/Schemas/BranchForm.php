@@ -19,11 +19,11 @@ class BranchForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->required(),
+            TextInput::make('name')->required()->maxLength(255),
 
-            Textarea::make('address')->columnSpanFull(),
+            Textarea::make('address')->columnSpanFull()->maxLength(400),
 
-            TextInput::make('phone')->tel(),
+            TextInput::make('phone')->tel()->numeric()->minValue(0)->maxLength(15),
 
             Select::make('status')
                 ->options([
@@ -76,6 +76,8 @@ class BranchForm
                 ->label('Postal Code')
                 ->placeholder('e.g. 54000')
                 ->numeric()
+                ->minLength(5)
+                ->minValue(0)
                 ->rules(['digits_between:1,12'])
                 ->maxLength(12)
                 ->required()

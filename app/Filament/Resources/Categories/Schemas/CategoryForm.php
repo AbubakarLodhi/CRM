@@ -19,6 +19,7 @@ class CategoryForm
             ->components([
                 TextInput::make('name')
                     ->label('Category Name')
+                    ->maxLength(255)
                     ->required(),
                 Select::make('parent_id')
                     ->label('Global Category')

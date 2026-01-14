@@ -36,6 +36,7 @@ class PurchasesTable
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
+                    ->limit(30)
                     ->sortable()
                     ->searchable()
                     ->toggleable(),
@@ -44,12 +45,14 @@ class PurchasesTable
                     ->label('Business')
                     ->sortable()
                     ->searchable()
+                    ->limit(30)
                     ->toggleable(),
 
                 TextColumn::make('branch.name')
                     ->label('Branch')
                     ->sortable()
                     ->searchable()
+                    ->limit(30)
                     ->toggleable(),
 
                 TextColumn::make('items_count')

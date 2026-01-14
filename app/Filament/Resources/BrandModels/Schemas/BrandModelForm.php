@@ -16,6 +16,7 @@ class BrandModelForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->maxLength(255)
                     ->required(),
 
                 Select::make('brand_id')

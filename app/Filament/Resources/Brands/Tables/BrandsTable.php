@@ -56,6 +56,7 @@ class BrandsTable
                  */
                 TextColumn::make('brand.name')
                     ->label('Brand')
+                    ->limit(30)
                     ->searchable()
                     ->sortable(),
 
@@ -78,6 +79,7 @@ class BrandsTable
                 BadgeColumn::make('category.name')
                     ->label('Category')
                     ->searchable()
+                    ->limit(30)
                     ->sortable(),
 
                 /**

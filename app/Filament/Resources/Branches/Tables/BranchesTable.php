@@ -25,6 +25,7 @@ class BranchesTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->limit(30)
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),

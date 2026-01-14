@@ -32,6 +32,7 @@ class ExpensesTable
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
+                    ->limit(30)
                     ->sortable()
                     ->searchable()
                     ->toggleable(),
@@ -39,12 +40,14 @@ class ExpensesTable
                 TextColumn::make('business.name')
                     ->label('Business')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('branch.name')
                     ->label('Branch')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 

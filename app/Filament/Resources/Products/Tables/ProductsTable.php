@@ -26,6 +26,7 @@ class ProductsTable
             ->columns([
                 TextColumn::make('name')
                     ->searchable()
+                    ->limit(30)
                     ->sortable(),
                 ImageColumn::make('product_image')
                     ->label('Image')
@@ -61,6 +62,7 @@ class ProductsTable
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
+                    ->limit(30)
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
@@ -72,11 +74,13 @@ class ProductsTable
 
                 TextColumn::make('category.name')
                     ->label('Category')
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->toggleable(),
 
                 TextColumn::make('brand.name')
                     ->label('Brand')
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->toggleable(),
 

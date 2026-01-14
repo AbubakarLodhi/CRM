@@ -30,11 +30,13 @@ class BrandModelsTable
 
                 TextColumn::make('name')
                     ->label('Model Name')
+                    ->limit(30)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('brand.name')
                     ->label('Brand Name')
+                    ->limit(30)
                     ->sortable()
                     ->searchable(),
 

@@ -22,13 +22,15 @@ class UserForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
                 TextInput::make('email')
                     ->label('Email address')
                     ->email()
                     ->unique(User::class, 'email')
                     ->required()
                     ->live()
+                    ->maxLength(255)
                     ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                         $livewire->resetValidation('data.email');
                         $livewire->resetErrorBag('data.email');
@@ -47,6 +49,7 @@ class UserForm
                     ->password()
                     ->revealable()
                     ->required()
+                    ->maxLength(255)
                     ->hiddenOn('edit'),
                 FileUpload::make('profile_photo')
                     ->label('Profile Photo')

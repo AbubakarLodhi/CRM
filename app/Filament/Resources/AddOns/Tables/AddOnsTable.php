@@ -24,6 +24,7 @@ class AddOnsTable
             ->columns([
                 TextColumn::make('name')
                     ->label('Add-On Name')
+                    ->limit(30)
                     ->searchable(),
 
                 TextColumn::make('price')
@@ -31,10 +32,12 @@ class AddOnsTable
                     ->sortable(),
 
                 TextColumn::make('brandModel.name')
+                    ->limit(30)
                     ->label('Brand Model'),
 
                 TextColumn::make('merchant.name')
-                    ->label('Merchant'),
+                    ->label('Merchant')
+                    ->limit(30),
 
                 TextColumn::make('created_at')
                     ->dateTime()

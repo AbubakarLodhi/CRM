@@ -23,6 +23,7 @@ class BusinessesTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->limit(30)
                     ->searchable(),
                 ImageColumn::make('logo.photo_url')
                     ->label('Logo')

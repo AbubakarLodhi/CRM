@@ -70,6 +70,7 @@ class VariantForm
 
                 TextInput::make('purchase_price')
                     ->numeric()
+                    ->minValue(1)
                     ->required()
                     ->label('Purchase Price')
                     ->live()
@@ -81,6 +82,7 @@ class VariantForm
                 TextInput::make('selling_price')
                     ->required()
                     ->numeric()
+                    ->minValue(1)
                     ->label('Selling Price')
                     ->live()
                     ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {

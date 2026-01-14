@@ -35,17 +35,20 @@ class SalesTable
                 TextColumn::make('customer.name')
                     ->label('Customer')
                     ->sortable()
+                    ->limit(30)
                     ->searchable(),
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('business.name')
                     ->label('Business')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 
@@ -53,6 +56,7 @@ class SalesTable
                     ->label('Branch')
                     ->sortable()
                     ->searchable()
+                    ->limit(30)
                     ->toggleable(),
 
                 TextColumn::make('items_count')

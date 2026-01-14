@@ -21,6 +21,7 @@ class CustomersTable
         return $table
             ->columns([
                 TextColumn::make('name')
+                    ->limit(30)
                     ->searchable(),
 
                 TextColumn::make('phone')
@@ -28,6 +29,7 @@ class CustomersTable
 
                 TextColumn::make('email')
                     ->label('Email address')
+                    ->limit(30)
                     ->searchable(),
 
                 TextColumn::make('created_at')
@@ -51,6 +53,7 @@ class CustomersTable
                 // Show reference customer name instead of ID
                 TextColumn::make('reference')
                     ->label('Reference Customer')
+                    ->limit(30)
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),

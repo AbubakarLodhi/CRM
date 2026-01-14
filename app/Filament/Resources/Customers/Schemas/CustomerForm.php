@@ -19,22 +19,30 @@ class CustomerForm
         return $schema
             ->components([
                 TextInput::make('name')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
 
                 TextInput::make('phone')
+                    ->numeric()
+                    ->minValue(0)
+                    ->maxLength(15)
                     ->tel(),
 
                 Textarea::make('address')
+                    ->maxLength(255)
                     ->columnSpanFull(),
 
                 TextInput::make('email')
                     ->label('Email address')
                     ->email()
+                    ->maxLength(255)
                     ->unique(Customer::class, 'email')
                     ->required(),
 
                 TextInput::make('postal_code')
                     ->label('Postal Code')
+                    ->minLength(5)
+                    ->minValue(0)
                     ->numeric()
                     ->rules(['digits_between:1,12'])
                     ->maxLength(20)
@@ -86,6 +94,7 @@ class CustomerForm
                     }),
                 TextInput::make('reference')
                     ->label('Reference Customer')
+                    ->maxLength(255)
                     ->nullable(),
             ]);
     }

@@ -151,6 +151,7 @@ class CategoriesTable
         return [
             TextColumn::make('name')
                 ->label('Category Name')
+                ->limit(30)
                 ->sortable()
                 ->searchable(),
 
@@ -175,10 +176,12 @@ class CategoriesTable
             TextColumn::make('name')
                 ->label('Sub-Category Name')
                 ->sortable()
+                ->limit(30)
                 ->searchable(),
 
             BadgeColumn::make('parent.name')
                 ->label('Category')
+                ->limit(30)
                 ->sortable()
                 ->searchable(),
 

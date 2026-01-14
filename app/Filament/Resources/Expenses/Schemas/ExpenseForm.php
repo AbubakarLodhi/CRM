@@ -165,13 +165,17 @@ class ExpenseForm
                                 ->reactive()
                                 ->debounce(300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $unit = (float)($get('unit_price') ?? 0);
-                                    $qty = (float)($state ?? 0);
+                                    // ✅ Clamp quantity to minimum 1
+                                    $qty = max(1, (float)($state ?? 1));
 
+                                    $unit = (float)($get('unit_price') ?? 0);
+
+                                    $set('quantity', $qty); // update state if negative
                                     $set('line_total', $unit * $qty);
 
                                     self::recalcTotals($set, $get);
                                 }),
+
 
                             TextInput::make('unit_price')
                                 ->label('Unit Price')
@@ -182,13 +186,16 @@ class ExpenseForm
                                 ->reactive()
                                 ->debounce(300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    // ✅ Clamp unit price to minimum 0
+                                    $unit = max(0, (float)($state ?? 0));
                                     $qty = (float)($get('quantity') ?? 1);
-                                    $unit = (float)($state ?? 0);
 
+                                    $set('unit_price', $unit); // update state if negative
                                     $set('line_total', $unit * $qty);
 
                                     self::recalcTotals($set, $get);
                                 }),
+
 
                             TextInput::make('line_total')
                                 ->label('Line Total')

@@ -23,6 +23,7 @@ class BusinessForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->maxLength(250)
                     ->required(),
                 FileUpload::make('business_logo')
                     ->label('Business Logo')
@@ -35,7 +36,8 @@ class BusinessForm
                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp'])
                     ->dehydrated(false),
                 Textarea::make('description')
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->maxLength(400),
                 Select::make('country_id')
                     ->label('Country')
                     ->relationship('country', 'name')
@@ -72,6 +74,8 @@ class BusinessForm
                             ->label('Postal Code')
                             ->placeholder('e.g. 54000')
                             ->numeric()
+                            ->minLength(5)
+                            ->minValue(0)
                             ->rules(['digits_between:1,12'])
                             ->maxLength(12)
                             ->required(),

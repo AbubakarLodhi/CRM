@@ -26,6 +26,7 @@ class RolesTable
             ->columns([
                 TextColumn::make('name')
                     ->sortable()
+                    ->limit(30)
                     ->searchable(),
                 BadgeColumn::make('guard_name')
                     ->label('Portal')
