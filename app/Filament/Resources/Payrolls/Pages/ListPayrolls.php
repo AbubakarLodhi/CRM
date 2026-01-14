@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Payrolls\Pages;
 
 use App\Filament\Resources\Payrolls\PayrollResource;
 use Filament\Actions\CreateAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -33,6 +34,7 @@ class ListPayrolls extends ListRecords
     {
         return [
             CreateAction::make()
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('payrolls.create', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }
 }

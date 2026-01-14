@@ -170,13 +170,14 @@ class BrandsTable
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit Brand')
-                    ->url(fn($record) => BrandsResource::getUrl('edit', [
-                        'record' => $record->brand_id,
-                    ])
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()
+                        ?->hasPermissionTo('brands.update', Filament::getCurrentPanel()->getAuthGuard())
                     )
-                    ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('brands.update')
-                    ),
+                    ->url(fn ($record) => BrandsResource::getUrl('edit', [
+                        'record' => $record->brand_id,
+                    ])),
 
                 /**
                  * Remove category from brand (pivot delete)
@@ -191,7 +192,7 @@ class BrandsTable
                     ->modalCancelActionLabel('Cancel')
                     ->action(fn($record) => $record->delete())
                     ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('brands.delete')
+                        ->user()?->hasPermissionTo('brands.delete', Filament::getCurrentPanel()->getAuthGuard())
                     ),
 
 
@@ -202,7 +203,7 @@ class BrandsTable
                         ->label('Remove Category')
                         ->action(fn($records) => $records->each->delete())
                         ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user()?->hasPermissionTo('brands.delete')
+                            ->user()?->hasPermissionTo('brands.delete', Filament::getCurrentPanel()->getAuthGuard())
                         ),
                 ]),
             ]);

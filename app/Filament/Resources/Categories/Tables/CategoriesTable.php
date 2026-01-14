@@ -104,7 +104,8 @@ class CategoriesTable
                 EditAction::make()
                     ->color('warning')
                     ->label('')
-                    ->tooltip('Edit'),
+                    ->tooltip('Edit')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.update', Filament::getCurrentPanel()->getAuthGuard())),
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
@@ -123,12 +124,14 @@ class CategoriesTable
 
                             return false;
                         }
-                    }),
+                    })
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
 
         ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ]);
     }

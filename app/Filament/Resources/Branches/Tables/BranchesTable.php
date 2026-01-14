@@ -55,11 +55,7 @@ class BranchesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('merchant.name')
-                    ->label('Merchant')
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true)
-                    ->searchable(),
+
 
                 TextColumn::make('business.name')
                     ->label('Business')
@@ -67,6 +63,11 @@ class BranchesTable
                     ->sortable()
                     ->searchable(),
 
+                TextColumn::make('merchant.name')
+                    ->label('Merchant')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->searchable(),
 
             ])
             ->filters([
