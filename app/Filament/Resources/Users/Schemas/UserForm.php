@@ -32,7 +32,7 @@ class UserForm
                     ->label('Email Verified At')
                     ->displayFormat('m/d/Y H:i:s')
                     ->seconds()
-                        ->minDate(now())
+                    ->minDate(fn () => now()->subMinutes(1))
                     ->disabled(fn (callable $get) => $get('status') !== User::STATUS_VERIFIED)
                     ->helperText('Auto-filled when status is Verified'),
 

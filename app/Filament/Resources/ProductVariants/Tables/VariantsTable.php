@@ -52,7 +52,7 @@ class VariantsTable
                     ->tooltip('Edit')
                     ->visible(fn () =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('products.update', Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('products_variants.update', Filament::getCurrentPanel()->getAuthGuard())
                     ),
                 DeleteAction::make()
                     ->color('danger')
@@ -60,7 +60,7 @@ class VariantsTable
                     ->tooltip('Delete')
                     ->visible(fn () =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('products_variants.delete', Filament::getCurrentPanel()->getAuthGuard())
                     ),
 //                DeleteAction::make()
 //                    ->color('danger')
@@ -74,7 +74,7 @@ class VariantsTable
                     DeleteBulkAction::make()
                         ->visible(fn () =>
                         auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('products_variants.delete', Filament::getCurrentPanel()->getAuthGuard())
                         ),
                 ]),
             ]);

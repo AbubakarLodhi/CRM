@@ -200,7 +200,7 @@ class BrandsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->label('Remove Category')
+                        ->label('Remove Brand')
                         ->action(fn($records) => $records->each->delete())
                         ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
                             ->user()?->hasPermissionTo('brands.delete', Filament::getCurrentPanel()->getAuthGuard())
