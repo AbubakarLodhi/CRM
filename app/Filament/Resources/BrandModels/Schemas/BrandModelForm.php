@@ -8,6 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
 
 class BrandModelForm
 {
@@ -17,7 +18,19 @@ class BrandModelForm
             ->components([
                 TextInput::make('name')
                     ->maxLength(255)
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->unique()
+//                    ->rules([
+//                        fn ($get) => Rule::unique('brand_models', 'name')
+//                            ->where('brand_id', $get('brand_id'))
+//                            ->ignore($get('id')), // important for edit
+//                    ])
+                    ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                        $livewire->resetValidation('data.name');
+                        $livewire->resetErrorBag('data.name');
+                    }),
+
 
                 Select::make('brand_id')
                     ->label('Brand Name')

@@ -12,6 +12,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rule;
+
 
 class BusinessForm
 {
@@ -23,8 +25,19 @@ class BusinessForm
         return $schema
             ->components([
                 TextInput::make('name')
+                    ->label('Business Name')
                     ->maxLength(250)
-                    ->required(),
+                    ->required()
+                    ->live()
+                    ->rules([
+                        fn ($get) => Rule::unique('businesses', 'name')
+                            ->where('merchant_id', $get('merchant_id'))
+                            ->ignore($get('id')),
+                    ])
+                    ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                        $livewire->resetValidation('data.name');
+                        $livewire->resetErrorBag('data.name');
+                    }),
                 FileUpload::make('business_logo')
                     ->label('Business Logo')
                     ->image()
@@ -70,15 +83,19 @@ class BusinessForm
 
                 Grid::make(2)
                     ->schema([
+
                         TextInput::make('postal_code')
                             ->label('Postal Code')
                             ->placeholder('e.g. 54000')
-                            ->numeric()
+                            ->regex('/^\d{1,12}$/')
                             ->minLength(5)
-                            ->minValue(0)
-                            ->rules(['digits_between:1,12'])
                             ->maxLength(12)
-                            ->required(),
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                                $livewire->resetValidation('data.postal_code');
+                                $livewire->resetErrorBag('data.postal_code');
+                            }),
 
 
 

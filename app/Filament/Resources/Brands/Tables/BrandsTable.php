@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Brands\Tables;
 use App\Filament\Resources\BrandModels\BrandModelResource;
 use App\Filament\Resources\Brands\BrandsResource;
 use App\Models\Brand;
-use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use App\Models\Category;
 use App\Models\PermissionModule;
@@ -34,192 +33,197 @@ class BrandsTable
             $user instanceof \App\Models\User     => $user->merchant_id,
             default                               => null,
         };
+
         return $table
-            /**
-             * ✅ Each row is a BrandCategory
+            /*
+             |--------------------------------------------------------------------------
+             | QUERY (ONE ROW = ONE BRAND)
+             |--------------------------------------------------------------------------
              */
             ->query(
-                BrandCategory::query()
-                    ->with(['brand.logo', 'category'])
+                Brand::query()
+                    ->with(['logo', 'categories'])
                     ->when(
                         $merchantId,
                         fn ($q) => $q->where('merchant_id', $merchantId)
                     )
-                    ->when(
-                        request()->filled('category_id'),
-                        fn ($q) => $q->where('category_id', request('category_id'))
-                    )
             )
+
+            /*
+             |--------------------------------------------------------------------------
+             | COLUMNS
+             |--------------------------------------------------------------------------
+             */
             ->columns([
-                /**
-                 * Brand name
-                 */
-                TextColumn::make('brand.name')
+                // Brand name
+                TextColumn::make('name')
                     ->label('Brand')
                     ->limit(30)
                     ->searchable()
                     ->sortable(),
 
-                /**
-                 * Brand logo
-                 * ❗ NO Brand type-hint here
-                 */
-                ImageColumn::make('brand_logo')
+                // Brand logo
+                ImageColumn::make('logo.photo_url')
                     ->label('Logo')
                     ->size(40)
                     ->square()
-                    ->getStateUsing(fn($record) => $record->brand?->logo
-                        ? asset('storage/' . $record->brand->logo->photo_url)
-                        : asset('images/placeholder.jpg')
-                    ),
+                    ->defaultImageUrl(asset('images/placeholder.jpg')),
 
-                /**
-                 * Single category per row
-                 */
-                BadgeColumn::make('category.name')
-                    ->label('Category')
-                    ->searchable()
+                // All categories in ONE column
+                BadgeColumn::make('categories')
+                    ->label('Categories')
+                    ->getStateUsing(fn ($record) =>
+                    $record->categories
+                        ->pluck('name')
+                        ->values()
+                        ->toArray()
+                    )
                     ->limit(30)
-                    ->sortable(),
+                    ->separator(', ')
+                    ->colors(['primary'])
+                    ->getStateUsing(function (Brand $record) {
+                        $names = $record->categories->pluck('name');
 
-                /**
-                 * Assigned date
-                 */
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    }),
+
+                // Created at
                 TextColumn::make('created_at')
-                    ->label('Assigned At')
+                    ->label('Created At')
                     ->dateTime()
                     ->sortable(),
             ])
+
+            /*
+             |--------------------------------------------------------------------------
+             | FILTERS
+             |--------------------------------------------------------------------------
+             */
             ->filters([
                 SelectFilter::make('category_id')
                     ->label('Category')
                     ->searchable()
                     ->preload()
-                    ->options(function () {
-                        $user = Filament::auth()->user();
-
-                        return Category::query()
-                            // ✅ ONLY sub-categories
-                            ->whereNotNull('parent_id')
-
-                            // ✅ Merchant scoping
-                            ->when(
-                                fn ($q) => $q->where(
-                                    'merchant_id',
-                                    $user->merchant_id ?? $user->id
-                                )
-                            )
-
-                            // Admin sees all
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    }),
-
-
+                    ->options(fn () =>
+                    Category::query()
+                        ->whereNotNull('parent_id')
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->toArray()
+                    )
+                    ->query(fn ($query, $data) =>
+                    $query->when(
+                        $data['value'],
+                        fn ($q, $categoryId) =>
+                        $q->whereHas('categories', fn ($q) =>
+                        $q->where('categories.id', $categoryId)
+                        )
+                    )
+                    ),
             ])
 
+            /*
+             |--------------------------------------------------------------------------
+             | ROW ACTIONS
+             |--------------------------------------------------------------------------
+             */
             ->recordActions([
-                /**
-                 * View models (brand + category aware)
-                 */
-//                Action::make('view-models')
-//                    ->icon('heroicon-o-rectangle-stack')
-//                    ->label('')
-//                    ->tooltip('View Models')
-//                    ->url(fn ($record) =>
-//                    \App\Filament\Resources\BrandModels\BrandModelResource::getUrl('index', [
-//                        'brand_id'    => $record->brand_id,
-//                        'category_id' => $record->category_id,
-//                    ])
-//                    ),
+                // View models
                 Action::make('view-models')
                     ->color('secondary')
                     ->icon('heroicon-o-eye')
                     ->label('')
                     ->tooltip('View Models')
-                    ->url(fn($record) => BrandModelResource::getUrl('index', [
-                        'brand_id' => $record->brand_id,
-                    ])
-                    )
+                    ->url(fn ($record) => BrandModelResource::getUrl('index', [
+                        'brand_id' => $record->id,
+                    ]))
+                    ->visible(function ($record) use ($guard) {
+                        $user = Auth::guard($guard)->user();
 
-                    // ✅ BRAND-ONLY CHECK (CORRECT)
-                    ->visible(function ($record) {
-                        if (! $record) {
-                            return false;
-                        }
-
-                        $guard = Filament::getCurrentPanel()->getAuthGuard();
-                        $user  = Auth::guard($guard)->user();
-
-                        // 🧩 1. Module toggle
                         if (! PermissionModule::isEnabledForCurrentMerchant('brands')) {
                             return false;
                         }
 
-                        // 🔐 2. Permission gate
                         if (! $user?->hasPermissionTo('brands.view', $guard)) {
                             return false;
                         }
 
-                        // 🔍 3. Brand must have models
-                        return BrandModel::where('brand_id', $record->brand_id)->exists();
+                        return BrandModel::where('brand_id', $record->id)->exists();
                     }),
 
-
-                /**
-                 * Edit BRAND
-                 */
+                // Edit brand
                 EditAction::make()
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit Brand')
                     ->visible(fn () =>
-                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                    auth($guard)
                         ->user()
-                        ?->hasPermissionTo('brands.update', Filament::getCurrentPanel()->getAuthGuard())
+                        ?->hasPermissionTo('brands.update', $guard)
                     )
                     ->url(fn ($record) => BrandsResource::getUrl('edit', [
-                        'record' => $record->brand_id,
+                        'record' => $record->id,
                     ])),
 
-                /**
-                 * Remove category from brand (pivot delete)
-                 */
+                // Remove ALL category assignments (not the brand itself)
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
-                    ->tooltip('Remove Brand')
-                    ->modalHeading('Remove Brand')
-                    ->modalDescription('Are you sure you want to remove this brand from this category?')
+                    ->tooltip('Remove Brand Categories')
+                    ->modalHeading('Remove Brand Categories')
+                    ->modalDescription('Are you sure you want to remove this brand from all categories?')
                     ->modalSubmitActionLabel('Yes, remove')
                     ->modalCancelActionLabel('Cancel')
-                    ->action(fn($record) => $record->delete())
-                    ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('brands.delete', Filament::getCurrentPanel()->getAuthGuard())
+                    ->action(fn ($record) => $record->categories()->detach())
+                    ->visible(fn () =>
+                    auth($guard)
+                        ->user()
+                        ?->hasPermissionTo('brands.delete', $guard)
                     ),
-
-
             ])
+
+            /*
+             |--------------------------------------------------------------------------
+             | ROW CLICK
+             |--------------------------------------------------------------------------
+             */
             ->recordUrl(fn ($record) =>
-            auth(Filament::getCurrentPanel()->getAuthGuard())
+            auth($guard)
                 ->user()
-                ?->hasPermissionTo('brands.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? BrandsResource::getUrl('edit', [
-                'record' => $record->brand_id,
-            ])
+                ?->hasPermissionTo('brands.update', $guard)
+                ? BrandsResource::getUrl('edit', ['record' => $record->id])
                 : null
             )
+
+            /*
+             |--------------------------------------------------------------------------
+             | BULK ACTIONS
+             |--------------------------------------------------------------------------
+             */
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->label('Remove Brand')
-                        ->action(fn($records) => $records->each->delete())
-                        ->visible(fn() => auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user()?->hasPermissionTo('brands.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        ->label('Remove Brand Categories')
+                        ->action(fn ($records) =>
+                        $records->each(fn ($record) =>
+                        $record->categories()->detach()
+                        )
+                        )
+                        ->visible(fn () =>
+                        auth($guard)
+                            ->user()
+                            ?->hasPermissionTo('brands.delete', $guard)
                         ),
                 ]),
             ])
+
             ->defaultSort('created_at', 'desc');
     }
 }

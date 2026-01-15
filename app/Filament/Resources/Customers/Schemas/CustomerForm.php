@@ -47,15 +47,26 @@ class CustomerForm
                 ->email()
                 ->maxLength(255)
                 ->unique(Customer::class, 'email', ignoreRecord: true)
-                ->required(),
+                ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                    $livewire->resetValidation('data.email');
+                    $livewire->resetErrorBag('data.email');
+                }),
+
 
             TextInput::make('postal_code')
                 ->label('Postal Code')
-                ->numeric()
-                ->rules(['digits_between:1,12'])
-                ->maxLength(20)
-                ->nullable(),
-
+                ->placeholder('e.g. 54000')
+                ->regex('/^\d{1,12}$/')
+                ->minLength(5)
+                ->maxLength(12)
+                ->required()
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                    $livewire->resetValidation('data.postal_code');
+                    $livewire->resetErrorBag('data.postal_code');
+                }),
             Select::make('country_id')
                 ->label('Country')
                 ->relationship('country', 'name')

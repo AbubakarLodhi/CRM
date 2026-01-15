@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Categories\Schemas;
 
+use App\Models\Category;
 use Filament\Forms\Components\FileUpload;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
@@ -20,7 +21,13 @@ class CategoryForm
                 TextInput::make('name')
                     ->label('Category Name')
                     ->maxLength(255)
-                    ->required(),
+                    ->required()
+                    ->unique(   )
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                        $livewire->resetValidation('data.name');
+                        $livewire->resetErrorBag('data.name');
+                    }),
                 Select::make('parent_id')
                     ->label('Global Category')
                     ->relationship(

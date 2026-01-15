@@ -30,6 +30,7 @@ class OrdersTable
 
                 TextColumn::make('sale.customer.name')
                     ->label('Customer')
+                    ->limit(30)
                     ->sortable()
                     ->searchable(),
 
@@ -57,18 +58,21 @@ class OrdersTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('business.name')
                     ->label('Business')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('branch.name')
                     ->label('Branch')
                     ->sortable()
+                    ->limit(30)
                     ->searchable()
                     ->toggleable(),
 

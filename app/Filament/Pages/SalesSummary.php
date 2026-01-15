@@ -68,17 +68,18 @@ class SalesSummary extends Page implements HasTable
 
                 TextColumn::make('sale_date')->label('Date')->date('d/m/Y')->sortable(),
 
-                TextColumn::make('customer.name')->label('Customer')->searchable()->sortable(),
+                TextColumn::make('customer.name')->label('Customer')->searchable()->sortable()->limit(30),
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->toggleable()
+                    ->limit(30)
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('business.name')->label('Business')->searchable()->sortable()->toggleable(),
+                TextColumn::make('business.name')->label('Business')->searchable()->sortable()->toggleable()->limit(30),
 
-                TextColumn::make('branch.name')->label('Branch')->searchable()->sortable()->toggleable(),
+                TextColumn::make('branch.name')->label('Branch')->searchable()->sortable()->toggleable()->limit(30),
 
                 TextColumn::make('items_count')
                     ->label('Items')

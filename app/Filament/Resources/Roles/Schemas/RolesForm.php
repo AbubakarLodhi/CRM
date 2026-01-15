@@ -31,7 +31,13 @@ class RolesForm
                         TextInput::make('name')
                             ->label('Role Name')
                             ->required()
-                            ->maxLength(255),
+                            ->unique()
+                            ->maxLength(255)
+                            ->live()
+                            ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                                $livewire->resetValidation('data.name');
+                                $livewire->resetErrorBag('data.name');
+                            }),
 //                         //   ->unique(ignoreRecord: true),
 
 

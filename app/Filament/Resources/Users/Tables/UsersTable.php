@@ -60,12 +60,14 @@ class UsersTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
                 TextColumn::make('businesses')
                     ->label('Businesses')
                     ->badge()
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('primary')
                     ->getStateUsing(function (User $record) {
@@ -87,6 +89,7 @@ class UsersTable
                 TextColumn::make('branches')
                     ->label('Branches')
                     ->badge()
+                    ->limit(30)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('success')
                     ->getStateUsing(function (User $record) {

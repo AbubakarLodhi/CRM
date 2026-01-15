@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Branches\Schemas;
 use App\Models\Branch;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -13,14 +14,26 @@ use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\ToggleColumn;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
 
 class BranchForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->required()->maxLength(255),
-
+            TextInput::make('name')
+                ->required()
+                ->maxLength(255)
+                ->live()
+                ->rules([
+                    fn ($get) => Rule::unique('branches', 'name')
+                        ->where('business_id', $get('business_id'))
+                        ->ignore($get('id')),
+                ])
+                ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                    $livewire->resetValidation('data.name');
+                    $livewire->resetErrorBag('data.name');
+                }),
             Textarea::make('address')->columnSpanFull()->maxLength(400),
 
             TextInput::make('phone')->tel()->numeric()->minValue(0)->maxLength(15),
@@ -32,7 +45,7 @@ class BranchForm
                     Branch::STATUS_REJECTED => 'Rejected',
                 ])
                 ->required()
-                ->default(Branch::STATUS_PENDING)
+               // ->default(Branch::STATUS_PENDING)
                 ->live()
                 ->afterStateUpdated(function (callable $set, $state) {
                     if ($state === Branch::STATUS_VERIFIED) {
@@ -75,13 +88,15 @@ class BranchForm
             TextInput::make('postal_code')
                 ->label('Postal Code')
                 ->placeholder('e.g. 54000')
-                ->numeric()
+                ->regex('/^\d{1,12}$/')
                 ->minLength(5)
-                ->minValue(0)
-                ->rules(['digits_between:1,12'])
                 ->maxLength(12)
                 ->required()
-                ,
+                ->live()
+                ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                    $livewire->resetValidation('data.postal_code');
+                    $livewire->resetErrorBag('data.postal_code');
+                }),
 
 
             // ✅ Business scoped for Admin / Merchant / Staff

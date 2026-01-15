@@ -80,12 +80,14 @@ class PurchasesSummary extends Page implements HasTable
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->toggleable()
+                    ->limit(30)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('business.name')
                     ->label('Business')
                     ->searchable()
+                    ->limit(30)
                     ->sortable()
                     ->toggleable(),
 
@@ -93,6 +95,7 @@ class PurchasesSummary extends Page implements HasTable
                     ->label('Branch')
                     ->searchable()
                     ->sortable()
+                    ->limit(30)
                     ->toggleable(),
 
                 TextColumn::make('items_count')
