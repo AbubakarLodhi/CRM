@@ -8,6 +8,7 @@ use App\Filament\Resources\Products\ProductResource;
 use App\Models\Business;
 use App\Models\Product;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -106,47 +107,38 @@ class CreateProduct extends CreateRecord
         $state   = $this->form->getRawState();
         $product = $this->record;
 
-        /* -------------------------
-         | Attach Businesses
-         |--------------------------*/
-        if (! empty($state['businesses'])) {
-            foreach ($state['businesses'] as $businessId) {
-                $product->businesses()->attach($businessId, [
-                    'id' => (string) \Illuminate\Support\Str::uuid(),
-                ]);
-            }
-        }
-
-        /* -------------------------
-         | Attach Branches
-         |--------------------------*/
-        if (! empty($state['branches'])) {
-            foreach ($state['branches'] as $branchId) {
-                $product->branches()->attach($branchId, [
-                    'id' => (string) \Illuminate\Support\Str::uuid(),
-                ]);
-            }
-        }
+        /**
+         * 🚫 DO NOT attach businesses or branches here
+         * Filament already saves:
+         * - businesses()
+         * - branches()
+         * because you used ->relationship(...)
+         */
 
         /* -------------------------
          | Product Image
          |--------------------------*/
         $path = collect($state['product_image'] ?? null)->first();
 
-        if (! $path) {
-            return;
+        if ($path) {
+            $product->productImage()?->delete();
+
+            $product->productImage()->create([
+                'merchant_id' => $product->merchant_id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
+                'photo_url'   => $path,
+            ]);
         }
 
-        $product->productImage()?->delete();
-
-        $product->productImage()->create([
-            'merchant_id' => $product->merchant_id,
-            'type'        => AttachmentType::IMAGE,
-            'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
-            'photo_url'   => $path,
-        ]);
+        /* -------------------------
+         | Custom success message
+         |--------------------------*/
+        Notification::make()
+            ->title('Product created')
+            ->success()
+            ->send();
     }
-
 
 
 }

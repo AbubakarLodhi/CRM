@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Businesses\Tables;
 
 use App\Filament\Resources\Businesses\BusinessResource;
 use App\Models\Business;
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -50,7 +51,18 @@ class BusinessesTable
                     ->color('primary')
                     ->separator(', ')
                     ->toggleable()
-                    ->limitList(2),
+                    ->getStateUsing(function (Business $record) {
+                        $names = $record->countries()->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    }),
 
                 TextColumn::make('cities.name')
                     ->label('Cities')
@@ -58,7 +70,18 @@ class BusinessesTable
                     ->color('primary')
                     ->toggleable()
                     ->separator(', ')
-                    ->limitList(3),
+                    ->getStateUsing(function (Business $record) {
+                        $names = $record->cities()->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    }),
                 IconColumn::make('status')
                     ->label('Active')
                     ->color('primary')

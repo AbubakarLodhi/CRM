@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Branches\Tables;
 
 use App\Filament\Resources\Branches\BranchResource;
 use App\Models\Branch;
+use App\Models\Business;
 use App\Models\Merchant;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -35,7 +36,18 @@ class BranchesTable
                     ->color('primary')
                     ->toggleable()
                     ->separator(', ')
-                    ->limitList(2),
+                    ->getStateUsing(function (Branch $record) {
+                        $names = $record->countries()->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    }),
 
                 TextColumn::make('cities.name')
                     ->label('Cities')
@@ -43,7 +55,18 @@ class BranchesTable
                     ->badge()
                     ->toggleable()
                     ->separator(', ')
-                    ->limitList(3),
+                    ->getStateUsing(function (Branch $record) {
+                        $names = $record->cities()->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount);
+                        }
+
+                        return $visible->toArray();
+                    }),
                 BadgeColumn::make('status')
                     ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->colors([

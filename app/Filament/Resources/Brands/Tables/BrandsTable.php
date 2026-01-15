@@ -210,7 +210,6 @@ class BrandsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->label('Remove Brand Categories')
                         ->action(fn ($records) =>
                         $records->each(fn ($record) =>
                         $record->categories()->detach()

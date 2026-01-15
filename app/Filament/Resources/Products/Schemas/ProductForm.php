@@ -394,8 +394,14 @@ class ProductForm
                     TextInput::make('name')
                         ->label('Product Name')
                         ->required()
+                        ->unique()
                         ->maxLength(255)
-                        ->columnSpanFull(),
+                        ->columnSpanFull()
+                        ->live()
+                        ->afterStateUpdated(function ($state, callable $set, $livewire) {
+                            $livewire->resetValidation('data.name');
+                            $livewire->resetErrorBag('data.name');
+                        }),
                     FileUpload::make('product_image')
                         ->label('Product Image')
                         ->image()
