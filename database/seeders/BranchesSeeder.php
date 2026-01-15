@@ -81,8 +81,8 @@ class BranchesSeeder extends Seeder
                         'address' => "City {$i}, Pakistan",
                         'phone' => '0300' . rand(1000000, 9999999),
                         'status' => 'active',
-                        'country_id' => $countryId,
-                        'city_id' => $cityId,
+//                        'country_id' => $countryId,
+//                        'city_id' => $cityId,
                         'postal_code' => '75500',
                     ]
                 );

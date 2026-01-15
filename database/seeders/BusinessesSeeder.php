@@ -70,8 +70,8 @@ class BusinessesSeeder extends Seeder
                     'id' => Str::uuid(),
                     'description' => $name . ' business',
                     'status' => true,
-                    'country_id' => $countryId,
-                    'city_id' => $cityId,
+//                    'country_id' => $countryId,
+//                    'city_id' => $cityId,
                     'postal_code' => '75500',
                 ]
             );
