@@ -31,6 +31,11 @@ class CustomersTable
                     ->label('Email address')
                     ->limit(30)
                     ->searchable(),
+                TextColumn::make('occupation')
+                    ->label('Occupation')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->limit(30)
+                    ->searchable(),
 
                 TextColumn::make('created_at')
                     ->dateTime()

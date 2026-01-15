@@ -110,4 +110,14 @@ class Branch extends Model
         return $this->belongsTo(City::class);
     }
 
+    public function countries(): BelongsToMany
+    {
+        return $this->belongsToMany(Country::class, 'branch_country');
+    }
+
+    public function cities(): BelongsToMany
+    {
+        return $this->belongsToMany(City::class, 'branch_city');
+    }
+
 }

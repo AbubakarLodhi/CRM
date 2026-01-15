@@ -3,9 +3,11 @@
 namespace App\Filament\Resources\Branches\Pages;
 
 use App\Filament\Resources\Branches\BranchResource;
+use App\Models\City;
 use App\Models\User;
 use Filament\Actions\DeleteAction;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
 class EditBranch extends EditRecord
@@ -33,7 +35,7 @@ class EditBranch extends EditRecord
         if ($user instanceof \App\Models\Merchant) {
             unset($data['merchant_id']);
         }
-
+        $this->validateCountriesHaveCities();
         return $data;
     }
 
@@ -47,5 +49,34 @@ class EditBranch extends EditRecord
                 ->color('danger')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('branches.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
+    }
+
+    protected function validateCountriesHaveCities(): void
+    {
+        $state = $this->form->getRawState();
+
+        $countries = $state['countries'] ?? [];
+        $cities = $state['cities'] ?? [];
+
+        if (empty($countries)) {
+            return;
+        }
+
+        $cityCountryIds = City::whereIn('id', $cities)
+            ->pluck('country_id')
+            ->unique()
+            ->toArray();
+
+        $missingCountries = array_diff($countries, $cityCountryIds);
+
+        if (! empty($missingCountries)) {
+            Notification::make()
+                ->title('Missing city selection')
+                ->body('Please select at least one city for each selected country.')
+                ->danger()
+                ->send();
+
+            $this->halt();
+        }
     }
 }

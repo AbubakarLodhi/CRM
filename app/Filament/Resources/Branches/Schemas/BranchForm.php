@@ -55,35 +55,40 @@ class BranchForm
                     }
                 }),
 
-            Select::make('country_id')
-                ->label('Country')
-                ->relationship('country', 'name')
+            Select::make('countries')
+                ->label('Countries')
+                ->relationship('countries', 'name')
+                ->multiple()
                 ->searchable()
                 ->preload()
                 ->required()
                 ->live()
                 ->afterStateUpdated(function (callable $set, $state, $old, $livewire) {
-                    $set('city_id', null);
-                    $livewire->resetValidation('data.country_id');
-                    $livewire->resetErrorBag('data.country_id');
+                    $set('cities', []);
+
+                    $livewire->resetValidation('data.countries');
+                    $livewire->resetErrorBag('data.countries');
+                    $livewire->resetValidation('data.cities');
+                    $livewire->resetErrorBag('data.cities');
                 }),
 
-            Select::make('city_id')
-                ->label('City')
+            Select::make('cities')
+                ->label('Cities')
                 ->relationship(
-                    'city',
+                    'cities',
                     'name',
                     fn ($query, callable $get) =>
-                    $query->where('country_id', $get('country_id'))
+                    $query->whereIn('country_id', $get('countries') ?? [])
                 )
+                ->multiple()
                 ->searchable()
                 ->preload()
-                ->required()
                 ->live()
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                    $livewire->resetValidation('data.city_id');
-                    $livewire->resetErrorBag('data.city_id');
+                    $livewire->resetValidation('data.cities');
+                    $livewire->resetErrorBag('data.cities');
                 }),
+
 
             TextInput::make('postal_code')
                 ->label('Postal Code')

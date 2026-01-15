@@ -44,6 +44,21 @@ class BusinessesTable
                         // ✅ Correct public URL
                         return asset('storage/' . $path);
                     }),
+                TextColumn::make('countries.name')
+                    ->label('Countries')
+                    ->badge()
+                    ->color('primary')
+                    ->separator(', ')
+                    ->toggleable()
+                    ->limitList(2),
+
+                TextColumn::make('cities.name')
+                    ->label('Cities')
+                    ->badge()
+                    ->color('primary')
+                    ->toggleable()
+                    ->separator(', ')
+                    ->limitList(3),
                 IconColumn::make('status')
                     ->label('Active')
                     ->color('primary')

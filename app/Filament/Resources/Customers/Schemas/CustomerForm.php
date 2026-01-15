@@ -106,7 +106,10 @@ class CustomerForm
                     default => null,
                 })
                 ->required(),
-
+            TextInput::make('occupation')
+                ->label('Occupation')
+                ->maxLength(255)
+                ->nullable(),
             TextInput::make('reference')
                 ->label('Reference Customer')
                 ->maxLength(255)

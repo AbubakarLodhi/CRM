@@ -29,23 +29,23 @@ class UsersTable
         return $table
             ->columns([
 
-                ImageColumn::make('profilePhoto.photo_url')
-                    ->label('Photo')
-                    ->size(50)
-                    ->square()
-                    ->getStateUsing(function (User $record) {
-                        if (! $record->profilePhoto) {
-                            return asset('images/placeholder.jpg');
-                        }
-
-                        $path = $record->profilePhoto->photo_url;
-
-                        if (! Storage::disk('public')->exists($path)) {
-                            return asset('images/placeholder.jpg');
-                        }
-
-                        return asset('storage/' . $path);
-                    }),
+//                ImageColumn::make('profilePhoto.photo_url')
+//                    ->label('Photo')
+//                    ->size(50)
+//                    ->square()
+//                    ->getStateUsing(function (User $record) {
+//                        if (! $record->profilePhoto) {
+//                            return asset('images/placeholder.jpg');
+//                        }
+//
+//                        $path = $record->profilePhoto->photo_url;
+//
+//                        if (! Storage::disk('public')->exists($path)) {
+//                            return asset('images/placeholder.jpg');
+//                        }
+//
+//                        return asset('storage/' . $path);
+//                    }),
 
              TextColumn::make('name')
                     ->limit(30)
@@ -56,7 +56,8 @@ class UsersTable
                     ->searchable(),
                 TextColumn::make('email_verified_at')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->sortable()
@@ -105,9 +106,29 @@ class UsersTable
                         return $visible->toArray();
                     })
                     ->sortable(false),
+                TextColumn::make('roles')
+                    ->label('Roles')
+                    ->badge()
+                    ->color('secondary')
+                    ->limit(30)
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(function (User $record) {
+                        // get role names assigned to this user
+                        $names = $record->roles->pluck('name');
+
+                        $visible = $names->take(2); // show first 2 roles
+                        $hiddenCount = $names->count() - $visible->count();
+
+                        if ($hiddenCount > 0) {
+                            $visible->push('+' . $hiddenCount); // show "+N" if more roles
+                        }
+
+                        return $visible->toArray();
+                    })
+                    ->sortable(false),
 
 
-                IconColumn::make('is_active')
+        IconColumn::make('is_active')
                     ->color('primary')
                     ->boolean(),
                 BadgeColumn::make('status')

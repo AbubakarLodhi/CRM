@@ -5,8 +5,11 @@ namespace App\Filament\Resources\Businesses\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Businesses\BusinessResource;
+use App\Models\City;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Nette\Schema\ValidationException;
 
 class CreateBusiness extends CreateRecord
 {
@@ -15,6 +18,45 @@ class CreateBusiness extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $this->validateCountriesHaveCities();
+
+        return $data;
+    }
+
+    protected function validateCountriesHaveCities(): void
+    {
+        $data = $this->form->getRawState();
+        $countries = $data['countries'] ?? [];
+        $cities = $data['cities'] ?? [];
+
+        if (empty($countries)) {
+            return;
+        }
+
+        $cityCountryIds = City::whereIn('id', $cities)
+            ->pluck('country_id')
+            ->unique()
+            ->toArray();
+
+        $missingCountries = array_diff($countries, $cityCountryIds);
+
+        if (! empty($missingCountries)) {
+
+            // Optional: user-friendly notification
+            Notification::make()
+                ->title('Missing city selection')
+                ->body('Please select at least one city for each selected country.')
+                ->danger()
+                ->send();
+
+            // ⛔ THIS is what actually blocks save
+            $this->halt();
+        }
     }
 
     protected function afterCreate(): void

@@ -29,6 +29,21 @@ class BranchesTable
                     ->searchable(),
                 TextColumn::make('phone')
                     ->searchable(),
+                TextColumn::make('countries.name')
+                    ->label('Countries')
+                    ->badge()
+                    ->color('primary')
+                    ->toggleable()
+                    ->separator(', ')
+                    ->limitList(2),
+
+                TextColumn::make('cities.name')
+                    ->label('Cities')
+                    ->color('primary')
+                    ->badge()
+                    ->toggleable()
+                    ->separator(', ')
+                    ->limitList(3),
                 BadgeColumn::make('status')
                     ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->colors([

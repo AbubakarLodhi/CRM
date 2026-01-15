@@ -21,6 +21,8 @@ class UserForm
     {
         return $schema
             ->components([
+                Section::make('Personal Information')
+            ->schema([
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
@@ -51,18 +53,18 @@ class UserForm
                     ->required()
                     ->maxLength(255)
                     ->hiddenOn('edit'),
-                FileUpload::make('profile_photo')
-                    ->label('Profile Photo')
-                    ->image()
-                    ->disk('public')
-                    ->directory('staff/profile-photos')
-                    ->visibility('public')   // ✅ ADD THIS
-                    ->imagePreviewHeight(150)
-                    ->maxSize(2048)
-                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->dehydrated(false),
+//                FileUpload::make('profile_photo')
+//                    ->label('Profile Photo')
+//                    ->image()
+//                    ->disk('public')
+//                    ->directory('staff/profile-photos')
+//                    ->visibility('public')   // ✅ ADD THIS
+//                    ->imagePreviewHeight(150)
+//                    ->maxSize(2048)
+//                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+//                    ->dehydrated(false),
 
-                     Select::make('status')
+                Select::make('status')
                     ->options([
                         User::STATUS_PENDING  => 'Pending',
                         User::STATUS_VERIFIED => 'Verified',
@@ -88,6 +90,36 @@ class UserForm
                         }
                     }),
 
+                Select::make('roles')
+                    ->label('Roles')
+                    ->multiple()
+                    ->relationship(
+                        'roles',
+                        'name',
+                        fn ($query) => $query->where('guard_name', 'staff')
+                    )
+                    ->preload()
+                    ->required()
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                        $livewire->resetValidation('data.roles');
+                        $livewire->resetErrorBag('data.roles');
+                    }),
+                Grid::make(2)
+                    ->schema([
+
+                        Toggle::make('is_active')
+                            ->label('Is active')
+                            ->default(false)
+                            ->disabled(fn (callable $get) => $get('status') !== User::STATUS_VERIFIED)
+                            ->dehydrated()
+                            ->inline(false),
+
+                    ])
+                    ->columnSpanFull()
+                    ->columns(2),
+            ]) ->columnSpanFull()
+                    ->columns(2),
 
                 Hidden::make('merchant_id')
                     ->default(fn() => Filament::auth()->user()?->id),
@@ -164,34 +196,7 @@ class UserForm
                     ->columnSpanFull()
                     ->columns(2),
 
-                Grid::make(2)
-                    ->schema([
-                        Select::make('roles')
-                            ->label('Roles')
-                            ->multiple()
-                            ->relationship(
-                                'roles',
-                                'name',
-                                fn ($query) => $query->where('guard_name', 'staff')
-                            )
-                            ->preload()
-                            ->required()
-                            ->live()
-                            ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                                $livewire->resetValidation('data.roles');
-                                $livewire->resetErrorBag('data.roles');
-                            }),
 
-                        Toggle::make('is_active')
-                            ->label('Is active')
-                            ->default(false)
-                            ->disabled(fn (callable $get) => $get('status') !== User::STATUS_VERIFIED)
-                            ->dehydrated()
-                            ->inline(false),
-
-                    ])
-                    ->columnSpanFull()
-                    ->columns(2),
 
 
 

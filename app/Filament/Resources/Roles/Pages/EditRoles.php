@@ -37,9 +37,10 @@ class EditRoles extends EditRecord
 
         $permissionsData = [];
 
+        // Initialize all modules
         foreach ($enabledModules as $module) {
             $permissionsData[$module] = [
-                'select_all' => false,
+                'enabled' => false,
                 'view' => false,
                 'create' => false,
                 'update' => false,
@@ -47,26 +48,21 @@ class EditRoles extends EditRecord
             ];
         }
 
+        // Map existing permissions
         foreach ($permissions as $permission) {
             [$module, $action] = explode('.', $permission);
 
             if (isset($permissionsData[$module][$action])) {
                 $permissionsData[$module][$action] = true;
+                $permissionsData[$module]['enabled'] = true; // 🔑 enable module
             }
-        }
-
-        foreach ($permissionsData as $module => &$moduleData) {
-            $moduleData['select_all'] =
-                $moduleData['view']
-                && $moduleData['create']
-                && $moduleData['update']
-                && $moduleData['delete'];
         }
 
         $data['permissions'] = $permissionsData;
 
         return $data;
     }
+
 
     public static function getPermissionModules(): array
     {

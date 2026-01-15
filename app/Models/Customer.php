@@ -15,7 +15,7 @@ class Customer extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'name', 'phone', 'email', 'city', 'reference', 'country_id', 'city_id', 'postal_code', 'address',
+        'merchant_id', 'name', 'phone', 'email', 'city', 'reference', 'country_id', 'city_id', 'postal_code', 'address','occupation',
     ];
 
     /** @var string $keyType */

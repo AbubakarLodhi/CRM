@@ -100,6 +100,14 @@ class Business extends Model
             ->withTimestamps();
     }
 
+    public function countries():belongsToMany
+    {
+        return $this->belongsToMany(Country::class, 'business_country');
+    }
 
+    public function cities():belongsToMany
+    {
+        return $this->belongsToMany(City::class, 'business_city');
+    }
 
 }

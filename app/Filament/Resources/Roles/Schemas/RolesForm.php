@@ -59,7 +59,6 @@ class RolesForm
     protected static function getPermissionRows(): array
     {
         $enabledModules = PermissionModule::enabledForCurrentMerchant();
-
         $actions = ['view', 'create', 'update', 'delete'];
         $rows = [];
 
@@ -68,21 +67,28 @@ class RolesForm
 
             $rows[] = Grid::make()
                 ->schema([
-                    Checkbox::make("{$module}.select_all")
+                    // ✅ Module checkbox (ENABLER ONLY)
+                    Checkbox::make("{$module}.enabled")
                         ->label($label)
+                        ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) use ($module, $actions) {
-                            foreach ($actions as $action) {
-                                $set("{$module}.{$action}", $state);
+                            // ❌ If module unchecked → clear all actions
+                            if (! $state) {
+                                foreach ($actions as $action) {
+                                    $set("{$module}.{$action}", false);
+                                }
                             }
                         })
-                        //->reactive()
                         ->dehydrated(false),
 
+                    // ✅ Action checkboxes (disabled until module is enabled)
                     ...collect($actions)->map(fn ($action) =>
                     Checkbox::make("{$module}.{$action}")
                         ->label(ucfirst($action))
                         ->default(false)
-                        //->reactive()
+                        ->disabled(fn (callable $get) =>
+                        ! $get("{$module}.enabled")
+                        )
                     )->toArray(),
                 ])
                 ->columns(5);
@@ -90,5 +96,6 @@ class RolesForm
 
         return $rows;
     }
+
 
 }
