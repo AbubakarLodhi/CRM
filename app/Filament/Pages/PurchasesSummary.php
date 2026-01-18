@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 
 use App\Filament\Exports\PurchasesSummaryExport;
+use App\Models\PermissionModule;
 use App\Models\Purchase;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -31,6 +32,23 @@ class PurchasesSummary extends Page implements HasTable
     protected static ?string $navigationLabel = 'Purchases Summary';
 
     protected string $view = 'filament.pages.purchases-summary';
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('purchases')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('purchases.view', $guard);
+    }
 
     /* ============================================================
      |  TABLE
