@@ -88,7 +88,7 @@ class ListCategories extends ListRecords
                 ->visible(fn () =>
                 auth(Filament::getCurrentPanel()->getAuthGuard())
                     ->user()
-                    ?->hasPermissionTo('categories.delete', Filament::getCurrentPanel()->getAuthGuard())
+                    ?->hasPermissionTo('categories.create', Filament::getCurrentPanel()->getAuthGuard())
                 ),
             ];
     }

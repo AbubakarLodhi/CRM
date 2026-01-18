@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\EditProfile;
+use App\Http\Middleware\EnsureStaffIsVerified;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
@@ -48,7 +49,7 @@ class MerchantPanelProvider extends PanelProvider
 
                 return asset('storage/'.$path);
             })
-            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Greaan Pvt')
+            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Green Pvt')
             ->brandLogoHeight('2.5rem')
             ->userMenuItems([
                 Action::make('editProfile')
@@ -107,6 +108,7 @@ class MerchantPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                EnsureStaffIsVerified::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

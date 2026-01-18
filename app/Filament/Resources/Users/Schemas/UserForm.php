@@ -37,13 +37,13 @@ class UserForm
                         $livewire->resetValidation('data.email');
                         $livewire->resetErrorBag('data.email');
                     }),
-                DateTimePicker::make('email_verified_at')
-                    ->label('Email Verified At')
-                    ->displayFormat('m/d/Y H:i:s')
-                    ->seconds()
-                    ->minDate(fn () => now()->subMinutes(1))
-                    ->disabled(fn (callable $get) => $get('status') !== User::STATUS_VERIFIED)
-                    ->helperText('Auto-filled when status is Verified'),
+//                DateTimePicker::make('email_verified_at')
+//                    ->label('Email Verified At')
+//                    ->displayFormat('m/d/Y H:i:s')
+//                    ->seconds()
+//                    ->minDate(fn () => now()->subMinutes(1))
+//                    ->disabled(fn (callable $get) => $get('status') !== User::STATUS_VERIFIED)
+//                    ->helperText('Auto-filled when status is Verified'),
 
 
 
@@ -64,6 +64,31 @@ class UserForm
 //                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
 //                    ->dehydrated(false),
 
+//                Select::make('status')
+//                    ->options([
+//                        User::STATUS_PENDING  => 'Pending',
+//                        User::STATUS_VERIFIED => 'Verified',
+//                        User::STATUS_REJECTED => 'Rejected',
+//                    ])
+//                    ->required()
+//                    ->default(User::STATUS_PENDING)
+//                    ->live()
+//                    ->afterStateUpdated(function (callable $set, $state) {
+//
+//                        if ($state === User::STATUS_VERIFIED) {
+//                            // ✅ Auto-set email verification time
+//                            $set('email_verified_at', now());
+//
+//                            // ✅ Allow activation
+//                            $set('is_active', true);
+//                        } else {
+//                            // ❌ Clear verification
+//                            $set('email_verified_at', null);
+//
+//                            // ❌ Force inactive
+//                            $set('is_active', false);
+//                        }
+//                    }),
                 Select::make('status')
                     ->options([
                         User::STATUS_PENDING  => 'Pending',
@@ -71,24 +96,21 @@ class UserForm
                         User::STATUS_REJECTED => 'Rejected',
                     ])
                     ->required()
-                    ->default(User::STATUS_PENDING)
+                    //->default(User::STATUS_PENDING)
                     ->live()
                     ->afterStateUpdated(function (callable $set, $state) {
 
                         if ($state === User::STATUS_VERIFIED) {
-                            // ✅ Auto-set email verification time
+                            // ✅ Auto-verify
                             $set('email_verified_at', now());
-
-                            // ✅ Allow activation
                             $set('is_active', true);
                         } else {
-                            // ❌ Clear verification
+                            // ❌ Unverify
                             $set('email_verified_at', null);
-
-                            // ❌ Force inactive
                             $set('is_active', false);
                         }
                     }),
+
 
                 Select::make('roles')
                     ->label('Roles')
@@ -122,32 +144,54 @@ class UserForm
                     ->columns(2),
 
                 Hidden::make('merchant_id')
-                    ->default(fn() => Filament::auth()->user()?->id),
+                    ->default(function () {
+                        $user = Filament::auth()->user();
+
+                        return $user?->merchant_id ?? $user?->id;
+                    }),
+
 
                 Section::make('Access Control')
                     ->schema([
                         Select::make('businesses')
                             ->label('Businesses')
                             ->multiple()
-                            ->relationship(
-                                'businesses',
-                                'name',
-                                fn ($query) => $query->where(
-                                    'merchant_id',
-                                    Filament::auth()->id()
-                                )
-                            )
-                            ->preload()
                             ->searchable()
+                            ->preload()
                             ->required()
-                            ->live()
-                            ->afterStateUpdated(function (callable $set, callable $get, $state, $old,$livewire) {
-                                if ($old !== null) {
-                                    $set('branches', []);
+
+                            // 🔹 OPTIONS (scoped)
+                            ->options(function () {
+                                $user = Filament::auth()->user();
+
+                                if ($user->id === $user->merchant_id) {
+                                    return \App\Models\Business::where('merchant_id', $user->merchant_id)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
                                 }
-                                $livewire->resetValidation('data.businesses');
-                                $livewire->resetErrorBag('data.businesses');
-                            }),
+
+                                return $user->businesses()
+                                    ->pluck('businesses.name', 'businesses.id')
+                                    ->toArray();
+                            })
+
+                            // 🔹 IMPORTANT: rehydrate selected businesses on edit
+                            ->afterStateHydrated(function (callable $set, ?User $record) {
+                                if ($record) {
+                                    $set(
+                                        'businesses',
+                                        $record->businesses()->pluck('businesses.id')->toArray()
+                                    );
+                                }
+                            })
+
+                            // 🔹 ALWAYS resolve label (even if option missing)
+                            ->getOptionLabelUsing(
+                                fn ($value) => \App\Models\Business::find($value)?->name
+                            )
+
+                            ->live()
+                            ->afterStateUpdated(fn (callable $set) => $set('branches', [])),
 
                         Select::make('branches')
                             ->label('Branches')
@@ -155,27 +199,7 @@ class UserForm
                             ->searchable()
                             ->preload()
                             ->required()
-                            ->live()
 
-                            // ✅ Tell Filament how to resolve label for a selected value
-                            ->getOptionLabelUsing(function ($value): ?string {
-                                return \App\Models\Branch::find($value)?->name;
-                            })
-                            ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                                $livewire->resetValidation('data.branches');
-                                $livewire->resetErrorBag('data.branches');
-                            })
-                            // ✅ Rehydrate selected branches on edit
-                            ->afterStateHydrated(function (callable $set, ?User $record,) {
-                                if ($record) {
-                                    $set(
-                                        'branches',
-                                        $record->branches()->pluck('branches.id')->toArray()
-                                    );
-                                }
-                            })
-
-                            // ✅ Options filtered by selected businesses
                             ->options(function (callable $get) {
                                 $businessIds = $get('businesses') ?? [];
 
@@ -183,14 +207,37 @@ class UserForm
                                     return [];
                                 }
 
-                                return \App\Models\Branch::query()
+                                $user = Filament::auth()->user();
+
+                                if ($user->id === $user->merchant_id) {
+                                    return \App\Models\Branch::whereIn('business_id', $businessIds)
+                                        ->where('merchant_id', $user->merchant_id)
+                                        ->pluck('name', 'id')
+                                        ->toArray();
+                                }
+
+                                return $user->branches()
                                     ->whereIn('business_id', $businessIds)
-                                    ->when(
-                                        fn ($q) => $q->where('merchant_id', Filament::auth()->id())
-                                    )
-                                    ->pluck('name', 'id')
+                                    ->pluck('branches.name', 'branches.id')
                                     ->toArray();
+                            })
+
+                            // 🔹 CRITICAL: resolve label for existing value
+                            ->getOptionLabelUsing(
+                                fn ($value) => \App\Models\Branch::find($value)?->name
+                            )
+
+                            // 🔹 CRITICAL: rehydrate existing branches
+                            ->afterStateHydrated(function (callable $set, ?User $record) {
+                                if ($record) {
+                                    $set(
+                                        'branches',
+                                        $record->branches()->pluck('branches.id')->toArray()
+                                    );
+                                }
                             }),
+
+
 
                     ])
                     ->columnSpanFull()

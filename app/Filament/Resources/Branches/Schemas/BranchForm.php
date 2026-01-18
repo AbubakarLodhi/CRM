@@ -36,7 +36,11 @@ class BranchForm
                 }),
             Textarea::make('address')->columnSpanFull()->maxLength(400),
 
-            TextInput::make('phone')->tel()->numeric()->minValue(0)->maxLength(15),
+            TextInput::make('phone')
+                ->tel()
+                ->minValue(0)
+                ->minLength(11)
+                ->maxLength(15),
 
             Select::make('status')
                 ->options([
@@ -141,7 +145,8 @@ class BranchForm
                 ->label('Active')
                 ->default(false)
                 ->disabled(fn (callable $get) => $get('status') !== Branch::STATUS_VERIFIED)
-                ->dehydrated(),
+                ->dehydrated(true),// 🔑 FORCE saving even when disabled
+
         ]);
     }
 }

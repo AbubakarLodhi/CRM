@@ -13,6 +13,13 @@ class EditRoles extends EditRecord
 {
     protected static string $resource = RolesResource::class;
 
+    public function getTitle(): string
+    {
+        $name = (string) ($this->record?->name ?? '');
+
+        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+    }
+
 
     protected function getHeaderActions(): array
     {

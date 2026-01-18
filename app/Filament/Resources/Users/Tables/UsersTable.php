@@ -154,17 +154,69 @@ class UsersTable
 
                 SelectFilter::make('businesses')
                     ->label('Businesses')
-                    ->relationship('businesses', 'name')
-                    ->searchable()
                     ->multiple()
-                    ->preload(),
+                    ->searchable()
+                    ->preload()
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        // Merchant owner → all businesses
+                        if ($user->id === $user->merchant_id) {
+                            return \App\Models\Business::query()
+                                ->where('merchant_id', $user->merchant_id)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray();
+                        }
+
+                        // Staff → only assigned businesses
+                        return $user->businesses()
+                            ->orderBy('businesses.name')
+                            ->pluck('businesses.name', 'businesses.id')
+                            ->toArray();
+                    })
+                    ->query(function ($query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+
+                        $query->whereHas('businesses', function ($q) use ($data) {
+                            $q->whereIn('businesses.id', $data['values']);
+                        });
+                    }),
 
                 SelectFilter::make('branches')
                     ->label('Branches')
-                    ->relationship('branches', 'name')
-                    ->searchable()
                     ->multiple()
-                    ->preload(),
+                    ->searchable()
+                    ->preload()
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        // Merchant owner → all branches
+                        if ($user->id === $user->merchant_id) {
+                            return \App\Models\Branch::query()
+                                ->where('merchant_id', $user->merchant_id)
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->toArray();
+                        }
+
+                        // Staff → only assigned branches
+                        return $user->branches()
+                            ->orderBy('branches.name')
+                            ->pluck('branches.name', 'branches.id')
+                            ->toArray();
+                    })
+                    ->query(function ($query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+
+                        $query->whereHas('branches', function ($q) use ($data) {
+                            $q->whereIn('branches.id', $data['values']);
+                        });
+                    }),
 
                 TernaryFilter::make('is_active')
                     ->label('Active Status')
@@ -225,12 +277,12 @@ class UsersTable
                 EditAction::make()
                     ->color('warning')
                     ->label('')
-                    ->tooltip('Edit Staff')
+                    ->tooltip('Edit')
                     ->visible(fn () => auth($guard)->user()?->hasPermissionTo('users.update', $guard)),
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
-                    ->tooltip('Delete Staff')
+                    ->tooltip('Delete')
                     ->visible(fn () => auth($guard)->user()?->hasPermissionTo('users.delete', $guard)),
             ])
             ->toolbarActions([

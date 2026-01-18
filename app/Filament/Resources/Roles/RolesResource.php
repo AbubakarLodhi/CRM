@@ -34,9 +34,9 @@ class RolesResource extends Resource
         $user = Filament::auth()->user();
 
         $guard=Filament::getCurrentPanel()->getAuthGuard();
-        if (! $user || $guard=='staff') {
-            return false;
-        }
+//        if (! $user || $guard=='staff') {
+//            return false;
+//        }
 
         if (! PermissionModule::isEnabledForCurrentMerchant('roles_permissions')) {
             return false;

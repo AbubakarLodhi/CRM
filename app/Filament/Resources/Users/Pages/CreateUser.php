@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Models\User;
 use Filament\Resources\Pages\CreateRecord;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
@@ -24,8 +25,16 @@ class CreateUser extends CreateRecord
             $data['password'] = Hash::make($data['password']);
         }
 
+        // 🔒 FINAL SAFETY
+        if ($data['status'] === User::STATUS_VERIFIED) {
+            $data['email_verified_at'] = now();
+        } else {
+            $data['email_verified_at'] = null;
+        }
+
         return $data;
     }
+
 
     protected function afterCreate(): void
     {

@@ -64,6 +64,7 @@ class PayrollsTable
 
                 TextColumn::make('status')
                     ->label('Status')
+                    ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'paid' => 'success',

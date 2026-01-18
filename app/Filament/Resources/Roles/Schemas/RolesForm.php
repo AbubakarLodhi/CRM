@@ -60,19 +60,26 @@ class RolesForm
     {
         $enabledModules = PermissionModule::enabledForCurrentMerchant();
         $actions = ['view', 'create', 'update', 'delete'];
+
+        // 🔹 DISPLAY-ONLY ALIASES (NO FUNCTIONAL IMPACT)
+        $moduleAliases = [
+            'users' => 'Staff',
+        ];
+
         $rows = [];
 
         foreach ($enabledModules as $module) {
-            $label = ucfirst(str_replace('_', ' ', $module));
+            // Resolve label with alias fallback
+            $label = $moduleAliases[$module]
+                ?? ucfirst(str_replace('_', ' ', $module));
 
             $rows[] = Grid::make()
                 ->schema([
-                    // ✅ Module checkbox (ENABLER ONLY)
+                    // ✅ Module checkbox (enabler)
                     Checkbox::make("{$module}.enabled")
                         ->label($label)
                         ->reactive()
                         ->afterStateUpdated(function ($state, callable $set) use ($module, $actions) {
-                            // ❌ If module unchecked → clear all actions
                             if (! $state) {
                                 foreach ($actions as $action) {
                                     $set("{$module}.{$action}", false);
@@ -81,7 +88,7 @@ class RolesForm
                         })
                         ->dehydrated(false),
 
-                    // ✅ Action checkboxes (disabled until module is enabled)
+                    // ✅ Action checkboxes
                     ...collect($actions)->map(fn ($action) =>
                     Checkbox::make("{$module}.{$action}")
                         ->label(ucfirst($action))
@@ -96,6 +103,7 @@ class RolesForm
 
         return $rows;
     }
+
 
 
 }

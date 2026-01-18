@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Purchases\Pages;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
 use App\Filament\Resources\Purchases\PurchaseResource;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
@@ -12,6 +14,14 @@ use Illuminate\Support\Facades\DB;
 class EditPurchase extends EditRecord
 {
     protected static string $resource = PurchaseResource::class;
+
+
+    public function getTitle(): string
+    {
+        $name = (string) ($this->record?->name ?? '');
+
+        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+    }
 
     protected function getRedirectUrl(): string
     {
@@ -62,6 +72,10 @@ class EditPurchase extends EditRecord
     protected function afterSave(): void
     {
         DB::transaction(function () {
+
+            /** -----------------------------
+             * UPDATE ITEMS
+             * ----------------------------- */
             $items = $this->form->getState()['items'] ?? [];
 
             $this->record->items()->delete();
@@ -69,6 +83,34 @@ class EditPurchase extends EditRecord
             foreach ($items as $item) {
                 $this->record->items()->create($item);
             }
+
+            /** -----------------------------
+             * UPDATE MERCHANT LOGO
+             * ----------------------------- */
+            $state = $this->form->getRawState();
+
+            if (array_key_exists('merchant_logo', $state)) {
+                $merchant = Filament::auth()->user() instanceof \App\Models\Merchant
+                    ? Filament::auth()->user()
+                    : Filament::auth()->user()?->merchant;
+
+                if ($merchant) {
+                    if ($logo = collect($state['merchant_logo'])->first()) {
+                        $merchant->logo()?->delete();
+
+                        $merchant->logo()->create([
+                            'merchant_id' => $merchant->id,
+                            'type'        => AttachmentType::IMAGE,
+                            'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
+                            'photo_url'   => $logo,
+                        ]);
+                    } else {
+                        // ✅ removed
+                        $merchant->logo()?->delete();
+                    }
+                }
+            }
         });
     }
+
 }

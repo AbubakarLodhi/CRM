@@ -26,6 +26,7 @@ class PayrollInfolist
                             ->formatStateUsing(fn ($record) => $record->period_month.'/'.$record->period_year),
                         TextEntry::make('status')
                             ->label('Status')
+                            ->formatStateUsing(fn (string $state) => ucfirst($state))
                             ->badge()
                             ->color(fn (string $state): string => match ($state) {
                                 'paid' => 'success',

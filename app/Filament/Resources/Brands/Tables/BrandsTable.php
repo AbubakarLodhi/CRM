@@ -20,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BrandsTable
 {
@@ -107,8 +108,9 @@ class BrandsTable
              |--------------------------------------------------------------------------
              */
             ->filters([
-                SelectFilter::make('category_id')
-                    ->label('Category')
+                SelectFilter::make('categories')
+                    ->label('Categories')
+                    ->multiple() // ✅ MULTI SELECT
                     ->searchable()
                     ->preload()
                     ->options(fn () =>
@@ -118,15 +120,17 @@ class BrandsTable
                         ->pluck('name', 'id')
                         ->toArray()
                     )
-                    ->query(fn ($query, $data) =>
-                    $query->when(
-                        $data['value'],
-                        fn ($q, $categoryId) =>
-                        $q->whereHas('categories', fn ($q) =>
-                        $q->where('categories.id', $categoryId)
-                        )
-                    )
-                    ),
+                    ->query(function ($query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+
+                        $query->whereHas('categories', function ($q) use ($data) {
+                            $q->whereIn('categories.id', $data['values']);
+                        });
+                    }),
+
+
             ])
 
             /*
@@ -162,7 +166,7 @@ class BrandsTable
                 EditAction::make()
                     ->color('warning')
                     ->label('')
-                    ->tooltip('Edit Brand')
+                    ->tooltip('Edit')
                     ->visible(fn () =>
                     auth($guard)
                         ->user()
@@ -176,17 +180,29 @@ class BrandsTable
                 DeleteAction::make()
                     ->color('danger')
                     ->label('')
-                    ->tooltip('Remove Brand Categories')
-                    ->modalHeading('Remove Brand Categories')
-                    ->modalDescription('Are you sure you want to remove this brand from all categories?')
-                    ->modalSubmitActionLabel('Yes, remove')
-                    ->modalCancelActionLabel('Cancel')
-                    ->action(fn ($record) => $record->categories()->detach())
+                    ->tooltip('Delete')
+                    ->modalHeading('Delete Brand')
+                    ->modalDescription('Are you sure you want to permanently delete this brand? This action cannot be undone.')
+                    ->requiresConfirmation()
+                    ->action(function (Brand $record) {
+                        DB::transaction(function () use ($record) {
+
+                            // 1️⃣ Delete logo
+                            $record->logo()?->delete();
+
+                            // 2️⃣ Delete pivot rows
+                            $record->categories()->detach();
+
+                            // 3️⃣ Delete brand
+                            $record->delete();
+                        });
+                    })
                     ->visible(fn () =>
                     auth($guard)
                         ->user()
                         ?->hasPermissionTo('brands.delete', $guard)
                     ),
+
             ])
 
             /*
@@ -211,15 +227,20 @@ class BrandsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->action(fn ($records) =>
-                        $records->each(fn ($record) =>
-                        $record->categories()->detach()
-                        )
+                        DB::transaction(function () use ($records) {
+                            $records->each(function (Brand $record) {
+                                $record->logo()?->delete();
+                                $record->categories()->detach();
+                                $record->delete();
+                            });
+                        })
                         )
                         ->visible(fn () =>
                         auth($guard)
                             ->user()
                             ?->hasPermissionTo('brands.delete', $guard)
                         ),
+
                 ]),
             ])
 

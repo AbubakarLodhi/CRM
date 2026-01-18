@@ -31,8 +31,7 @@ class RolesTable
                 BadgeColumn::make('guard_name')
                     ->label('Portal')
                     ->color('primary')
-                    ->sortable()
-                    ->searchable(),
+                    ->sortable(),
                 BadgeColumn::make('permissions_count')
                     ->label('Permissions')
                     ->counts('permissions'),

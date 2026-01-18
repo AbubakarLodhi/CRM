@@ -21,6 +21,13 @@ class EditUser extends EditRecord
         return $this->getResource()::getUrl('index');
     }
 
+    public function getTitle(): string
+    {
+        $name = (string) ($this->record?->name ?? '');
+
+        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -43,10 +50,13 @@ class EditUser extends EditRecord
 
     protected function afterSave(): void
     {
-        if (in_array($this->record->status, [
-            User::STATUS_PENDING,
-            User::STATUS_REJECTED,
-        ])) {
+        if ($this->record->status === User::STATUS_VERIFIED) {
+            if (is_null($this->record->email_verified_at)) {
+                $this->record->update([
+                    'email_verified_at' => now(),
+                ]);
+            }
+        } else {
             $this->record->update([
                 'email_verified_at' => null,
             ]);

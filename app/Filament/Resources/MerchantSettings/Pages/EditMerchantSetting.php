@@ -75,29 +75,41 @@ class EditMerchantSetting extends EditRecord
         $merchant = auth('merchant')->user();
 
         /* ===== PROFILE PHOTO ===== */
-        if ($profile = collect($state['profile_photo'] ?? null)->first()) {
-            $merchant->profilePhoto()?->delete();
+        if (array_key_exists('profile_photo', $state)) {
+            if ($profile = collect($state['profile_photo'])->first()) {
+                $merchant->profilePhoto()?->delete();
 
-            $merchant->profilePhoto()->create([
-                'merchant_id' => $merchant->id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                'photo_url'   => $profile,
-            ]);
+                $merchant->profilePhoto()->create([
+                    'merchant_id' => $merchant->id,
+                    'type'        => AttachmentType::IMAGE,
+                    'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
+                    'photo_url'   => $profile,
+                ]);
+            } else {
+                // ✅ REMOVED
+                $merchant->profilePhoto()?->delete();
+            }
         }
 
         /* ===== MERCHANT LOGO ===== */
-        if ($logo = collect($state['merchant_logo'] ?? null)->first()) {
-            $merchant->logo()?->delete();
+        if (array_key_exists('merchant_logo', $state)) {
+            if ($logo = collect($state['merchant_logo'])->first()) {
+                $merchant->logo()?->delete();
 
-            $merchant->logo()->create([
-                'merchant_id' => $merchant->id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
-                'photo_url'   => $logo,
-            ]);
+                $merchant->logo()->create([
+                    'merchant_id' => $merchant->id,
+                    'type'        => AttachmentType::IMAGE,
+                    'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
+                    'photo_url'   => $logo,
+                ]);
+            } else {
+                // ✅ THIS WAS MISSING
+                $merchant->logo()?->delete();
+            }
         }
+
         $this->redirect(request()->header('Referer'), navigate: false);
     }
+
 
 }

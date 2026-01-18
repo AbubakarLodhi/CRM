@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Http\Middleware\EnsureStaffIsVerified;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -33,7 +34,7 @@ class UserPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Green,
             ])
-            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Greaan Pvt')
+            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Green Pvt')
             ->viteTheme('resources/css/filament/merchant/theme.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -55,6 +56,7 @@ class UserPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                EnsureStaffIsVerified::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

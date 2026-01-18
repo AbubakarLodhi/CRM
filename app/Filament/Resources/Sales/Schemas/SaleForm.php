@@ -6,13 +6,16 @@ use App\Models\Product;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use App\Models\Customer;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
@@ -23,221 +26,150 @@ class SaleForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Sale Information')
-                ->columns(3)
+            Grid::make(2)
                 ->columnSpanFull()
                 ->schema([
-                    TextInput::make('sale_no')
-                        ->label('Sale Number')
-                        ->default(fn() => 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
-                        ->required()
-                        ->maxLength(255)
-                        ->unique(ignoreRecord: true),
 
-                    DatePicker::make('sale_date')
-                        ->label('Sale Date')
-                        ->default(now())
-                        ->required()
-                        ->displayFormat('d/m/Y'),
+                    /* ---------------- SALE INFORMATION ---------------- */
+                    Section::make('Sale Information')
+                        ->schema([
+                            TextInput::make('sale_no')
+                                ->label('Sale Number')
+                                ->default(fn () => 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
+                                ->required()
+                                ->maxLength(255)
+                                ->unique(ignoreRecord: true),
 
+                            DatePicker::make('sale_date')
+                                ->label('Sale Date')
+                                ->default(now())
+                                ->required()
+                                ->displayFormat('d/m/Y'),
 
-                    Hidden::make('merchant_id')
-                        ->default(fn() => Filament::auth()->user()?->id)
-                        ->required(),
-
-//                    Select::make('customer_id')
-//                        ->label('Customer')
-//                        ->relationship(
-//                            'customer',
-//                            'name',
-//                            function (Builder $query) {
-//                                $user = Filament::auth()->user();
-//
-//                                $merchantId = match (true) {
-//                                    $user instanceof \App\Models\Merchant => $user->id,
-//                                    $user instanceof \App\Models\User     => $user->merchant_id,
-//                                    default                               => null,
-//                                };
-//
-//                                if (! $merchantId) {
-//                                    $query->whereRaw('1 = 0');
-//                                    return;
-//                                }
-//
-//                                $query->where('merchant_id', $merchantId);
-//                            }
-//                        )
-//                        ->searchable()
-//                        ->preload()
-//                        ->required()
-//                        ->live()
-//                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-//                            $livewire->resetValidation('data.customer_id');
-//                            $livewire->resetErrorBag('data.customer_id');
-//                        }),
-                    Select::make('customer_id')
-                        ->label('Customer')
-                        ->relationship(
-                            'customer',
-                            'name',
-                            function (Builder $query) {
-                                $user = Filament::auth()->user();
-
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
-
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                $query->where('merchant_id', $merchantId);
-                            }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->live()
-
-                        /* =========================================================
-                         | ➕ INLINE CREATE CUSTOMER (MODAL)
-                         ========================================================= */
-                        ->suffixAction(
-                            Action::make('createCustomer')
-                                ->icon('heroicon-o-plus')
-                                ->tooltip('Create Customer')
-                                ->modalHeading('Create Customer')
-                                ->modalSubmitActionLabel('Create')
-                                ->modalWidth('lg')
-
-                                // ⭐⭐⭐ THIS IS THE FIX ⭐⭐⭐
-                                ->model(Customer::class)
-
-                                ->visible(fn () =>
-                                Filament::auth()
-                                    ->user()
-                                    ?->hasPermissionTo(
-                                        'customers.create',
-                                        Filament::getCurrentPanel()->getAuthGuard()
+                            Select::make('customer_id')
+                                ->label('Customer')
+                                ->relationship(
+                                    'customer',
+                                    'name',
+                                    fn (Builder $query) => $query->where(
+                                        'merchant_id',
+                                        Filament::auth()->user() instanceof \App\Models\Merchant
+                                            ? Filament::auth()->user()->id
+                                            : Filament::auth()->user()->merchant_id
                                     )
                                 )
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->suffixAction(
+                                    Action::make('createCustomer')
+                                        ->icon('heroicon-o-plus')
+                                        ->tooltip('Create Customer')
+                                        ->modalHeading('Create Customer')
+                                        ->modalSubmitActionLabel('Create')
+                                        ->modalWidth('lg')
+                                        ->model(Customer::class)
+                                        ->form(CustomerForm::components())
+                                        ->action(fn (array $data, callable $set) =>
+                                        $set('customer_id', Customer::create($data)->id)
+                                        )
+                                )
+                                ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (
+                                    $livewire->resetValidation('data.customer_id') ||
+                                    $livewire->resetErrorBag('data.customer_id')
+                                )),
 
-                                ->form(CustomerForm::components())
+                            Select::make('business_id')
+                                ->label('Business')
+                                ->relationship(
+                                    'business',
+                                    'name',
+                                    function (Builder $query) {
+                                        $user = Filament::auth()->user();
+                                        $query->where(
+                                            'merchant_id',
+                                            $user instanceof \App\Models\Merchant
+                                                ? $user->id
+                                                : $user->merchant_id
+                                        );
 
-                                ->action(function (array $data, callable $set) {
-                                    $customer = Customer::create($data);
-                                    $set('customer_id', $customer->id);
-                                })
-                        )
+                                        if ($user instanceof \App\Models\User) {
+                                            $query->whereHas('users', fn ($q) =>
+                                            $q->where('users.id', $user->id)
+                                            );
+                                        }
+                                    }
+                                )
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(function (callable $set, $livewire) {
+                                    $set('branch_id', null);
+                                    $livewire->resetValidation('data.business_id');
+                                    $livewire->resetErrorBag('data.business_id');
+                                }),
 
-                        // 🧼 Validation cleanup
-                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                            $livewire->resetValidation('data.customer_id');
-                            $livewire->resetErrorBag('data.customer_id');
-                        }),
+                            Select::make('branch_id')
+                                ->label('Branch')
+                                ->relationship(
+                                    'branch',
+                                    'name',
+                                    function (Builder $query, callable $get) {
+                                        $user = Filament::auth()->user();
+                                        $query
+                                            ->where('business_id', $get('business_id'))
+                                            ->where(
+                                                'merchant_id',
+                                                $user instanceof \App\Models\Merchant
+                                                    ? $user->id
+                                                    : $user->merchant_id
+                                            );
 
-                      Select::make('business_id')
-                        ->label('Business')
-                        ->relationship(
-                            'business',
-                            'name',
-                            function (Builder $query) {
-                                $user = Filament::auth()->user();
+                                        if ($user instanceof \App\Models\User) {
+                                            $query->whereHas('users', fn ($q) =>
+                                            $q->where('users.id', $user->id)
+                                            );
+                                        }
+                                    }
+                                )
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->live()
+                                ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (
+                                    $livewire->resetValidation('data.branch_id') ||
+                                    $livewire->resetErrorBag('data.branch_id')
+                                )),
 
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
+                            Hidden::make('merchant_id')
+                                ->default(fn () =>
+                                Filament::auth()->user() instanceof \App\Models\Merchant
+                                    ? Filament::auth()->user()->id
+                                    : Filament::auth()->user()->merchant_id
+                                )
+                                ->required(),
+                        ]),
 
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
+                    /* ---------------- MERCHANT LOGO (NO BOX) ---------------- */
+                    Grid::make(1)
+                        ->extraAttributes([
+                            'class' => 'h-full flex items-center justify-center',
+                        ])
+                        ->schema([
+                            FileUpload::make('merchant_logo')
+                                ->label('')
+                                ->image()
+                                ->disk('public')
+                                ->directory('merchants/logos')
+                                ->imagePreviewHeight(140)
+                                ->visible(fn () => ! self::merchantHasLogo())
+                                ->dehydrated(false),
 
-                                $query->where('merchant_id', $merchantId);
-
-                                // 🔵 Staff → assigned businesses only
-                                if ($user instanceof \App\Models\User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                    $q->where('users.id', $user->id)
-                                    );
-                                }
-                            }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->reactive()
-                         ->live()
-                         ->afterStateUpdated(function (callable $set,$livewire){
-                             $set('branch_id', null);
-                             $livewire->resetValidation('data.business_id');
-                             $livewire->resetErrorBag('data.business_id');
-                         }),
-
-                    Select::make('branch_id')
-                        ->label('Branch')
-                        ->relationship(
-                            'branch',
-                            'name',
-                            function (Builder $query, callable $get) {
-                                $user = Filament::auth()->user();
-                                $businessId = $get('business_id');
-
-                                if (! $businessId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
-
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                $query
-                                    ->where('merchant_id', $merchantId)
-                                    ->where('business_id', $businessId);
-
-                                // 🔵 Staff → assigned branches only
-                                if ($user instanceof \App\Models\User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                    $q->where('users.id', $user->id)
-                                    );
-                                }
-                            }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->live()
-                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                            $livewire->resetValidation('data.branch_id');
-                            $livewire->resetErrorBag('data.branch_id');
-                        }),
-
-
-                    Hidden::make('merchant_id')
-                        ->default(fn () => match (true) {
-                            Filament::auth()->user() instanceof \App\Models\Merchant
-                            => Filament::auth()->user()->id,
-                            Filament::auth()->user() instanceof \App\Models\User
-                            => Filament::auth()->user()->merchant_id,
-                            default => null,
-                        })
-                        ->required(),
-
+                            View::make('filament.pages.merchant-card')
+                                ->visible(fn () => self::merchantHasLogo()),
+                        ]),
                 ]),
-
             Section::make('Sale Items')
                 ->columnSpanFull()
                 ->schema([
@@ -493,6 +425,17 @@ class SaleForm
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    private static function merchantHasLogo(): bool
+    {
+        $user = Filament::auth()->user();
+
+        $merchant = $user instanceof \App\Models\Merchant
+            ? $user
+            : $user?->merchant;
+
+        return (bool) $merchant?->logo;
     }
 
     private static function recalcTotals(callable $set, callable $get): void

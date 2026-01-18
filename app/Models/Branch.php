@@ -26,7 +26,7 @@ class Branch extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'business_id', 'name', 'address', 'phone', 'status', 'country_id', 'city_id', 'postal_code',
+        'merchant_id', 'business_id', 'name', 'address', 'phone', 'status', 'country_id', 'city_id', 'postal_code','is_active',
     ];
 
     /** @var string $keyType */

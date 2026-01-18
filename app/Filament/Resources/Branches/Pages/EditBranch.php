@@ -14,6 +14,13 @@ class EditBranch extends EditRecord
 {
     protected static string $resource = BranchResource::class;
 
+    public function getTitle(): string
+    {
+        $name = (string) ($this->record?->name ?? '');
+
+        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
@@ -54,7 +61,6 @@ class EditBranch extends EditRecord
     protected function validateCountriesHaveCities(): void
     {
         $state = $this->form->getRawState();
-
         $countries = $state['countries'] ?? [];
         $cities = $state['cities'] ?? [];
 

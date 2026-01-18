@@ -5,144 +5,168 @@ namespace App\Filament\Resources\Purchases\Schemas;
 use App\Models\Product;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Filament\Schemas\Components\View;
+
 
 class PurchaseForm
 {
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('Purchase Information')
-                ->columns(3)
+
+            Grid::make(2)
                 ->columnSpanFull()
                 ->schema([
-                    TextInput::make('purchase_no')
-                        ->label('Purchase Number')
-                        ->default(fn() => 'PUR-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
-                        ->required()
-                        ->maxLength(255)
-                        ->unique(ignoreRecord: true),
 
-                    DatePicker::make('purchase_date')
-                        ->label('Purchase Date')
-                        ->default(now())
-                        ->required()
-                        ->displayFormat('d/m/Y'),
+                    /* ===========================
+                     * PURCHASE INFORMATION
+                     * (UNCHANGED)
+                     * =========================== */
+                    Section::make('Purchase Information')
+                        ->schema([
+                            TextInput::make('purchase_no')
+                                ->label('Purchase Number')
+                                ->default(fn () => 'PUR-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
+                                ->required()
+                                ->maxLength(255)
+                                ->unique(ignoreRecord: true),
 
+                            DatePicker::make('purchase_date')
+                                ->label('Purchase Date')
+                                ->default(now())
+                                ->required()
+                                ->displayFormat('d/m/Y'),
 
+                            Hidden::make('merchant_id')
+                                ->default(function () {
+                                    $user = Filament::auth()->user();
 
-                    Hidden::make('merchant_id')
-                        ->default(function () {
-                            $user = Filament::auth()->user();
+                                    return match (true) {
+                                        $user instanceof \App\Models\Merchant => $user->id,
+                                        $user instanceof \App\Models\User     => $user->merchant_id,
+                                        default                               => null,
+                                    };
+                                })
+                                ->required(),
 
-                            return match (true) {
-                                $user instanceof \App\Models\Merchant => $user->id,
-                                $user instanceof \App\Models\User     => $user->merchant_id,
-                                default                               => null,
-                            };
-                        })
-                        ->required(),
+                            Select::make('business_id')
+                                ->label('Business')
+                                ->relationship(
+                                    'business',
+                                    'name',
+                                    function (Builder $query) {
+                                        $user = Filament::auth()->user();
 
-                    Select::make('business_id')
-                        ->label('Business')
-                        ->relationship(
-                            'business',
-                            'name',
-                            function (Builder $query) {
-                                $user = Filament::auth()->user();
+                                        $merchantId = match (true) {
+                                            $user instanceof \App\Models\Merchant => $user->id,
+                                            $user instanceof \App\Models\User     => $user->merchant_id,
+                                            default                               => null,
+                                        };
 
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
+                                        if (! $merchantId) {
+                                            $query->whereRaw('1 = 0');
+                                            return;
+                                        }
 
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
+                                        $query->where('merchant_id', $merchantId);
 
-                                $query->where('merchant_id', $merchantId);
+                                        if ($user instanceof \App\Models\User) {
+                                            $query->whereHas('users', fn ($q) =>
+                                            $q->where('users.id', $user->id)
+                                            );
+                                        }
+                                    }
+                                )
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->reactive()
+                                ->live()
+                                ->afterStateUpdated(function (callable $set, $livewire) {
+                                    $set('branch_id', null);
+                                    $livewire->resetValidation('data.business_id');
+                                    $livewire->resetErrorBag('data.business_id');
+                                }),
 
-                                // 🔵 STAFF → ONLY assigned businesses (pivot)
-                                if ($user instanceof \App\Models\User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                    $q->where('users.id', $user->id)
-                                    );
-                                }
-                            }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->reactive()
-                        ->live()
-                        ->afterStateUpdated(function (callable $set,$livewire){
-                             $set('branch_id', null);
-                            $livewire->resetValidation('data.business_id');
-                            $livewire->resetErrorBag('data.business_id');
-                    }),
+                            Select::make('branch_id')
+                                ->label('Branch')
+                                ->relationship(
+                                    'branch',
+                                    'name',
+                                    function (Builder $query, callable $get) {
+                                        $user = Filament::auth()->user();
+                                        $businessId = $get('business_id');
 
+                                        if (! $businessId) {
+                                            $query->whereRaw('1 = 0');
+                                            return;
+                                        }
 
-                    Select::make('branch_id')
-                        ->label('Branch')
-                        ->relationship(
-                            'branch',
-                            'name',
-                            function (Builder $query, callable $get) {
-                                $user = Filament::auth()->user();
-                                $businessId = $get('business_id');
+                                        $merchantId = match (true) {
+                                            $user instanceof \App\Models\Merchant => $user->id,
+                                            $user instanceof \App\Models\User     => $user->merchant_id,
+                                            default                               => null,
+                                        };
 
-                                if (! $businessId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
+                                        if (! $merchantId) {
+                                            $query->whereRaw('1 = 0');
+                                            return;
+                                        }
 
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
+                                        $query
+                                            ->where('merchant_id', $merchantId)
+                                            ->where('business_id', $businessId);
 
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
+                                        if ($user instanceof \App\Models\User) {
+                                            $query->whereHas('users', fn ($q) =>
+                                            $q->where('users.id', $user->id)
+                                            );
+                                        }
+                                    }
+                                )
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->reactive()
+                                ->live()
+                                ->afterStateUpdated(function ($livewire) {
+                                    $livewire->resetValidation('data.branch_id');
+                                    $livewire->resetErrorBag('data.branch_id');
+                                }),
+                        ]),
 
-                                $query
-                                    ->where('merchant_id', $merchantId)
-                                    ->where('business_id', $businessId);
+                    /* ===========================
+                     * MERCHANT (NO SECTION / NO BOX)
+                     * =========================== */
+                    Grid::make(1)
+                        ->extraAttributes([
+                            'class' => 'h-full flex items-center justify-center',
+                        ])
+                        ->schema([
+                            FileUpload::make('merchant_logo')
+                                ->label('')
+                                ->image()
+                                ->disk('public')
+                                ->directory('merchants/logos')
+                                ->imagePreviewHeight(140)
+                                ->visible(fn () => ! self::merchantHasLogo())
+                                ->dehydrated(false),
 
-                                // 🔵 STAFF → ONLY assigned branches (pivot)
-                                if ($user instanceof \App\Models\User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                    $q->where('users.id', $user->id)
-                                    );
-                                }
-                            }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                         ->reactive()
-                        ->live()
-                        ->afterStateUpdated(function ($livewire){
-
-                            $livewire->resetValidation('data.branch_id');
-                            $livewire->resetErrorBag('data.branch_id');
-                        }),
-
-
-        ]),
-
+                            View::make('filament.pages.merchant-card')
+                                ->visible(fn () => self::merchantHasLogo()),
+                        ]),
+                ]),
             Section::make('Purchase Items')
                 ->columnSpanFull()
                 ->schema([
@@ -397,6 +421,17 @@ class PurchaseForm
                         ->columnSpanFull(),
                 ]),
         ]);
+    }
+
+    private static function merchantHasLogo(): bool
+    {
+        $user = Filament::auth()->user();
+
+        $merchant = $user instanceof \App\Models\Merchant
+            ? $user
+            : $user?->merchant;
+
+        return (bool) $merchant?->logo;
     }
 
     private static function recalcTotals(callable $set, callable $get): void

@@ -11,6 +11,14 @@ class EditAddOn extends EditRecord
 {
     protected static string $resource = AddOnResource::class;
 
+    public function getTitle(): string
+    {
+        $name = (string) ($this->record?->name ?? '');
+
+        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+    }
+
+
     protected function getHeaderActions(): array
     {
         return [

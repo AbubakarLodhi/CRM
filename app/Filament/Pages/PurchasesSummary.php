@@ -3,8 +3,10 @@
 namespace App\Filament\Pages;
 
 
+use App\Filament\Exports\PurchasesSummaryExport;
 use App\Models\Purchase;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -15,6 +17,8 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
+
 
 class PurchasesSummary extends Page implements HasTable
 {
@@ -266,5 +270,46 @@ class PurchasesSummary extends Page implements HasTable
             'avg_purchase'         => round($avgPurchase, 2),
         ];
     }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('export')
+                ->label('Export to Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->action(function () {
+
+                    $baseQuery = $this->getFilteredTableQueryWithoutPagination();
+
+                    // We export with relations + items_count
+                    $exportQuery = (clone $baseQuery)
+                        ->withCount('items')
+                        ->with(['merchant', 'business', 'branch']);
+
+                    // --- Totals (same filtered dataset) ---
+                    $purchaseIds = (clone $baseQuery)->select('purchases.id');
+
+                    $totals = [
+                        // Items Count = number of purchase_items rows (same as withCount('items') sum)
+                        'items_count' => (int) DB::table('purchase_items')
+                            ->whereIn('purchase_id', $purchaseIds)
+                            ->count(),
+
+                        'subtotal' => (float) (clone $baseQuery)->sum('subtotal'),
+                        'discount' => (float) (clone $baseQuery)->sum('discount'),
+                        'tax'      => (float) (clone $baseQuery)->sum('tax'),
+                        'total'    => (float) (clone $baseQuery)->sum('total_amount'),
+                    ];
+
+                    return Excel::download(
+                        new PurchasesSummaryExport($exportQuery, $totals),
+                        'purchases-summary-' . now()->format('Y-m-d_H-i-s') . '.xlsx'
+                    );
+                }),
+        ];
+    }
+
+
 
 }

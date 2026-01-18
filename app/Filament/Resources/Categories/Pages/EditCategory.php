@@ -14,6 +14,13 @@ class EditCategory extends EditRecord
 {
     protected static string $resource = CategoryResource::class;
 
+    public function getTitle(): string
+    {
+        $name = (string) ($this->record?->name ?? '');
+
+        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
