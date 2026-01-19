@@ -6,10 +6,9 @@
 
         // User can view inventory if they can view sales OR purchases
         $canView = $user
-            && \App\Models\PermissionModule::isEnabledForCurrentMerchant('sales')
+            && \App\Models\PermissionModule::isEnabledForCurrentMerchant('reports')
             && (
-                $user->hasPermissionTo('sales.view', $guard)
-                || $user->hasPermissionTo('purchases.view', $guard)
+                $user->hasPermissionTo('reports.view', $guard)
             );
     @endphp
 

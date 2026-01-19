@@ -43,12 +43,24 @@ class PermissionModule extends Model
     {
         $user = Filament::auth()->user();
 
+        // Merchant panel
+        if ($user instanceof \App\Models\Merchant) {
+            return $user->permissionModules()
+                ->pluck('module')
+                ->toArray();
+        }
 
-        // Merchant → only enabled modules
-        return $user->permissionModules()
-            ->pluck('module')
-            ->toArray();
+        // Staff panel → inherit from merchant
+        if ($user instanceof \App\Models\User && $user->merchant) {
+            return $user->merchant
+                ->permissionModules()
+                ->pluck('module')
+                ->toArray();
+        }
+
+        return [];
     }
+
 
     public static function isEnabledForCurrentMerchant(string $module): bool
     {

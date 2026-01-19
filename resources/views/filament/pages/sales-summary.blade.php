@@ -6,8 +6,8 @@
 
         // EXACT same logic as Sales canView()
         $canView = $user
-            && \App\Models\PermissionModule::isEnabledForCurrentMerchant('sales')
-            && $user->hasPermissionTo('sales.view', $guard);
+            && \App\Models\PermissionModule::isEnabledForCurrentMerchant('reports')
+            && $user->hasPermissionTo('reports.view', $guard);
     @endphp
 
     {{-- ========================= --}}
