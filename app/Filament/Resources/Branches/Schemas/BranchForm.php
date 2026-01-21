@@ -116,7 +116,7 @@ class BranchForm
                     titleAttribute: 'name',
                     modifyQueryUsing: function (Builder $query) {
                         $user = Filament::auth()->user();
-
+                        $query->where('status', true);
                         // Merchant => only their businesses
                         if ($user instanceof \App\Models\Merchant) {
                             $query->where('merchant_id', $user->id);

@@ -79,7 +79,8 @@ class PurchaseForm
                                             return;
                                         }
 
-                                        $query->where('merchant_id', $merchantId);
+                                        $query->where('merchant_id', $merchantId)
+                                            ->where('status', true);
 
                                         if ($user instanceof \App\Models\User) {
                                             $query->whereHas('users', fn ($q) =>
@@ -312,6 +313,59 @@ class PurchaseForm
 
                                     PurchaseForm::recalcTotals($set, $get);
                                 }),
+
+                            Select::make('product_variant_id')
+                                ->label('Product Variant')
+                                ->searchable()
+                                ->reactive()
+                                ->required()
+                                ->options(function (callable $get): array {
+
+                                    $productId = $get('product_id');
+
+                                    if (! $productId) {
+                                        return [];
+                                    }
+
+                                    return \App\Models\ProductVariant::query()
+                                        ->where('product_id', $productId)
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(function ($variant) {
+
+                                            $label =
+                                                $variant->name
+                                                ?? $variant->sku
+                                                ?? $variant->option_values
+                                                ?? substr($variant->id, 0, 8);
+
+                                            return [$variant->id => $label];
+                                        })
+                                        ->all();
+                                })
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+
+                                    if (! $state) {
+                                        return;
+                                    }
+
+                                    $variant = \App\Models\ProductVariant::query()
+                                        ->select(['id', 'purchase_price'])
+                                        ->find($state);
+
+                                    if (! $variant) {
+                                        return;
+                                    }
+
+                                    $qty  = (float) ($get('quantity') ?? 1);
+                                    $unit = (float) ($variant->purchase_price ?? 0);
+
+                                    $set('unit_price', $unit);
+                                    $set('line_total', $unit * $qty);
+
+                                    PurchaseForm::recalcTotals($set, $get);
+                                }),
+
 
 
 

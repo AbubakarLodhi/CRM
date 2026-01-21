@@ -171,6 +171,7 @@ class UserForm
                                 }
 
                                 return $user->businesses()
+                                    ->where('status', true)
                                     ->pluck('businesses.name', 'businesses.id')
                                     ->toArray();
                             })

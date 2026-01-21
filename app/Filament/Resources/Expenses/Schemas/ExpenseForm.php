@@ -55,7 +55,7 @@ class ExpenseForm
                             'name',
                             function (Builder $query) {
                                 $user = Filament::auth()->user();
-
+                                $query->where('status', true);
                                 $merchantId = match (true) {
                                     $user instanceof \App\Models\Merchant => $user->id,
                                     $user instanceof \App\Models\User     => $user->merchant_id,
