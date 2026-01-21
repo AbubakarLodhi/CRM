@@ -44,4 +44,10 @@ class PurchaseItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function variants()
+    {
+        return $this->hasMany(PurchaseItemVariant::class);
+    }
+
 }
