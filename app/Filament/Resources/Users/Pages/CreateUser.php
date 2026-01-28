@@ -3,11 +3,11 @@
 namespace App\Filament\Resources\Users\Pages;
 
 use App\Filament\Resources\Users\UserResource;
+use App\Models\Branch;
 use App\Models\User;
 use Filament\Resources\Pages\CreateRecord;
-use App\Enums\AttachmentMetaType;
-use App\Enums\AttachmentType;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 
 class CreateUser extends CreateRecord
@@ -40,34 +40,29 @@ class CreateUser extends CreateRecord
     {
         $data = $this->form->getState();
 
-        if (! empty($data['businesses'])) {
-            foreach ($data['businesses'] as $businessId) {
-                $this->record->businesses()->attach($businessId, [
-                    'id' => \Illuminate\Support\Str::uuid(),
-                ]);
-            }
-        }
-
+        /** -------------------------------
+         * Sync Branches
+         * -------------------------------- */
         if (! empty($data['branches'])) {
             foreach ($data['branches'] as $branchId) {
                 $this->record->branches()->attach($branchId, [
-                    'id' => \Illuminate\Support\Str::uuid(),
+                    'id' => Str::uuid(),
                 ]);
             }
-        }
 
-        // ✅ NORMALIZE profile photo
-        $path = is_array($data['profile_photo'] ?? null)
-            ? $data['profile_photo'][0]
-            : $data['profile_photo'] ?? null;
+            /** -------------------------------
+             * Derive Businesses from Branches
+             * -------------------------------- */
+            $businessIds = Branch::whereIn('id', $data['branches'])
+                ->pluck('business_id')
+                ->unique()
+                ->values();
 
-        if ($path) {
-            $this->record->profilePhoto()->create([
-                'merchant_id' => $this->record->merchant_id,
-                'type'        => AttachmentType::IMAGE,
-                'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                'photo_url'   => $path, // ✅ STRING
-            ]);
+            foreach ($businessIds as $businessId) {
+                $this->record->businesses()->attach($businessId, [
+                    'id' => Str::uuid(),
+                ]);
+            }
         }
     }
 

@@ -8,21 +8,24 @@
 
 <div class="flex flex-col items-center space-y-2">
     @if ($logo)
-        <img
-            src="{{ asset('storage/' . $logo) }}"
-            class="h-28 w-28 rounded-lg object-contain border"
-        />
+        <div class="h-28 w-28 flex items-center justify-center overflow-hidden">
+            <img
+                src="{{ asset('storage/' . $logo) }}"
+                class="max-h-full max-w-full object-contain"
+                alt="Merchant Logo"
+            />
+        </div>
     @else
-        <div class="h-28 w-28 border-2 border-dashed rounded-lg flex items-center justify-center text-sm">
+        <div class="h-28 w-28 border-2 border-dashed rounded-lg flex items-center justify-center text-sm text-gray-400">
             Upload logo
         </div>
     @endif
 
-    <div class="text-lg font-semibold">
+    <div class="text-lg font-semibold text-center">
         {{ $merchant?->name }}
     </div>
 
-    <div class="text-sm text-gray-500">
+    <div class="text-sm text-gray-500 text-center">
         {{ $merchant?->country ?? '' }}
     </div>
 </div>

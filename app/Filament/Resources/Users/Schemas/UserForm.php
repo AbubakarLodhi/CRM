@@ -153,47 +153,6 @@ class UserForm
 
                 Section::make('Access Control')
                     ->schema([
-                        Select::make('businesses')
-                            ->label('Businesses')
-                            ->multiple()
-                            ->searchable()
-                            ->preload()
-                            ->required()
-
-                            // 🔹 OPTIONS (scoped)
-                            ->options(function () {
-                                $user = Filament::auth()->user();
-
-                                if ($user->id === $user->merchant_id) {
-                                    return \App\Models\Business::where('merchant_id', $user->merchant_id)
-                                        ->pluck('name', 'id')
-                                        ->toArray();
-                                }
-
-                                return $user->businesses()
-                                    ->where('status', true)
-                                    ->pluck('businesses.name', 'businesses.id')
-                                    ->toArray();
-                            })
-
-                            // 🔹 IMPORTANT: rehydrate selected businesses on edit
-                            ->afterStateHydrated(function (callable $set, ?User $record) {
-                                if ($record) {
-                                    $set(
-                                        'businesses',
-                                        $record->businesses()->pluck('businesses.id')->toArray()
-                                    );
-                                }
-                            })
-
-                            // 🔹 ALWAYS resolve label (even if option missing)
-                            ->getOptionLabelUsing(
-                                fn ($value) => \App\Models\Business::find($value)?->name
-                            )
-
-                            ->live()
-                            ->afterStateUpdated(fn (callable $set) => $set('branches', [])),
-
                         Select::make('branches')
                             ->label('Branches')
                             ->multiple()
@@ -201,34 +160,33 @@ class UserForm
                             ->preload()
                             ->required()
 
-                            ->options(function (callable $get) {
-                                $businessIds = $get('businesses') ?? [];
-
-                                if (blank($businessIds)) {
-                                    return [];
-                                }
-
+                            ->options(function () {
                                 $user = Filament::auth()->user();
 
+                                // Merchant owner → all branches
                                 if ($user->id === $user->merchant_id) {
-                                    return \App\Models\Branch::whereIn('business_id', $businessIds)
+                                    return \App\Models\Branch::query()
                                         ->where('merchant_id', $user->merchant_id)
+                                        ->where('is_active', true)
+                                        ->orderBy('name')
                                         ->pluck('name', 'id')
                                         ->toArray();
                                 }
 
+                                // Staff → only assigned branches
                                 return $user->branches()
-                                    ->whereIn('business_id', $businessIds)
+                                    ->where('branches.is_active', true)
+                                    ->orderBy('branches.name')
                                     ->pluck('branches.name', 'branches.id')
                                     ->toArray();
                             })
 
-                            // 🔹 CRITICAL: resolve label for existing value
+                            // Resolve labels even if option not loaded
                             ->getOptionLabelUsing(
                                 fn ($value) => \App\Models\Branch::find($value)?->name
                             )
 
-                            // 🔹 CRITICAL: rehydrate existing branches
+                            // Rehydrate on edit
                             ->afterStateHydrated(function (callable $set, ?User $record) {
                                 if ($record) {
                                     $set(
@@ -237,12 +195,9 @@ class UserForm
                                     );
                                 }
                             }),
-
-
-
                     ])
-                    ->columnSpanFull()
-                    ->columns(2),
+                    ->columns(2)
+                    ->columnSpanFull(),
 
 
 
@@ -251,6 +206,7 @@ class UserForm
 
 
 
-            ]);
+
+        ]);
     }
 }

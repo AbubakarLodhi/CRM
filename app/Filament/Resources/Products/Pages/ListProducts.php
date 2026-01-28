@@ -56,7 +56,9 @@ class ListProducts extends ListRecords
                 ])
                 ),
 
-            CreateAction::make(),
+            CreateAction::make()
+                ->color('primary')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.create', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }
 }
