@@ -31,14 +31,17 @@ class EditPurchase extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['items'] = $this->record->items->map(fn ($item) => [
+            'branch_id'   => $item->branch_id,
             'product_id' => $item->product_id,
-            'quantity' => $item->quantity,
+            'quantity'   => $item->quantity,
             'unit_price' => $item->unit_price,
             'line_total' => $item->line_total,
         ])->toArray();
 
+
         return $data;
     }
+
 
     protected function getHeaderActions(): array
     {
@@ -59,15 +62,16 @@ class EditPurchase extends EditRecord
         $items = $data['items'] ?? [];
         unset($data['items']);
 
-        $subtotal = collect($items)->sum(fn ($i) => (float)($i['line_total'] ?? 0));
-        $discount = (float)($data['discount'] ?? 0);
-        $tax = (float)($data['tax'] ?? 0);
+        $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
+        $discount = (float) ($data['discount'] ?? 0);
+        $tax      = (float) ($data['tax'] ?? 0);
 
-        $data['subtotal'] = $subtotal;
+        $data['subtotal']     = $subtotal;
         $data['total_amount'] = $subtotal - $discount + $tax;
 
         return $data;
     }
+
 
     protected function afterSave(): void
     {
@@ -81,11 +85,27 @@ class EditPurchase extends EditRecord
             $this->record->items()->delete();
 
             foreach ($items as $item) {
-                $this->record->items()->create($item);
+
+                $branch = \App\Models\Branch::select('id', 'business_id')
+                    ->find($item['branch_id']);
+
+                if (! $branch) {
+                    continue;
+                }
+
+                $this->record->items()->create([
+                    'business_id' => $branch->business_id, // ✅ derived
+                    'branch_id'   => $branch->id,
+                    'product_id'  => $item['product_id'],
+                    'quantity'    => $item['quantity'],
+                    'unit_price'  => $item['unit_price'],
+                    'line_total'  => $item['line_total'],
+                ]);
             }
 
+
             /** -----------------------------
-             * UPDATE MERCHANT LOGO
+             * UPDATE MERCHANT LOGO (UNCHANGED)
              * ----------------------------- */
             $state = $this->form->getRawState();
 
@@ -105,12 +125,12 @@ class EditPurchase extends EditRecord
                             'photo_url'   => $logo,
                         ]);
                     } else {
-                        // ✅ removed
                         $merchant->logo()?->delete();
                     }
                 }
             }
         });
     }
+
 
 }

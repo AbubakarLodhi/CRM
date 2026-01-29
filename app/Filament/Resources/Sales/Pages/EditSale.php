@@ -17,9 +17,7 @@ class EditSale extends EditRecord
 
     public function getTitle(): string
     {
-        $name = (string) ($this->record?->name ?? '');
-
-        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
+        return 'Edit Sale';
     }
 
     protected function getRedirectUrl(): string
@@ -30,10 +28,12 @@ class EditSale extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['items'] = $this->record->items->map(fn ($item) => [
-            'product_id' => $item->product_id,
-            'quantity' => $item->quantity,
-            'unit_price' => $item->unit_price,
-            'line_total' => $item->line_total,
+            'branch_id'          => $item->branch_id,
+            'product_id'         => $item->product_id,
+            'product_variant_id' => optional($item->variants->first())->product_variant_id,
+            'quantity'           => $item->quantity,
+            'unit_price'         => $item->unit_price,
+            'line_total'         => $item->line_total,
         ])->toArray();
 
         return $data;
@@ -60,9 +60,9 @@ class EditSale extends EditRecord
 
         $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
         $discount = (float) ($data['discount'] ?? 0);
-        $tax = (float) ($data['tax'] ?? 0);
+        $tax      = (float) ($data['tax'] ?? 0);
 
-        $data['subtotal'] = $subtotal;
+        $data['subtotal']     = $subtotal;
         $data['total_amount'] = $subtotal - $discount + $tax;
 
         return $data;
@@ -73,14 +73,38 @@ class EditSale extends EditRecord
         DB::transaction(function () {
 
             /** -------------------------
-             * UPDATE ITEMS
+             * RECREATE ITEMS + VARIANTS
              * ------------------------- */
             $items = $this->form->getState()['items'] ?? [];
 
             $this->record->items()->delete();
 
             foreach ($items as $item) {
-                $this->record->items()->create($item);
+
+                $branch = \App\Models\Branch::select('id', 'business_id')
+                    ->find($item['branch_id']);
+
+                if (! $branch) {
+                    continue;
+                }
+
+                $saleItem = $this->record->items()->create([
+                    'business_id' => $branch->business_id, // ✅ DERIVED
+                    'branch_id'   => $branch->id,
+                    'product_id'  => $item['product_id'],
+                    'quantity'    => $item['quantity'],
+                    'unit_price'  => $item['unit_price'],
+                    'line_total'  => $item['line_total'],
+                ]);
+
+                if (! empty($item['product_variant_id'])) {
+                    $saleItem->variants()->create([
+                        'product_variant_id' => $item['product_variant_id'],
+                        'quantity'           => $item['quantity'],
+                        'unit_price'         => $item['unit_price'],
+                        'line_total'         => $item['line_total'],
+                    ]);
+                }
             }
 
             /** -------------------------
@@ -108,11 +132,9 @@ class EditSale extends EditRecord
                         'photo_url'   => $logo,
                     ]);
                 } else {
-                    // ✅ logo removed from form
                     $merchant->logo()?->delete();
                 }
             }
         });
     }
-
 }

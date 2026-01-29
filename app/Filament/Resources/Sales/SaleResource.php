@@ -67,13 +67,12 @@ class SaleResource extends Resource
             return $query->where('merchant_id', $merchantId);
         }
 
-        // 🔵 Staff → pivot-based scope
         return $query
             ->where('merchant_id', $merchantId)
-            ->whereHas('business.users', fn ($q) =>
+            ->whereHas('items.business.users', fn ($q) =>
             $q->where('users.id', $user->id)
             )
-            ->whereHas('branch.users', fn ($q) =>
+            ->whereHas('items.branch.users', fn ($q) =>
             $q->where('users.id', $user->id)
             );
     }

@@ -15,9 +15,8 @@ use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Schemas\Components\View;
-
+use Illuminate\Support\Facades\DB;
 
 class PurchaseForm
 {
@@ -31,7 +30,6 @@ class PurchaseForm
 
                     /* ===========================
                      * PURCHASE INFORMATION
-                     * (UNCHANGED)
                      * =========================== */
                     Section::make('Purchase Information')
                         ->schema([
@@ -49,106 +47,12 @@ class PurchaseForm
                                 ->displayFormat('d/m/Y'),
 
                             Hidden::make('merchant_id')
-                                ->default(function () {
-                                    $user = Filament::auth()->user();
-
-                                    return match (true) {
-                                        $user instanceof \App\Models\Merchant => $user->id,
-                                        $user instanceof \App\Models\User     => $user->merchant_id,
-                                        default                               => null,
-                                    };
-                                })
+                                ->default(fn () => self::merchantId())
                                 ->required(),
-
-                            Select::make('business_id')
-                                ->label('Business')
-                                ->relationship(
-                                    'business',
-                                    'name',
-                                    function (Builder $query) {
-                                        $user = Filament::auth()->user();
-
-                                        $merchantId = match (true) {
-                                            $user instanceof \App\Models\Merchant => $user->id,
-                                            $user instanceof \App\Models\User     => $user->merchant_id,
-                                            default                               => null,
-                                        };
-
-                                        if (! $merchantId) {
-                                            $query->whereRaw('1 = 0');
-                                            return;
-                                        }
-
-                                        $query->where('merchant_id', $merchantId)
-                                            ->where('status', true);
-
-                                        if ($user instanceof \App\Models\User) {
-                                            $query->whereHas('users', fn ($q) =>
-                                            $q->where('users.id', $user->id)
-                                            );
-                                        }
-                                    }
-                                )
-                                ->searchable()
-                                ->preload()
-                                ->required()
-                                ->reactive()
-                                ->live()
-                                ->afterStateUpdated(function (callable $set, $livewire) {
-                                    $set('branch_id', null);
-                                    $livewire->resetValidation('data.business_id');
-                                    $livewire->resetErrorBag('data.business_id');
-                                }),
-
-                            Select::make('branch_id')
-                                ->label('Branch')
-                                ->relationship(
-                                    'branch',
-                                    'name',
-                                    function (Builder $query, callable $get) {
-                                        $user = Filament::auth()->user();
-                                        $businessId = $get('business_id');
-
-                                        if (! $businessId) {
-                                            $query->whereRaw('1 = 0');
-                                            return;
-                                        }
-
-                                        $merchantId = match (true) {
-                                            $user instanceof \App\Models\Merchant => $user->id,
-                                            $user instanceof \App\Models\User     => $user->merchant_id,
-                                            default                               => null,
-                                        };
-
-                                        if (! $merchantId) {
-                                            $query->whereRaw('1 = 0');
-                                            return;
-                                        }
-
-                                        $query
-                                            ->where('merchant_id', $merchantId)
-                                            ->where('business_id', $businessId);
-
-                                        if ($user instanceof \App\Models\User) {
-                                            $query->whereHas('users', fn ($q) =>
-                                            $q->where('users.id', $user->id)
-                                            );
-                                        }
-                                    }
-                                )
-                                ->searchable()
-                                ->preload()
-                                ->required()
-                                ->reactive()
-                                ->live()
-                                ->afterStateUpdated(function ($livewire) {
-                                    $livewire->resetValidation('data.branch_id');
-                                    $livewire->resetErrorBag('data.branch_id');
-                                }),
                         ]),
 
                     /* ===========================
-                     * MERCHANT (NO SECTION / NO BOX)
+                     * MERCHANT CARD / LOGO
                      * =========================== */
                     Grid::make(1)
                         ->extraAttributes([
@@ -168,11 +72,108 @@ class PurchaseForm
                                 ->visible(fn () => self::merchantHasLogo()),
                         ]),
                 ]),
+
+            /* ===========================
+             * PURCHASE ITEMS
+             * =========================== */
             Section::make('Purchase Items')
                 ->columnSpanFull()
                 ->schema([
                     Repeater::make('items')
                         ->schema([
+
+//                            /* -------- BUSINESS -------- */
+//                            Select::make('business_id')
+//                                ->label('Business')
+//                                ->searchable()
+//                                ->preload()
+//                                ->required()
+//                                ->options(fn () =>
+//                                \App\Models\Business::query()
+//                                    ->where('merchant_id', self::merchantId())
+//                                    ->orderBy('name')
+//                                    ->pluck('name', 'id')
+//                                    ->toArray()
+//                                )
+//                                ->reactive()
+//                                ->afterStateUpdated(fn (callable $set) => [
+//                                    $set('branch_id', null),
+//                                    $set('product_id', null),
+//                                    $set('product_variant_id', null),
+//                                ]),
+
+                            /* -------- BRANCH -------- */
+                            Select::make('branch_id')
+                                ->label('Branch')
+                                ->searchable()
+                                ->required()
+                                ->options(function () {
+                                    $user = Filament::auth()->user();
+
+                                    // Merchant → all branches
+                                    if ($user instanceof \App\Models\Merchant) {
+                                        return \App\Models\Branch::query()
+                                            ->where('merchant_id', self::merchantId())
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->toArray();
+                                    }
+
+                                    // Staff → only assigned branches
+                                    return $user->branches()
+                                        ->orderBy('branches.name')
+                                        ->pluck('branches.name', 'branches.id')
+                                        ->toArray();
+                                })
+                                ->reactive()
+                                ->afterStateUpdated(function (callable $set, callable $get) {
+
+                                    // Reset dependent fields (UNCHANGED BEHAVIOR)
+                                    $set('product_id', null);
+                                    $set('product_variant_id', null);
+
+                                    $user = Filament::auth()->user();
+
+                                    // Only auto-resolve for STAFF
+                                    if (! $user instanceof \App\Models\User) {
+                                        return;
+                                    }
+
+                                    // Do NOT override if branch already selected
+                                    if ($get('branch_id')) {
+                                        return;
+                                    }
+
+                                    // If staff has only ONE branch → auto-select
+                                    $branchIds = $user->branches()->pluck('branches.id');
+
+                                    if ($branchIds->count() === 1) {
+                                        $set('branch_id', $branchIds->first());
+                                    }
+                                })
+
+                                ->afterStateHydrated(function (callable $set, callable $get) {
+                                    $user = Filament::auth()->user();
+
+                                    if (! $user instanceof \App\Models\User) {
+                                        return;
+                                    }
+
+                                    // If already set, do nothing
+                                    if ($get('branch_id')) {
+                                        return;
+                                    }
+
+                                    $branchIds = $user->branches()->pluck('branches.id');
+
+                                    if ($branchIds->count() === 1) {
+                                        $set('branch_id', $branchIds->first());
+                                    }
+                                })
+                            ,
+
+
+                            /* -------- PRODUCT -------- */
                             Select::make('product_id')
                                 ->label('Product')
                                 ->searchable()
@@ -180,42 +181,36 @@ class PurchaseForm
                                 ->preload()
                                 ->options(function (callable $get): array {
 
-                                    $businessId = $get('../../business_id');
-                                    $branchId   = $get('../../branch_id');
+
+
+                                    $branchId = $get('branch_id');
+
+                                    if (! $branchId) {
+                                        return [];
+                                    }
+
+                                    $businessId = \App\Models\Branch::where('id', $branchId)
+                                        ->value('business_id');
 
                                     if (! $businessId || ! $branchId) {
                                         return [];
                                     }
 
-                                    $user = Filament::auth()->user();
-
-                                    $merchantId = match (true) {
-                                        $user instanceof \App\Models\Merchant => $user->id,
-                                        $user instanceof \App\Models\User     => $user->merchant_id,
-                                        default                               => null,
-                                    };
-
-                                    $query = Product::query()
-                                        ->select('products.id', 'products.name', 'products.sku')
+                                    return Product::query()
                                         ->where('products.is_active', true)
-                                        ->where('products.merchant_id', $merchantId)
-
+                                        ->where('products.merchant_id', self::merchantId())
                                         ->whereExists(function ($q) use ($businessId) {
                                             $q->selectRaw(1)
                                                 ->from('business_products')
                                                 ->whereColumn('business_products.product_id', 'products.id')
                                                 ->where('business_products.business_id', $businessId);
                                         })
-
                                         ->whereExists(function ($q) use ($branchId) {
                                             $q->selectRaw(1)
                                                 ->from('branch_products')
                                                 ->whereColumn('branch_products.product_id', 'products.id')
                                                 ->where('branch_products.branch_id', $branchId);
-                                        });
-
-
-                                    return $query
+                                        })
                                         ->orderBy('products.name')
                                         ->limit(50)
                                         ->get()
@@ -224,47 +219,45 @@ class PurchaseForm
                                         ])
                                         ->all();
                                 })
-
                                 ->getSearchResultsUsing(function (string $search, callable $get): array {
 
                                     if (mb_strlen($search) < 1) {
                                         return [];
                                     }
 
-                                    $businessId = $get('../../business_id');
-                                    $branchId   = $get('../../branch_id');
+                                    $branchId = $get('branch_id');
+
+                                    if (! $branchId) {
+                                        return [];
+                                    }
+
+                                    $businessId = \App\Models\Branch::where('id', $branchId)
+                                        ->value('business_id');
+
 
                                     if (! $businessId || ! $branchId) {
                                         return [];
                                     }
 
-                                    $user = Filament::auth()->user();
-
-                                    $query = Product::query()
-                                        ->select('products.id', 'products.name', 'products.sku')
+                                    return Product::query()
                                         ->where('products.is_active', true)
-
+                                        ->where('products.merchant_id', self::merchantId())
+                                        ->where(function ($q) use ($search) {
+                                            $q->where('products.name', 'ilike', "%{$search}%")
+                                                ->orWhere('products.sku', 'ilike', "%{$search}%");
+                                        })
                                         ->whereExists(function ($q) use ($businessId) {
                                             $q->selectRaw(1)
                                                 ->from('business_products')
                                                 ->whereColumn('business_products.product_id', 'products.id')
                                                 ->where('business_products.business_id', $businessId);
                                         })
-
                                         ->whereExists(function ($q) use ($branchId) {
                                             $q->selectRaw(1)
                                                 ->from('branch_products')
                                                 ->whereColumn('branch_products.product_id', 'products.id')
                                                 ->where('branch_products.branch_id', $branchId);
                                         })
-
-                                        ->where(function ($q) use ($search) {
-                                            $q->where('products.name', 'ilike', "%{$search}%")
-                                                ->orWhere('products.sku', 'ilike', "%{$search}%");
-                                        });
-
-
-                                    return $query
                                         ->limit(50)
                                         ->get()
                                         ->mapWithKeys(fn (Product $p) => [
@@ -272,34 +265,18 @@ class PurchaseForm
                                         ])
                                         ->all();
                                 })
-
-                                ->getOptionLabelUsing(function ($value): ?string {
-                                    if (! $value) {
-                                        return null;
-                                    }
-
-                                    $product = Product::query()
-                                        ->select(['id', 'name', 'sku'])
-                                        ->find($value);
-
-                                    return $product
-                                        ? "{$product->name} ({$product->sku})"
-                                        : null;
-                                })
-
                                 ->required()
                                 ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get,$livewire) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
 
                                     $livewire->resetValidation('data.items.*.product_id');
                                     $livewire->resetErrorBag('data.items.*.product_id');
+
                                     if (! $state) {
                                         return;
                                     }
 
-                                    $product = Product::query()
-                                        ->select(['id', 'purchase_price'])
-                                        ->find($state);
+                                    $product = Product::select(['id', 'purchase_price'])->find($state);
 
                                     if (! $product) {
                                         return;
@@ -311,9 +288,10 @@ class PurchaseForm
                                     $set('unit_price', $unit);
                                     $set('line_total', $unit * $qty);
 
-                                    PurchaseForm::recalcTotals($set, $get);
+                                    self::recalcTotals($set, $get);
                                 }),
 
+                            /* -------- VARIANT -------- */
                             Select::make('product_variant_id')
                                 ->label('Product Variant')
                                 ->searchable()
@@ -332,7 +310,6 @@ class PurchaseForm
                                         ->limit(50)
                                         ->get()
                                         ->mapWithKeys(function ($variant) {
-
                                             $label =
                                                 $variant->name
                                                 ?? $variant->sku
@@ -349,9 +326,7 @@ class PurchaseForm
                                         return;
                                     }
 
-                                    $variant = \App\Models\ProductVariant::query()
-                                        ->select(['id', 'purchase_price'])
-                                        ->find($state);
+                                    $variant = \App\Models\ProductVariant::select(['id', 'purchase_price'])->find($state);
 
                                     if (! $variant) {
                                         return;
@@ -363,12 +338,10 @@ class PurchaseForm
                                     $set('unit_price', $unit);
                                     $set('line_total', $unit * $qty);
 
-                                    PurchaseForm::recalcTotals($set, $get);
+                                    self::recalcTotals($set, $get);
                                 }),
 
-
-
-
+                            /* -------- QUANTITY -------- */
                             TextInput::make('quantity')
                                 ->label('Quantity')
                                 ->numeric()
@@ -378,18 +351,16 @@ class PurchaseForm
                                 ->reactive()
                                 ->debounce(300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    // ✅ Ensure quantity is at least 1
                                     $qty = max(1, (float) ($state ?? 1));
-
                                     $unit = (float) ($get('unit_price') ?? 0);
 
-                                    $set('quantity', $qty); // update state if it was negative
+                                    $set('quantity', $qty);
                                     $set('line_total', $unit * $qty);
 
                                     self::recalcTotals($set, $get);
                                 }),
 
-
+                            /* -------- UNIT PRICE -------- */
                             TextInput::make('unit_price')
                                 ->label('Unit Price')
                                 ->numeric()
@@ -408,7 +379,7 @@ class PurchaseForm
                                     self::recalcTotals($set, $get);
                                 }),
 
-
+                            /* -------- LINE TOTAL -------- */
                             TextInput::make('line_total')
                                 ->label('Line Total')
                                 ->numeric()
@@ -420,61 +391,80 @@ class PurchaseForm
                         ->defaultItems(1)
                         ->minItems(1)
                         ->collapsible()
-                        // ✅ IMPORTANT: no DB calls here
-                        ->itemLabel(fn(array $state): string => $state['product_id'] ? 'Item' : 'New Item')
+                        ->itemLabel(fn (array $state): string => $state['product_id'] ? 'Item' : 'New Item')
                         ->addActionLabel('Add Item')
                         ->reorderable(false)
                         ->deletable(true)
-                        ->afterStateUpdated(function (callable $set, callable $get) {
-                            // Called when items added/removed
-                            self::recalcTotals($set, $get);
-                        }),
+                        ->afterStateUpdated(fn (callable $set, callable $get) =>
+                        self::recalcTotals($set, $get)
+                        ),
                 ]),
 
+            /* ===========================
+             * SUMMARY
+             * =========================== */
             Section::make('Summary')
                 ->columns(4)
                 ->columnSpanFull()
                 ->schema([
                     Placeholder::make('subtotal_display')
                         ->label('Subtotal')
-                        ->content(fn(callable $get): string => number_format((float)($get('subtotal') ?? 0), 2)),
+                        ->content(fn (callable $get) =>
+                        number_format((float) ($get('subtotal') ?? 0), 2)
+                        ),
 
                     TextInput::make('discount')
-                        ->label('Discount')
                         ->numeric()
                         ->default(0)
-                        ->minValue(0)
                         ->reactive()
-                        ->debounce(300)
-                        ->afterStateUpdated(fn($state, callable $set, callable $get) => self::recalcTotals($set, $get)),
+                        ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
+                        self::recalcTotals($set, $get)
+                        ),
 
                     TextInput::make('tax')
-                        ->label('Tax')
                         ->numeric()
                         ->default(0)
-                        ->minValue(0)
                         ->reactive()
-                        ->debounce(300)
-                        ->afterStateUpdated(fn($state, callable $set, callable $get) => self::recalcTotals($set, $get)),
+                        ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
+                        self::recalcTotals($set, $get)
+                        ),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
-                        ->content(fn(callable $get): string => number_format((float)($get('total_amount') ?? 0), 2)),
+                        ->content(fn (callable $get) =>
+                        number_format((float) ($get('total_amount') ?? 0), 2)
+                        ),
 
                     Hidden::make('subtotal')->default(0)->dehydrated(),
                     Hidden::make('total_amount')->default(0)->dehydrated(),
                 ]),
 
+            /* ===========================
+             * NOTES
+             * =========================== */
             Section::make('Notes')
                 ->columnSpanFull()
                 ->schema([
                     Textarea::make('notes')
-                        ->label('Notes')
                         ->maxLength(255)
-                        ->rows(3)
-                        ->columnSpanFull(),
+                        ->rows(3),
                 ]),
         ]);
+    }
+
+    /* ======================================================
+     * HELPERS (DO NOT REMOVE)
+     * ====================================================== */
+
+    private static function merchantId(): ?string
+    {
+        $user = Filament::auth()->user();
+
+        return match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
     }
 
     private static function merchantHasLogo(): bool
@@ -491,10 +481,10 @@ class PurchaseForm
     private static function recalcTotals(callable $set, callable $get): void
     {
         $items = $get('items') ?? [];
-        $subtotal = collect($items)->sum(fn($item) => (float)($item['line_total'] ?? 0));
+        $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_total'] ?? 0));
 
-        $discount = (float)($get('discount') ?? 0);
-        $tax = (float)($get('tax') ?? 0);
+        $discount = (float) ($get('discount') ?? 0);
+        $tax      = (float) ($get('tax') ?? 0);
 
         $set('subtotal', $subtotal);
         $set('total_amount', $subtotal - $discount + $tax);

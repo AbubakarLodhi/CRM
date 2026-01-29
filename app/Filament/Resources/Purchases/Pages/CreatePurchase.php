@@ -23,38 +23,64 @@ class CreatePurchase extends CreateRecord
     {
         return DB::transaction(function () use ($data) {
 
+            /** -----------------------------
+             * EXTRACT ITEMS
+             * ----------------------------- */
             $items = $data['items'] ?? [];
             unset($data['items']);
 
+            /** -----------------------------
+             * CREATED BY
+             * ----------------------------- */
             $panel = Filament::getCurrentPanel();
             $guard = $panel?->getAuthGuard();
-            $user = Filament::auth()->user();
+            $user  = Filament::auth()->user();
 
-            if ($guard === 'staff' && $user) {
-                $data['created_by'] = $user->id;
-            } else {
-                $data['created_by'] = null;
-            }
+            $data['created_by'] = ($guard === 'staff' && $user)
+                ? $user->id
+                : null;
 
-            $subtotal = collect($items)->sum(fn($i) => (float)($i['line_total'] ?? 0));
-            $discount = (float)($data['discount'] ?? 0);
-            $tax = (float)($data['tax'] ?? 0);
+            /** -----------------------------
+             * TOTALS
+             * ----------------------------- */
+            $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
+            $discount = (float) ($data['discount'] ?? 0);
+            $tax      = (float) ($data['tax'] ?? 0);
 
-            $data['subtotal'] = $subtotal;
+            $data['subtotal']     = $subtotal;
             $data['total_amount'] = $subtotal - $discount + $tax;
 
-            /** --------------------------------
+            /** -----------------------------
              * CREATE PURCHASE
-             * -------------------------------- */
+             * ----------------------------- */
             $purchase = static::getModel()::create($data);
 
+            /** -----------------------------
+             * CREATE ITEMS (BUSINESS + BRANCH PER ITEM)
+             * ----------------------------- */
             foreach ($items as $item) {
-                $purchase->items()->create($item);
+
+                $branch = \App\Models\Branch::select('id', 'business_id')
+                    ->find($item['branch_id']);
+
+                if (! $branch) {
+                    continue;
+                }
+
+                $purchase->items()->create([
+                    'business_id' => $branch->business_id, // ✅ derived
+                    'branch_id'   => $branch->id,
+                    'product_id'  => $item['product_id'],
+                    'quantity'    => $item['quantity'],
+                    'unit_price'  => $item['unit_price'],
+                    'line_total'  => $item['line_total'],
+                ]);
             }
 
-            /** --------------------------------
-             * SAVE MERCHANT LOGO (NEW)
-             * -------------------------------- */
+
+            /** -----------------------------
+             * SAVE MERCHANT LOGO (UNCHANGED)
+             * ----------------------------- */
             $state = $this->form->getRawState();
 
             if (array_key_exists('merchant_logo', $state)) {
@@ -62,17 +88,15 @@ class CreatePurchase extends CreateRecord
                     ? Filament::auth()->user()
                     : Filament::auth()->user()?->merchant;
 
-                if ($merchant) {
-                    if ($logo = collect($state['merchant_logo'])->first()) {
-                        $merchant->logo()?->delete();
+                if ($merchant && ($logo = collect($state['merchant_logo'])->first())) {
+                    $merchant->logo()?->delete();
 
-                        $merchant->logo()->create([
-                            'merchant_id' => $merchant->id,
-                            'type' => AttachmentType::IMAGE,
-                            'meta_type' => AttachmentMetaType::MERCHANT_LOGO,
-                            'photo_url' => $logo,
-                        ]);
-                    }
+                    $merchant->logo()->create([
+                        'merchant_id' => $merchant->id,
+                        'type'        => AttachmentType::IMAGE,
+                        'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
+                        'photo_url'   => $logo,
+                    ]);
                 }
             }
 

@@ -71,12 +71,13 @@ class PurchaseResource extends Resource
         // 🔵 STAFF → via pivots (business_users + branch_users)
         return $query
             ->where('merchant_id', $merchantId)
-            ->whereHas('business.users', fn ($q) =>
+            ->whereHas('items.business.users', fn ($q) =>
             $q->where('users.id', $user->id)
             )
-            ->whereHas('branch.users', fn ($q) =>
+            ->whereHas('items.branch.users', fn ($q) =>
             $q->where('users.id', $user->id)
             );
+
     }
 
 

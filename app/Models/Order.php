@@ -11,7 +11,7 @@ class Order extends Model
     use HasUuids;
 
     /** @var string[] */
-    protected $fillable = ['merchant_id', 'business_id', 'branch_id', 'sale_id', 'status', 'status_notes'];
+    protected $fillable = ['merchant_id', 'sale_id', 'status', 'status_notes'];
 
     /** @var bool */
     public $incrementing = false;
@@ -29,15 +29,6 @@ class Order extends Model
         return $this->belongsTo(Merchant::class);
     }
 
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
-    }
-
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
-    }
 
     public function sale(): BelongsTo
     {

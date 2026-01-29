@@ -64,11 +64,16 @@ class BrandsTable
                     ->sortable(),
 
                 // Brand logo
-                ImageColumn::make('logo.photo_url')
+                ImageColumn::make('logo')
                     ->label('Logo')
                     ->size(40)
                     ->square()
-                    ->defaultImageUrl(asset('images/placeholder.jpg')),
+                    ->getStateUsing(fn ($record) =>
+                    $record->logo
+                        ? asset('storage/' . $record->logo->photo_url)
+                        : asset('images/placeholder.jpg')
+                    ),
+
 
                 // All categories in ONE column
                 BadgeColumn::make('categories')

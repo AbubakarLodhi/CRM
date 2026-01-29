@@ -16,7 +16,7 @@ class Purchase extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'business_id', 'branch_id', 'purchase_no', 'purchase_date', 'subtotal', 'discount', 'tax',
+        'merchant_id', 'purchase_no', 'purchase_date', 'subtotal', 'discount', 'tax',
         'total_amount', 'notes', 'created_by'
     ];
 
@@ -40,21 +40,21 @@ class Purchase extends Model
         return $this->belongsTo(Merchant::class);
     }
 
-    /**
-     * @return BelongsTo
-     */
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
-    }
-
-    /**
-     * @return BelongsTo
-     */
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
-    }
+//    /**
+//     * @return BelongsTo
+//     */
+//    public function business(): BelongsTo
+//    {
+//        return $this->belongsTo(Business::class);
+//    }
+//
+//    /**
+//     * @return BelongsTo
+//     */
+//    public function branch(): BelongsTo
+//    {
+//        return $this->belongsTo(Branch::class);
+//    }
 
     /**
      * @return BelongsTo

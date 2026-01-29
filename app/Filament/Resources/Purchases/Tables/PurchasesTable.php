@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Purchases\Tables;
 use App\Filament\Resources\Purchases\PurchaseResource;
 use App\Models\Branch;
 use App\Models\Business;
-use App\Models\Product;
 use App\Models\Purchase;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -17,6 +16,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class PurchasesTable
 {
@@ -24,6 +24,10 @@ class PurchasesTable
     {
         return $table
             ->columns([
+
+                /* -----------------------------
+                 * BASIC INFO
+                 * ----------------------------- */
                 TextColumn::make('purchase_no')
                     ->label('Purchase No.')
                     ->searchable()
@@ -41,31 +45,72 @@ class PurchasesTable
                     ->searchable()
                     ->toggleable(),
 
-                TextColumn::make('business.name')
+                /* -----------------------------
+                 * BUSINESS (FROM ITEMS)
+                 * ----------------------------- */
+                TextColumn::make('businesses')
                     ->label('Business')
-                    ->sortable()
-                    ->searchable()
-                    ->limit(30)
+                    ->badge()
+                    ->color('primary')
+                    ->getStateUsing(function (Purchase $record) {
+                        $names = $record->items()
+                            ->join('businesses', 'businesses.id', '=', 'purchase_items.business_id')
+                            ->select('businesses.name')
+                            ->distinct()
+                            ->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hidden  = $names->count() - $visible->count();
+
+                        if ($hidden > 0) {
+                            $visible->push('+' . $hidden);
+                        }
+
+                        return $visible->toArray();
+                    })
+                    ->sortable(false)
                     ->toggleable(),
 
-                TextColumn::make('branch.name')
+                /* -----------------------------
+                 * BRANCH (FROM ITEMS)
+                 * ----------------------------- */
+                TextColumn::make('branches')
                     ->label('Branch')
-                    ->sortable()
-                    ->searchable()
-                    ->limit(30)
+                    ->badge()
+                    ->color('success')
+                    ->getStateUsing(function (Purchase $record) {
+                        $names = $record->items()
+                            ->join('branches', 'branches.id', '=', 'purchase_items.branch_id')
+                            ->select('branches.name')
+                            ->distinct()
+                            ->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hidden  = $names->count() - $visible->count();
+
+                        if ($hidden > 0) {
+                            $visible->push('+' . $hidden);
+                        }
+
+                        return $visible->toArray();
+                    })
+                    ->sortable(false)
                     ->toggleable(),
 
+                /* -----------------------------
+                 * TOTALS
+                 * ----------------------------- */
                 TextColumn::make('items_count')
                     ->label('Items')
                     ->counts('items')
-                    ->toggleable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->money('USD')
-                    ->toggleable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 TextColumn::make('discount')
                     ->label('Discount')
@@ -82,8 +127,8 @@ class PurchasesTable
                 TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('USD')
-                    ->sortable()
-                    ->weight('bold'),
+                    ->weight('bold')
+                    ->sortable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Created By')
@@ -96,10 +141,13 @@ class PurchasesTable
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
+
+            /* ===========================
+             * FILTERS
+             * =========================== */
             ->filters([
-                /**
-                 * 🏢 BUSINESS FILTER
-                 */
+
+                /* -------- BUSINESS FILTER -------- */
                 SelectFilter::make('business_id')
                     ->label('Business')
                     ->options(function () {
@@ -118,25 +166,33 @@ class PurchasesTable
                         $query = Business::query()
                             ->where('merchant_id', $merchantId);
 
-                        // STAFF → assigned businesses only
                         if ($user instanceof \App\Models\User) {
                             $query->whereHas('users', fn ($q) =>
                             $q->where('users.id', $user->id)
                             );
                         }
 
-                        return $query->pluck('name', 'id')->toArray();
+                        return $query
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
                     })
-                    ->query(fn (Builder $query, array $data) =>
-                    filled($data['value'])
-                        ? $query->where('business_id', $data['value'])
-                        : null
-                    ),
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
 
+                        $query->whereHas('items', fn ($q) =>
+                        $q->where('purchase_items.business_id', $data['value'])
+                        );
+                    }),
+
+                /* -------- BRANCH FILTER -------- */
                 SelectFilter::make('branch_id')
                     ->label('Branch')
                     ->searchable()
                     ->options(function ($livewire) {
+
                         $user = Filament::auth()->user();
 
                         $merchantId = match (true) {
@@ -151,7 +207,7 @@ class PurchasesTable
 
                         $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
 
-                        $query = \App\Models\Branch::query()
+                        $query = Branch::query()
                             ->where('merchant_id', $merchantId);
 
                         if ($businessId) {
@@ -169,49 +225,64 @@ class PurchasesTable
                             ->pluck('name', 'id')
                             ->toArray();
                     })
-                    ->query(fn (Builder $query, array $data) =>
-                    filled($data['value'])
-                        ? $query->where('branch_id', $data['value'])
-                        : null
-                    ),
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
 
-
-
-
+                        $query->whereHas('items', fn ($q) =>
+                        $q->where('purchase_items.branch_id', $data['value'])
+                        );
+                    }),
             ])
+
+            /* ===========================
+             * RECORD ACTIONS
+             * =========================== */
             ->recordUrl(fn (Purchase $record) =>
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
-                ?PurchaseResource::getUrl('edit', [
-                'record' => $record,
-            ])
+                ? PurchaseResource::getUrl('edit', ['record' => $record])
                 : null
             )
 
             ->recordActions([
                 ViewAction::make()
                     ->color('info')
-                    ->label('')
                     ->tooltip('View')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
+
                 EditAction::make()
                     ->color('warning')
-                    ->label('')
                     ->tooltip('Edit')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
+
                 DeleteAction::make()
                     ->color('danger')
-                    ->label('')
                     ->tooltip('Delete')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                    ->visible(fn () =>
+                    auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
             ])
+
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                        ->visible(fn () =>
+                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        ),
                 ]),
             ])
+
             ->defaultSort('purchase_date', 'desc');
     }
 }

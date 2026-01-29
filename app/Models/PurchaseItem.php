@@ -14,7 +14,25 @@ class PurchaseItem extends Model
     public $incrementing = false;
 
     /** @var string[] $fillable */
-    protected $fillable = ['purchase_id', 'product_id', 'quantity', 'unit_price', 'line_total'];
+    protected $fillable = [
+        'purchase_id',
+        'business_id',   // ✅ NEW
+        'branch_id',     // ✅ NEW
+        'product_id',
+        'quantity',
+        'unit_price',
+        'line_total',
+    ];
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     /** @var string $keyType */
     protected $keyType = 'string';
