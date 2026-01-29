@@ -2,35 +2,33 @@
 
 namespace App\Filament\Resources\Products\Pages;
 
-use App\Filament\Resources\Products\ProductResource;
-use Filament\Actions\DeleteAction;
-use Filament\Facades\Filament;
-use Filament\Resources\Pages\EditRecord;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use App\Filament\Resources\Products\ProductResource;
+use App\Models\Branch;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Str;
 
 class EditProduct extends EditRecord
 {
     protected static string $resource = ProductResource::class;
-
-    public function getTitle(): string
-    {
-        $name = (string) ($this->record?->name ?? '');
-
-        return 'Edit ' . \Illuminate\Support\Str::limit($name, 30);
-    }
 
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
     }
 
+    public function getTitle(): string
+    {
+        return 'Edit ' . Str::limit((string) $this->record?->name, 30);
+    }
+
     protected function getHeaderActions(): array
     {
         return [
             DeleteAction::make()
-                ->color('danger')
-                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('products.delete', Filament::getCurrentPanel()->getAuthGuard())),
+                ->color('danger'),
         ];
     }
 
@@ -38,7 +36,7 @@ class EditProduct extends EditRecord
     {
         if ($this->record->productImage) {
             $data['product_image'] = [
-                $this->record->productImage->photo_url
+                $this->record->productImage->photo_url,
             ];
         }
 
@@ -47,23 +45,53 @@ class EditProduct extends EditRecord
 
     protected function afterSave(): void
     {
-        $state = $this->form->getRawState();
+        $state   = $this->form->getRawState();
+        $product = $this->record;
 
-        $path = collect($state['product_image'] ?? null)->first();
+        /* -------------------------
+         | Sync Branches
+         |--------------------------*/
+        if (isset($state['branches'])) {
 
-        if (! $path) {
-            return;
+            $branchSync = [];
+
+            foreach ($state['branches'] as $branchId) {
+                $branchSync[$branchId] = ['id' => (string) Str::uuid()];
+            }
+
+            $product->branches()->sync($branchSync);
+
+            /* -------------------------
+             | Derive Businesses from Branches
+             |--------------------------*/
+            $businessIds = Branch::whereIn('id', $state['branches'])
+                ->pluck('business_id')
+                ->unique()
+                ->values();
+
+            $businessSync = [];
+
+            foreach ($businessIds as $businessId) {
+                $businessSync[$businessId] = ['id' => (string) Str::uuid()];
+            }
+
+            $product->businesses()->sync($businessSync);
         }
 
-        $this->record->productImage()?->delete();
+        /* -------------------------
+         | Product Image
+         |--------------------------*/
+        $path = collect($state['product_image'] ?? null)->first();
 
-        $this->record->productImage()->create([
-            'merchant_id' => $this->record->merchant_id,
-            'type'        => AttachmentType::IMAGE,
-            'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
-            'photo_url'   => $path,
-        ]);
+        if ($path) {
+            $product->productImage()?->delete();
+
+            $product->productImage()->create([
+                'merchant_id' => $product->merchant_id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::PRODUCT_IMAGE,
+                'photo_url'   => $path,
+            ]);
+        }
     }
-
-
 }

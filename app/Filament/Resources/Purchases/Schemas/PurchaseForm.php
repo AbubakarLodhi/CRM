@@ -103,181 +103,87 @@ class PurchaseForm
 //                                ]),
 
                             /* -------- BRANCH -------- */
-                            Select::make('branch_id')
-                                ->label('Branch')
-                                ->searchable()
-                                ->required()
-                                ->options(function () {
-                                    $user = Filament::auth()->user();
-
-                                    // Merchant → all branches
-                                    if ($user instanceof \App\Models\Merchant) {
-                                        return \App\Models\Branch::query()
-                                            ->where('merchant_id', self::merchantId())
-                                            ->orderBy('name')
-                                            ->pluck('name', 'id')
-                                            ->toArray();
-                                    }
-
-                                    // Staff → only assigned branches
-                                    return $user->branches()
-                                        ->orderBy('branches.name')
-                                        ->pluck('branches.name', 'branches.id')
-                                        ->toArray();
-                                })
-                                ->reactive()
-                                ->afterStateUpdated(function (callable $set, callable $get) {
-
-                                    // Reset dependent fields (UNCHANGED BEHAVIOR)
-                                    $set('product_id', null);
-                                    $set('product_variant_id', null);
-
-                                    $user = Filament::auth()->user();
-
-                                    // Only auto-resolve for STAFF
-                                    if (! $user instanceof \App\Models\User) {
-                                        return;
-                                    }
-
-                                    // Do NOT override if branch already selected
-                                    if ($get('branch_id')) {
-                                        return;
-                                    }
-
-                                    // If staff has only ONE branch → auto-select
-                                    $branchIds = $user->branches()->pluck('branches.id');
-
-                                    if ($branchIds->count() === 1) {
-                                        $set('branch_id', $branchIds->first());
-                                    }
-                                })
-
-                                ->afterStateHydrated(function (callable $set, callable $get) {
-                                    $user = Filament::auth()->user();
-
-                                    if (! $user instanceof \App\Models\User) {
-                                        return;
-                                    }
-
-                                    // If already set, do nothing
-                                    if ($get('branch_id')) {
-                                        return;
-                                    }
-
-                                    $branchIds = $user->branches()->pluck('branches.id');
-
-                                    if ($branchIds->count() === 1) {
-                                        $set('branch_id', $branchIds->first());
-                                    }
-                                })
-                            ,
 
 
-                            /* -------- PRODUCT -------- */
+
+        /* -------- PRODUCT -------- */
                             Select::make('product_id')
                                 ->label('Product')
                                 ->searchable()
-                                ->live()
                                 ->preload()
-                                ->options(function (callable $get): array {
+                                ->required()
+                                ->reactive()
+                                ->options(function () {
 
+                                    $user = Filament::auth()->user();
 
-
-                                    $branchId = $get('branch_id');
-
-                                    if (! $branchId) {
-                                        return [];
+                                    // MERCHANT → all products
+                                    if ($user instanceof \App\Models\Merchant) {
+                                        return Product::query()
+                                            ->where('is_active', true)
+                                            ->where('merchant_id', self::merchantId())
+                                            ->orderBy('name')
+                                            ->limit(50)
+                                            ->get()
+                                            ->mapWithKeys(fn ($p) => [$p->id => "{$p->name} ({$p->sku})"])
+                                            ->all();
                                     }
 
-                                    $businessId = \App\Models\Branch::where('id', $branchId)
-                                        ->value('business_id');
-
-                                    if (! $businessId || ! $branchId) {
-                                        return [];
-                                    }
+                                    // STAFF → only products linked to their branches
+                                    $branchIds = $user->branches()->pluck('branches.id');
 
                                     return Product::query()
                                         ->where('products.is_active', true)
                                         ->where('products.merchant_id', self::merchantId())
-                                        ->whereExists(function ($q) use ($businessId) {
-                                            $q->selectRaw(1)
-                                                ->from('business_products')
-                                                ->whereColumn('business_products.product_id', 'products.id')
-                                                ->where('business_products.business_id', $businessId);
-                                        })
-                                        ->whereExists(function ($q) use ($branchId) {
+                                        ->whereExists(function ($q) use ($branchIds) {
                                             $q->selectRaw(1)
                                                 ->from('branch_products')
                                                 ->whereColumn('branch_products.product_id', 'products.id')
-                                                ->where('branch_products.branch_id', $branchId);
+                                                ->whereIn('branch_products.branch_id', $branchIds);
                                         })
                                         ->orderBy('products.name')
                                         ->limit(50)
                                         ->get()
-                                        ->mapWithKeys(fn (Product $p) => [
-                                            $p->id => "{$p->name} ({$p->sku})",
-                                        ])
+                                        ->mapWithKeys(fn ($p) => [$p->id => "{$p->name} ({$p->sku})"])
                                         ->all();
                                 })
-                                ->getSearchResultsUsing(function (string $search, callable $get): array {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
 
-                                    if (mb_strlen($search) < 1) {
-                                        return [];
-                                    }
-
-                                    $branchId = $get('branch_id');
-
-                                    if (! $branchId) {
-                                        return [];
-                                    }
-
-                                    $businessId = \App\Models\Branch::where('id', $branchId)
-                                        ->value('business_id');
-
-
-                                    if (! $businessId || ! $branchId) {
-                                        return [];
-                                    }
-
-                                    return Product::query()
-                                        ->where('products.is_active', true)
-                                        ->where('products.merchant_id', self::merchantId())
-                                        ->where(function ($q) use ($search) {
-                                            $q->where('products.name', 'ilike', "%{$search}%")
-                                                ->orWhere('products.sku', 'ilike', "%{$search}%");
-                                        })
-                                        ->whereExists(function ($q) use ($businessId) {
-                                            $q->selectRaw(1)
-                                                ->from('business_products')
-                                                ->whereColumn('business_products.product_id', 'products.id')
-                                                ->where('business_products.business_id', $businessId);
-                                        })
-                                        ->whereExists(function ($q) use ($branchId) {
-                                            $q->selectRaw(1)
-                                                ->from('branch_products')
-                                                ->whereColumn('branch_products.product_id', 'products.id')
-                                                ->where('branch_products.branch_id', $branchId);
-                                        })
-                                        ->limit(50)
-                                        ->get()
-                                        ->mapWithKeys(fn (Product $p) => [
-                                            $p->id => "{$p->name} ({$p->sku})",
-                                        ])
-                                        ->all();
-                                })
-                                ->required()
-                                ->reactive()
-                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-
-                                    $livewire->resetValidation('data.items.*.product_id');
-                                    $livewire->resetErrorBag('data.items.*.product_id');
+                                    // Reset dependents when product changes
+                                    $set('branch_id', null);
+                                    $set('product_variant_id', null);
 
                                     if (! $state) {
                                         return;
                                     }
 
-                                    $product = Product::select(['id', 'purchase_price'])->find($state);
+                                    $user = Filament::auth()->user();
 
+                                    $branchQuery = \App\Models\Branch::query()
+                                        ->where('merchant_id', self::merchantId())
+                                        ->whereExists(function ($q) use ($state) {
+                                            $q->selectRaw(1)
+                                                ->from('branch_products')
+                                                ->whereColumn('branch_products.branch_id', 'branches.id')
+                                                ->where('branch_products.product_id', $state);
+                                        });
+
+                                    if ($user instanceof \App\Models\User) {
+                                        $branchQuery->whereIn(
+                                            'branches.id',
+                                            $user->branches()->pluck('branches.id')
+                                        );
+                                    }
+
+                                    $branchIds = $branchQuery->pluck('branches.id');
+
+                                    // ✅ Auto-select if only one branch exists
+                                    if ($branchIds->count() === 1) {
+                                        $set('branch_id', $branchIds->first());
+                                    }
+
+                                    // Pricing
+                                    $product = Product::select(['id', 'purchase_price'])->find($state);
                                     if (! $product) {
                                         return;
                                     }
@@ -291,14 +197,16 @@ class PurchaseForm
                                     self::recalcTotals($set, $get);
                                 }),
 
-                            /* -------- VARIANT -------- */
+
+
+
+        /* -------- VARIANT -------- */
                             Select::make('product_variant_id')
                                 ->label('Product Variant')
                                 ->searchable()
                                 ->reactive()
                                 ->required()
                                 ->options(function (callable $get): array {
-
                                     $productId = $get('product_id');
 
                                     if (! $productId) {
@@ -313,15 +221,29 @@ class PurchaseForm
                                             $label =
                                                 $variant->name
                                                 ?? $variant->sku
-                                                ?? $variant->option_values
                                                 ?? substr($variant->id, 0, 8);
 
                                             return [$variant->id => $label];
                                         })
                                         ->all();
                                 })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
 
+                                /**
+                                 * 🔑 CRITICAL: Re-apply value AFTER options exist
+                                 */
+                                ->afterStateHydrated(function (callable $set, callable $get) {
+                                    $productId = $get('product_id');
+                                    $variantId = $get('product_variant_id');
+
+                                    if (! $productId || ! $variantId) {
+                                        return;
+                                    }
+
+                                    // Force Filament to re-bind value
+                                    $set('product_variant_id', $variantId);
+                                })
+
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     if (! $state) {
                                         return;
                                     }
@@ -339,6 +261,75 @@ class PurchaseForm
                                     $set('line_total', $unit * $qty);
 
                                     self::recalcTotals($set, $get);
+                                }),
+
+
+                                Select::make('branch_id')
+                                ->label('Branch')
+                                ->searchable()
+                                ->required()
+                                ->reactive()
+                                ->allowHtml() // ✅ required for indentation
+                                ->options(function (callable $get): array {
+
+                                    $productId = $get('product_id');
+                                    if (! $productId) {
+                                        return [];
+                                    }
+
+                                    $user = Filament::auth()->user();
+
+                                    $query = \App\Models\Branch::query()
+                                        ->with('business')
+                                        ->where('merchant_id', self::merchantId())
+                                        ->whereExists(function ($q) use ($productId) {
+                                            $q->selectRaw(1)
+                                                ->from('branch_products')
+                                                ->whereColumn('branch_products.branch_id', 'branches.id')
+                                                ->where('branch_products.product_id', $productId);
+                                        });
+
+                                    // Staff → only assigned branches
+                                    if ($user instanceof \App\Models\User) {
+                                        $query->whereIn(
+                                            'branches.id',
+                                            $user->branches()->pluck('branches.id')
+                                        );
+                                    }
+
+                                    return $query
+                                        ->orderBy('business_id')
+                                        ->orderBy('branches.name')
+                                        ->get()
+                                        ->groupBy(fn ($branch) => $branch->business?->name ?? 'Other')
+                                        ->map(fn ($group) =>
+                                        $group->pluck('name', 'id')
+                                            ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;' . e($name))
+                                            ->toArray()
+                                        )
+                                        ->toArray();
+                                })
+                                ->afterStateHydrated(function (callable $set, callable $get) {
+
+                                    // Auto-select branch if ONLY one exists
+                                    $productId = $get('product_id');
+                                    if (! $productId || $get('branch_id')) {
+                                        return;
+                                    }
+
+                                    $branches = \App\Models\Branch::query()
+                                        ->where('merchant_id', self::merchantId())
+                                        ->whereExists(function ($q) use ($productId) {
+                                            $q->selectRaw(1)
+                                                ->from('branch_products')
+                                                ->whereColumn('branch_products.branch_id', 'branches.id')
+                                                ->where('branch_products.product_id', $productId);
+                                        })
+                                        ->pluck('branches.id');
+
+                                    if ($branches->count() === 1) {
+                                        $set('branch_id', $branches->first());
+                                    }
                                 }),
 
                             /* -------- QUANTITY -------- */

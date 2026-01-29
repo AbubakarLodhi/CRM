@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Expenses\Pages;
 
 use App\Filament\Resources\Expenses\ExpenseResource;
+use App\Models\Branch;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -20,35 +21,38 @@ class CreateExpense extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         return DB::transaction(function () use ($data) {
+
             $items = $data['items'] ?? [];
             unset($data['items']);
 
-            $panel = Filament::getCurrentPanel();
-            $guard = $panel?->getAuthGuard();
-            $user  = Filament::auth()->user();
+            $user = Filament::auth()->user();
 
-            /*
-            |--------------------------------------------------------------------------
-            | merchant_id + created_by (CORRECT LOGIC)
-            |--------------------------------------------------------------------------
-            */
+            /* --------------------------------
+             | Resolve merchant + creator
+             |-------------------------------- */
             if ($user instanceof \App\Models\Merchant) {
                 $data['merchant_id'] = $user->id;
                 $data['created_by']  = null;
-            }
-
-            if ($user instanceof \App\Models\User) {
+            } else {
                 $data['merchant_id'] = $user->merchant_id;
                 $data['created_by']  = $user->id;
             }
 
+            /* --------------------------------
+             | Resolve business from branch
+             |-------------------------------- */
+            $data['business_id'] = Branch::where('id', $data['branch_id'])
+                ->value('business_id');
 
+            /* --------------------------------
+             | Totals
+             |-------------------------------- */
             $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
             $discount = (float) ($data['discount'] ?? 0);
-            $tax = (float) ($data['tax'] ?? 0);
+            $tax      = (float) ($data['tax'] ?? 0);
 
-            $data['subtotal'] = $subtotal;
-            $data['total_amount'] = $subtotal - $discount + $tax;
+            $data['subtotal']      = $subtotal;
+            $data['total_amount']  = $subtotal - $discount + $tax;
 
             $expense = static::getModel()::create($data);
 

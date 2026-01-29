@@ -48,95 +48,91 @@ class ExpenseForm
                         ->required(),
 
 
-                    Select::make('business_id')
-                        ->label('Business')
-                        ->relationship(
-                            'business',
-                            'name',
-                            function (Builder $query) {
-                                $user = Filament::auth()->user();
-                                $query->where('status', true);
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
+//                    Select::make('business_id')
+//                        ->label('Business')
+//                        ->relationship(
+//                            'business',
+//                            'name',
+//                            function (Builder $query) {
+//                                $user = Filament::auth()->user();
+//                                $query->where('status', true);
+//                                $merchantId = match (true) {
+//                                    $user instanceof \App\Models\Merchant => $user->id,
+//                                    $user instanceof \App\Models\User     => $user->merchant_id,
+//                                    default                               => null,
+//                                };
+//
+//                                if (! $merchantId) {
+//                                    $query->whereRaw('1 = 0');
+//                                    return;
+//                                }
+//
+//                                $query->where('merchant_id', $merchantId);
+//
+//                                // 🔵 Staff → assigned businesses only
+//                                if ($user instanceof \App\Models\User) {
+//                                    $query->whereHas('users', fn ($q) =>
+//                                    $q->where('users.id', $user->id)
+//                                    );
+//                                }
+//                            }
+//                        )
+//                        ->searchable()
+//                        ->preload()
+//                        ->required()
+//                        ->reactive()
+//                        ->live()
+//                        ->afterStateUpdated(function (callable $set,$livewire){
+//                            $set('branch_id', null);
+//                            $livewire->resetValidation('data.business_id');
+//                            $livewire->resetErrorBag('data.business_id');
+//                        }),
 
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
 
-                                $query->where('merchant_id', $merchantId);
-
-                                // 🔵 Staff → assigned businesses only
-                                if ($user instanceof \App\Models\User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                    $q->where('users.id', $user->id)
-                                    );
-                                }
-                            }
-                        )
+                    Select::make('branch_id')
+                        ->label('Branch')
                         ->searchable()
-                        ->preload()
                         ->required()
                         ->reactive()
-                        ->live()
-                        ->afterStateUpdated(function (callable $set,$livewire){
-                            $set('branch_id', null);
-                            $livewire->resetValidation('data.business_id');
-                            $livewire->resetErrorBag('data.business_id');
-                        }),
+                        ->allowHtml() // ✅ enables indentation
+                        ->options(function (): array {
 
+                            $user = Filament::auth()->user();
 
-        Select::make('branch_id')
-                        ->label('Branch')
-                        ->relationship(
-                            'branch',
-                            'name',
-                            function (Builder $query, callable $get) {
-                                $user = Filament::auth()->user();
-                                $businessId = $get('business_id');
+                            $query = \App\Models\Branch::query()
+                                ->with('business')
+                                ->where('is_active', true);
 
-                                if (! $businessId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
-
-                                if (! $merchantId) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                $query
-                                    ->where('merchant_id', $merchantId)
-                                    ->where('business_id', $businessId);
-
-                                // 🔵 Staff → assigned branches only
-                                if ($user instanceof \App\Models\User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                    $q->where('users.id', $user->id)
-                                    );
-                                }
+                            // Merchant → all branches
+                            if ($user instanceof \App\Models\Merchant) {
+                                $query->where('merchant_id', $user->id);
                             }
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->live()
-                       ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                                              $livewire->resetValidation('data.branch_id');
-                                             $livewire->resetErrorBag('data.branch_id');
+
+                            // Staff → assigned branches only
+                            if ($user instanceof \App\Models\User) {
+                                $query->whereIn(
+                                    'branches.id',
+                                    $user->branches()->pluck('branches.id')
+                                );
+                            }
+
+                            return $query
+                                ->orderBy('business_id')
+                                ->orderBy('branches.name')
+                                ->get()
+                                ->groupBy(fn ($branch) => $branch->business?->name ?? 'Other')
+                                ->map(fn ($group) =>
+                                $group->pluck('name', 'id')
+                                    ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;' . e($name))
+                                    ->toArray()
+                                )
+                                ->toArray();
                         }),
 
 
-        Hidden::make('created_by')
+
+
+                    Hidden::make('created_by')
                             ->default(fn() => Filament::auth()->id()),
                 ]),
 

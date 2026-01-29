@@ -31,16 +31,18 @@ class EditPurchase extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['items'] = $this->record->items->map(fn ($item) => [
-            'branch_id'   => $item->branch_id,
-            'product_id' => $item->product_id,
-            'quantity'   => $item->quantity,
-            'unit_price' => $item->unit_price,
-            'line_total' => $item->line_total,
+            'branch_id'          => $item->branch_id,
+            'product_id'         => $item->product_id,
+            'product_variant_id' => optional($item->variants->first())->product_variant_id,
+            'quantity'           => $item->quantity,
+            'unit_price'         => $item->unit_price,
+            'line_total'         => $item->line_total,
         ])->toArray();
-
 
         return $data;
     }
+
+
 
 
     protected function getHeaderActions(): array
@@ -77,11 +79,9 @@ class EditPurchase extends EditRecord
     {
         DB::transaction(function () {
 
-            /** -----------------------------
-             * UPDATE ITEMS
-             * ----------------------------- */
             $items = $this->form->getState()['items'] ?? [];
 
+            // Clear existing
             $this->record->items()->delete();
 
             foreach ($items as $item) {
@@ -93,44 +93,28 @@ class EditPurchase extends EditRecord
                     continue;
                 }
 
-                $this->record->items()->create([
-                    'business_id' => $branch->business_id, // ✅ derived
+                $purchaseItem = $this->record->items()->create([
+                    'business_id' => $branch->business_id,
                     'branch_id'   => $branch->id,
                     'product_id'  => $item['product_id'],
                     'quantity'    => $item['quantity'],
                     'unit_price'  => $item['unit_price'],
                     'line_total'  => $item['line_total'],
                 ]);
-            }
 
-
-            /** -----------------------------
-             * UPDATE MERCHANT LOGO (UNCHANGED)
-             * ----------------------------- */
-            $state = $this->form->getRawState();
-
-            if (array_key_exists('merchant_logo', $state)) {
-                $merchant = Filament::auth()->user() instanceof \App\Models\Merchant
-                    ? Filament::auth()->user()
-                    : Filament::auth()->user()?->merchant;
-
-                if ($merchant) {
-                    if ($logo = collect($state['merchant_logo'])->first()) {
-                        $merchant->logo()?->delete();
-
-                        $merchant->logo()->create([
-                            'merchant_id' => $merchant->id,
-                            'type'        => AttachmentType::IMAGE,
-                            'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
-                            'photo_url'   => $logo,
-                        ]);
-                    } else {
-                        $merchant->logo()?->delete();
-                    }
+                // ✅ MATCH SALE
+                if (! empty($item['product_variant_id'])) {
+                    $purchaseItem->variants()->create([
+                        'product_variant_id' => $item['product_variant_id'],
+                        'quantity'           => $item['quantity'],
+                        'unit_price'         => $item['unit_price'],
+                        'line_total'         => $item['line_total'],
+                    ]);
                 }
             }
         });
     }
+
 
 
 }

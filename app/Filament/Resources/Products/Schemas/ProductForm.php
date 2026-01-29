@@ -161,66 +161,82 @@ class ProductForm
                     /* =========================
                      | BUSINESS SELECT
                      |=========================*/
-                    Select::make('businesses')
-                        ->label('Businesses')
-                        ->relationship(
-                            name: 'businesses',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query) {
-                                $user = Filament::auth()->user();
-                                $query->where('status', true);
-                                $merchantId = match (true) {
-                                    $user instanceof \App\Models\Merchant => $user->id,
-                                    $user instanceof \App\Models\User     => $user->merchant_id,
-                                    default                               => null,
-                                };
-
-                                if ($merchantId) {
-                                    $query->where('merchant_id', $merchantId);
-                                }
-                            }
-                        )
-                        ->multiple()
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->reactive()
-                        ->live()
-                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                            $livewire->resetValidation('data.businesses');
-                             $livewire->resetErrorBag('data.businesses');
-                }),
+//                    Select::make('businesses')
+//                        ->label('Businesses')
+//                        ->relationship(
+//                            name: 'businesses',
+//                            titleAttribute: 'name',
+//                            modifyQueryUsing: function (Builder $query) {
+//                                $user = Filament::auth()->user();
+//                                $query->where('status', true);
+//                                $merchantId = match (true) {
+//                                    $user instanceof \App\Models\Merchant => $user->id,
+//                                    $user instanceof \App\Models\User     => $user->merchant_id,
+//                                    default                               => null,
+//                                };
+//
+//                                if ($merchantId) {
+//                                    $query->where('merchant_id', $merchantId);
+//                                }
+//                            }
+//                        )
+//                        ->multiple()
+//                        ->searchable()
+//                        ->preload()
+//                        ->required()
+//                        ->reactive()
+//                        ->live()
+//                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+//                            $livewire->resetValidation('data.businesses');
+//                             $livewire->resetErrorBag('data.businesses');
+//                }),
 
                     /* =========================
                      | BRANCH SELECT
                      |=========================*/
                     Select::make('branches')
                         ->label('Branches')
-                        ->relationship(
-                            name: 'branches',
-                            titleAttribute: 'name',
-                            modifyQueryUsing: function (Builder $query, callable $get) {
-                                $businessIds = $get('businesses');
-
-                                // ❌ No business selected → show nothing
-                                if (empty($businessIds)) {
-                                    $query->whereRaw('1 = 0');
-                                    return;
-                                }
-
-                                // ✅ Only branches of selected businesses
-                                $query->whereIn('business_id', (array) $businessIds);
-                            }
-                        )
                         ->multiple()
                         ->searchable()
                         ->preload()
                         ->required()
-                        ->live()
-                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                            $livewire->resetValidation('data.branch_id');
-                            $livewire->resetErrorBag('data.branch_id');
-                        }),
+                        ->allowHtml() // ✅ REQUIRED for indentation
+                        ->options(function () {
+                            $user = Filament::auth()->user();
+
+                            $branchesQuery = \App\Models\Branch::query()
+                                ->with('business')
+                                ->where('is_active', true);
+
+                            // Merchant → all branches
+                            if ($user instanceof \App\Models\Merchant) {
+                                $branchesQuery->where('merchant_id', $user->id);
+                            }
+                            // Staff → only assigned branches
+                            else {
+                                $branchesQuery->whereIn(
+                                    'branches.id',
+                                    $user->branches()->pluck('branches.id')
+                                );
+                            }
+
+                            return $branchesQuery
+                                ->orderBy('business_id')
+                                ->orderBy('name')
+                                ->get()
+                                ->groupBy(fn ($branch) => $branch->business?->name ?? 'Other')
+                                ->map(fn ($group) =>
+                                $group->pluck('name', 'id')
+                                    ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;' . e($name)) // 👈 indent
+                                    ->toArray()
+                                )
+                                ->toArray();
+                        })
+                        ->getOptionLabelUsing(
+                            fn ($value) => \App\Models\Branch::find($value)?->name
+                        ),
+
+
                 ]),
 
             \Filament\Schemas\Components\Section::make('Classification')

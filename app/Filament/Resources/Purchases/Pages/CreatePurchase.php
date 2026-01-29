@@ -23,15 +23,15 @@ class CreatePurchase extends CreateRecord
     {
         return DB::transaction(function () use ($data) {
 
-            /** -----------------------------
-             * EXTRACT ITEMS
-             * ----------------------------- */
+            /* -----------------------------
+             | EXTRACT ITEMS
+             ----------------------------- */
             $items = $data['items'] ?? [];
             unset($data['items']);
 
-            /** -----------------------------
-             * CREATED BY
-             * ----------------------------- */
+            /* -----------------------------
+             | CREATED BY
+             ----------------------------- */
             $panel = Filament::getCurrentPanel();
             $guard = $panel?->getAuthGuard();
             $user  = Filament::auth()->user();
@@ -40,9 +40,9 @@ class CreatePurchase extends CreateRecord
                 ? $user->id
                 : null;
 
-            /** -----------------------------
-             * TOTALS
-             * ----------------------------- */
+            /* -----------------------------
+             | TOTALS
+             ----------------------------- */
             $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
             $discount = (float) ($data['discount'] ?? 0);
             $tax      = (float) ($data['tax'] ?? 0);
@@ -50,14 +50,14 @@ class CreatePurchase extends CreateRecord
             $data['subtotal']     = $subtotal;
             $data['total_amount'] = $subtotal - $discount + $tax;
 
-            /** -----------------------------
-             * CREATE PURCHASE
-             * ----------------------------- */
+            /* -----------------------------
+             | CREATE PURCHASE
+             ----------------------------- */
             $purchase = static::getModel()::create($data);
 
-            /** -----------------------------
-             * CREATE ITEMS (BUSINESS + BRANCH PER ITEM)
-             * ----------------------------- */
+            /* -----------------------------
+             | CREATE ITEMS + VARIANTS ✅
+             ----------------------------- */
             foreach ($items as $item) {
 
                 $branch = \App\Models\Branch::select('id', 'business_id')
@@ -67,20 +67,29 @@ class CreatePurchase extends CreateRecord
                     continue;
                 }
 
-                $purchase->items()->create([
-                    'business_id' => $branch->business_id, // ✅ derived
+                $purchaseItem = $purchase->items()->create([
+                    'business_id' => $branch->business_id,
                     'branch_id'   => $branch->id,
                     'product_id'  => $item['product_id'],
                     'quantity'    => $item['quantity'],
                     'unit_price'  => $item['unit_price'],
                     'line_total'  => $item['line_total'],
                 ]);
+
+                // ✅ MATCH SALE
+                if (! empty($item['product_variant_id'])) {
+                    $purchaseItem->variants()->create([
+                        'product_variant_id' => $item['product_variant_id'],
+                        'quantity'           => $item['quantity'],
+                        'unit_price'         => $item['unit_price'],
+                        'line_total'         => $item['line_total'],
+                    ]);
+                }
             }
 
-
-            /** -----------------------------
-             * SAVE MERCHANT LOGO (UNCHANGED)
-             * ----------------------------- */
+            /* -----------------------------
+             | MERCHANT LOGO (UNCHANGED)
+             ----------------------------- */
             $state = $this->form->getRawState();
 
             if (array_key_exists('merchant_logo', $state)) {

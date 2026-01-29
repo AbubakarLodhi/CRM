@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Users\Schemas;
 
 
+use App\Models\Branch;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DateTimePicker;
@@ -159,34 +160,44 @@ class UserForm
                             ->searchable()
                             ->preload()
                             ->required()
-
                             ->options(function () {
                                 $user = Filament::auth()->user();
 
-                                // Merchant owner → all branches
+                                // Fetch branches with business relation
+                                $branchesQuery = Branch::query()
+                                    ->with('business')
+                                    ->where('is_active', true);
+
                                 if ($user->id === $user->merchant_id) {
-                                    return \App\Models\Branch::query()
-                                        ->where('merchant_id', $user->merchant_id)
-                                        ->where('is_active', true)
-                                        ->orderBy('name')
-                                        ->pluck('name', 'id')
-                                        ->toArray();
+                                    // Merchant owner → all branches
+                                    $branchesQuery->where('merchant_id', $user->merchant_id);
+                                } else {
+                                    // Staff → only assigned branches
+                                    $branchesQuery->whereIn(
+                                        'id',
+                                        $user->branches()->pluck('branches.id')
+                                    );
                                 }
 
-                                // Staff → only assigned branches
-                                return $user->branches()
-                                    ->where('branches.is_active', true)
-                                    ->orderBy('branches.name')
-                                    ->pluck('branches.name', 'branches.id')
+                                $branches = $branchesQuery
+                                    ->orderBy('business_id')
+                                    ->orderBy('name')
+                                    ->get();
+
+                                // Group branches by business name
+                                return $branches
+                                    ->groupBy(fn ($branch) => $branch->business?->name ?? 'Other')
+                                    ->map(fn ($group) =>
+                                    $group->pluck('name', 'id')
+                                        ->map(fn ($name) => '  ' . $name) // 👈 INDENT HERE
+                                        ->toArray()
+                                    )
                                     ->toArray();
+
                             })
-
-                            // Resolve labels even if option not loaded
                             ->getOptionLabelUsing(
-                                fn ($value) => \App\Models\Branch::find($value)?->name
+                                fn ($value) => Branch::find($value)?->name
                             )
-
-                            // Rehydrate on edit
                             ->afterStateHydrated(function (callable $set, ?User $record) {
                                 if ($record) {
                                     $set(
@@ -195,6 +206,7 @@ class UserForm
                                     );
                                 }
                             }),
+
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
