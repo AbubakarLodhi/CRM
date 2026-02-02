@@ -34,6 +34,10 @@ class EditProduct extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        $data['branches'] = $this->record
+            ->branches()
+            ->pluck('branches.id')
+            ->toArray();
         if ($this->record->productImage) {
             $data['product_image'] = [
                 $this->record->productImage->photo_url,

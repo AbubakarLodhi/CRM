@@ -37,26 +37,32 @@ class MerchantSettingForm
                 ->schema([
                     ColorPicker::make('primary_color')
                         ->label('Primary')
+                        ->default('#1E3A8A')
                         ->required(),
 
                     ColorPicker::make('secondary_color')
                         ->label('Secondary')
+                        ->default('#64748B')
                         ->required(),
 
                     ColorPicker::make('warning_color')
                         ->label('Warning')
+                        ->default('#FACC15')
                         ->required(),
 
                     ColorPicker::make('danger_color')
                         ->label('Danger')
+                        ->default('#DC2626')
                         ->required(),
 
                     ColorPicker::make('success_color')
                         ->label('Success')
+                        ->default('#22C55E')
                         ->required(),
 
                     ColorPicker::make('default_color')
                         ->label('Default')
+                        ->default('#E5E7EB')
                         ->required(),
                 ]),
 

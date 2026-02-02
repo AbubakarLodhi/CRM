@@ -6,6 +6,7 @@ use App\Filament\Resources\Purchases\PurchaseResource;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Purchase;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -250,14 +251,27 @@ class PurchasesTable
             ->recordActions([
                 ViewAction::make()
                     ->color('info')
+                    ->label(' ')
                     ->tooltip('View')
                     ->visible(fn () =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())
                     ),
 
+                Action::make('invoice')
+                    ->icon('heroicon-o-document-text')
+                    ->color('gray')
+                    ->label(' ')
+                    ->tooltip('Invoice')
+                    ->url(fn ($record) => route('invoices.show', [
+                        'type' => 'purchase',
+                        'id'   => $record->id,
+                    ])),
+                    //->openUrlInNewTab(),
+
                 EditAction::make()
                     ->color('warning')
+                    ->label(' ')
                     ->tooltip('Edit')
                     ->visible(fn () =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
@@ -266,6 +280,7 @@ class PurchasesTable
 
                 DeleteAction::make()
                     ->color('danger')
+                    ->label(' ')
                     ->tooltip('Delete')
                     ->visible(fn () =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())

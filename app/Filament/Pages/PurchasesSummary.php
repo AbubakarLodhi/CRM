@@ -72,21 +72,27 @@ class PurchasesSummary extends Page implements HasTable
                     return Purchase::query()->whereRaw('1 = 0');
                 }
 
-                if ($user instanceof \App\Models\Merchant) {
-                    return Purchase::query()
-                        ->with(['merchant', 'business', 'branch', 'items'])
-                        ->where('merchant_id', $merchantId);
-                }
-                return Purchase::query()
-                    ->with(['merchant', 'business', 'branch', 'items'])
+                $query = Purchase::query()
                     ->where('merchant_id', $merchantId)
-                    ->whereHas('business.users', fn ($q) =>
-                    $q->where('users.id', $user->id)
-                    )
-                    ->whereHas('branch.users', fn ($q) =>
-                    $q->where('users.id', $user->id)
-                    );
+                    ->with([
+                        'merchant',
+                        'items.business',
+                        'items.branch',
+                    ]);
+
+                if ($user instanceof \App\Models\User) {
+                    $query
+                        ->whereHas('items.business.users', fn ($q) =>
+                        $q->where('users.id', $user->id)
+                        )
+                        ->whereHas('items.branch.users', fn ($q) =>
+                        $q->where('users.id', $user->id)
+                        );
+                }
+
+                return $query;
             })
+
 
             ->columns([
                 TextColumn::make('purchase_no')

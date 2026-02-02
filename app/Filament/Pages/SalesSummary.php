@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Models\Purchase;
 use App\Models\Sale;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -48,20 +49,26 @@ class SalesSummary extends Page implements HasTable
                 if (! $merchantId) {
                     return Sale::query()->whereRaw('1 = 0');
                 }
-                if ($user instanceof \App\Models\Merchant) {
-                    return Sale::query()
-                        ->with(['merchant', 'business', 'branch', 'customer', 'items'])
-                        ->where('merchant_id', $merchantId);
-                }
-                return Sale::query()
-                    ->with(['merchant', 'business', 'branch', 'customer', 'items'])
+
+                $query = Sale::query()
                     ->where('merchant_id', $merchantId)
-                    ->whereHas('business.users', fn ($q) =>
-                    $q->where('users.id', $user->id)
-                    )
-                    ->whereHas('branch.users', fn ($q) =>
-                    $q->where('users.id', $user->id)
-                    );
+                    ->with([
+                        'merchant',
+                        'items.business',
+                        'items.branch',
+                    ]);
+
+                if ($user instanceof \App\Models\User) {
+                    $query
+                        ->whereHas('items.business.users', fn ($q) =>
+                        $q->where('users.id', $user->id)
+                        )
+                        ->whereHas('items.branch.users', fn ($q) =>
+                        $q->where('users.id', $user->id)
+                        );
+                }
+
+                return $query;
             })
             ->columns([
                 TextColumn::make('sale_no')->label('Sale No.')->searchable()->sortable(),

@@ -33,6 +33,7 @@ class MerchantPanelProvider extends PanelProvider
             ->id('merchant')
             ->path('merchant')
             ->authGuard('merchant')
+            ->default()
             ->login()
             ->passwordReset()
             ->brandLogo(function () {

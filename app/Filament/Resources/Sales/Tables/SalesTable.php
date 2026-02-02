@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Sales\Tables;
 
 use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Sale;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -111,6 +112,18 @@ class SalesTable
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('sales.view', Filament::getCurrentPanel()->getAuthGuard())
                     ),
+
+                Action::make('invoice')
+                    ->icon('heroicon-o-document-text')
+                    ->color('gray')
+                    ->label(' ')
+                    ->tooltip('Invoice')
+                    ->url(fn ($record) => route('invoices.show', [
+                        'type' => 'sale',
+                        'id'   => $record->id,
+                    ])),
+                    //->openUrlInNewTab(),
+
 
                 EditAction::make()
                     ->color('warning')
