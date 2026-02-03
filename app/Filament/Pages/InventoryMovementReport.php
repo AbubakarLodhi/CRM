@@ -95,6 +95,11 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('variant_name')
+                    ->label('Variant')
+                    ->toggleable()
+                    ->searchable(),
+
                 TextColumn::make('product_sku')
                     ->label('SKU')
                     ->toggleable(),
@@ -118,8 +123,14 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 TextColumn::make('direction')
                     ->toggleable()
                     ->badge()
-                    ->formatStateUsing(fn ($s) => $s === 'in' ? 'In' : 'Out')
-                    ->color(fn ($s) => $s === 'in' ? 'success' : 'danger'),
+                    ->getStateUsing(fn ($record) =>
+                    $record['type'] === 'Purchase' ? 'In' : 'Out'
+                    )
+                    ->color(fn ($state) =>
+                    $state === 'In' ? 'success' : 'danger'
+                    ),
+
+
             ])
             ->defaultSort('date', 'desc')
             ->paginated([10,25, 50, 100]);
@@ -138,70 +149,111 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             default                               => null,
         };
 
-        $purchaseItems = \App\Models\PurchaseItem::query()
-            ->with(['purchase', 'product'])
+        $purchaseRows = \App\Models\Purchase::query()
+            ->with([
+                'items.variants.variant.product',
+                'items.business.users',
+                'items.branch.users',
+            ])
             ->when($merchantId, fn ($q) =>
-            $q->whereHas('purchase', fn ($p) =>
-            $p->where('merchant_id', $merchantId)
-            )
+            $q->where('merchant_id', $merchantId)
             )
             ->when($user instanceof \App\Models\User, fn ($q) =>
-            $q->whereHas('purchase.business.users', fn ($u) =>
+            $q->whereHas('items.business.users', fn ($u) =>
             $u->where('users.id', $user->id)
             )
-                ->whereHas('purchase.branch.users', fn ($u) =>
+                ->whereHas('items.branch.users', fn ($u) =>
                 $u->where('users.id', $user->id)
                 )
             )
             ->get()
-            ->map(fn ($item) => [
-                'id'           => 'purchase-' . $item->id,
-                'date'         => $item->purchase->purchase_date,
-                'type'         => 'Purchase',
-                'reference'    => $item->purchase->purchase_no,
-                'product_name' => $item->product->name,
-                'product_sku'  => $item->product->sku,
-                'quantity'     => $item->quantity,
-                'unit_price'   => $item->unit_price,
-                'total'        => $item->line_total,
-                'direction'    => 'in',
-            ]);
+            ->flatMap(function ($purchase) {
+                return $purchase->items->flatMap(function ($item) use ($purchase) {
+                    return $item->variants->map(function ($variantRow) use ($purchase, $item) {
+
+                        $variant = $variantRow->variant;
+                        $product = $variant->product;
+
+                        return [
+                            'id'            => 'purchase-var-' . $variantRow->id,
+                            'date'          => $purchase->purchase_date,
+                            'type'          => 'Purchase',
+                            'reference'     => $purchase->purchase_no,
+
+                            // PRODUCT (BLUEPRINT)
+                            'product_name'  => $product->name,
+
+                            // VARIANT (STOCK UNIT)
+                            'variant_name'  => $variant->name,
+                            'product_sku'   => $variant->sku,
+
+                            'quantity'      => $variantRow->quantity,
+                            'unit_price'    => $variantRow->unit_price,
+                            'total'         => $variantRow->line_total,
+
+                            'direction'     => 'in',
+                        ];
+                    });
+                });
+            });
+
+
+
 
         // Sales (OUT)
-        $saleItems = \App\Models\SaleItem::query()
-            ->with(['sale', 'product'])
+
+        $saleRows = \App\Models\Sale::query()
+            ->with([
+                'items.variants.variant.product',
+                'items.business.users',
+                'items.branch.users',
+            ])
             ->when($merchantId, fn ($q) =>
-            $q->whereHas('sale', fn ($s) =>
-            $s->where('merchant_id', $merchantId)
-            )
+            $q->where('merchant_id', $merchantId)
             )
             ->when($user instanceof \App\Models\User, fn ($q) =>
-            $q->whereHas('sale.business.users', fn ($u) =>
+            $q->whereHas('items.business.users', fn ($u) =>
             $u->where('users.id', $user->id)
             )
-                ->whereHas('sale.branch.users', fn ($u) =>
+                ->whereHas('items.branch.users', fn ($u) =>
                 $u->where('users.id', $user->id)
                 )
             )
             ->get()
-            ->map(fn ($item) => [
-                'id'           => 'sale-' . $item->id,
-                'date'         => $item->sale->sale_date,
-                'type'         => 'Sale',
-                'reference'    => $item->sale->sale_no,
-                'product_name' => $item->product->name,
-                'product_sku'  => $item->product->sku,
-                'quantity'     => $item->quantity,
-                'unit_price'   => $item->unit_price,
-                'total'        => $item->line_total,
-                'direction'    => 'out',
-            ]);
+            ->flatMap(function ($sale) {
+                return $sale->items->flatMap(function ($item) use ($sale) {
+                    return $item->variants->map(function ($variantRow) use ($sale, $item) {
+
+                        $variant = $variantRow->variant;
+                        $product = $variant->product;
+
+                        return [
+                            'id'            => 'sale-var-' . $variantRow->id,
+                            'date'          => $sale->sale_date,
+                            'type'          => 'Sale',
+                            'reference'     => $sale->sale_no,
+
+                            'product_name'  => $product->name,
+                            'variant_name'  => $variant->name,
+                            'product_sku'   => $variant->sku,
+
+                            'quantity'      => $variantRow->quantity,
+                            'unit_price'    => $variantRow->unit_price,
+                            'total'         => $variantRow->line_total,
+
+                            'direction'     => 'out',
+                        ];
+                    });
+                });
+            });
 
 
-        $records = $purchaseItems
-            ->concat($saleItems)
+
+        $records = $purchaseRows
+            ->concat($saleRows)
             ->sortByDesc('date')
             ->values();
+
 
         // APPLY FILTERS MANUALLY
         if ($this->typeFilter) {
@@ -223,7 +275,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
     {
         $records = $this->getRecords();
 
-        $in  = $records->where('direction', 'in')->sum('quantity');
+            $in  = $records->where('direction', 'in')->sum('c  c    ');
         $out = $records->where('direction', 'out')->sum('quantity');
 
         return [

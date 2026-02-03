@@ -11,7 +11,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 
-class PurchasesSummaryExport implements
+class SalesSummaryExport implements
     FromQuery,
     WithHeadings,
     WithMapping,
@@ -34,8 +34,9 @@ class PurchasesSummaryExport implements
     public function headings(): array
     {
         return [
-            'Purchase No',
+            'Sale No',
             'Date',
+            'Customer',
             'Merchant',
             'Branch',
             'Items Count',
@@ -46,11 +47,12 @@ class PurchasesSummaryExport implements
         ];
     }
 
-    public function map($purchase): array
+    public function map($sale): array
     {
         $this->rowCount++;
 
-        $branches = $purchase->items
+        // Same branch logic as UI
+        $branches = $sale->items
             ->pluck('branch.name')
             ->filter()
             ->unique()
@@ -64,15 +66,16 @@ class PurchasesSummaryExport implements
         }
 
         return [
-            $purchase->purchase_no,
-            optional($purchase->purchase_date)->format('d/m/Y'),
-            $purchase->merchant?->name,
+            $sale->sale_no,
+            optional($sale->sale_date)->format('d/m/Y'),
+            $sale->customer?->name,
+            $sale->merchant?->name,
             $branchText ?: '-',
-            (int) $purchase->items_count,
-            (float) $purchase->subtotal,
-            (float) $purchase->discount,
-            (float) $purchase->tax,
-            (float) $purchase->total_amount,
+            (int) $sale->items_count,
+            (float) $sale->subtotal,
+            (float) $sale->discount,
+            (float) $sale->tax,
+            (float) $sale->total_amount,
         ];
     }
 
@@ -89,15 +92,16 @@ class PurchasesSummaryExport implements
                 $endRow   = $this->rowCount + 1;
                 $totalRow = $endRow + 1;
 
-                $event->sheet->setCellValue("D{$totalRow}", 'TOTAL');
+                $event->sheet->setCellValue("E{$totalRow}", 'TOTAL');
 
-                $event->sheet->setCellValue("E{$totalRow}", $this->totals['items_count'] ?? 0);
-                $event->sheet->setCellValue("F{$totalRow}", $this->totals['subtotal'] ?? 0);
-                $event->sheet->setCellValue("G{$totalRow}", $this->totals['discount'] ?? 0);
-                $event->sheet->setCellValue("H{$totalRow}", $this->totals['tax'] ?? 0);
-                $event->sheet->setCellValue("I{$totalRow}", $this->totals['total'] ?? 0);
+                $event->sheet->setCellValue("F{$totalRow}", $this->totals['items_count'] ?? 0);
+                $event->sheet->setCellValue("G{$totalRow}", $this->totals['subtotal'] ?? 0);
+                $event->sheet->setCellValue("H{$totalRow}", $this->totals['discount'] ?? 0);
+                $event->sheet->setCellValue("I{$totalRow}", $this->totals['tax'] ?? 0);
+                $event->sheet->setCellValue("J{$totalRow}", $this->totals['total'] ?? 0);
 
-                $event->sheet->getStyle("D{$totalRow}:I{$totalRow}")
+                $event->sheet
+                    ->getStyle("E{$totalRow}:J{$totalRow}")
                     ->getFont()
                     ->setBold(true);
             },

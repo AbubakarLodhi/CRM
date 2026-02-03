@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-
 use App\Filament\Exports\PurchasesSummaryExport;
 use App\Models\PermissionModule;
 use App\Models\Purchase;
@@ -11,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -19,7 +19,6 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
-
 
 class PurchasesSummary extends Page implements HasTable
 {
@@ -35,18 +34,17 @@ class PurchasesSummary extends Page implements HasTable
 
     public static function canViewAny(): bool
     {
-        $user = Filament::auth()->user();
+        $user  = Filament::auth()->user();
         $guard = Filament::getCurrentPanel()->getAuthGuard();
 
         if (! $user) {
             return false;
         }
-        // 🔐 Module gate
+
         if (! PermissionModule::isEnabledForCurrentMerchant('purchases')) {
             return false;
         }
 
-        // 🔐 Permission gate
         return $user->hasPermissionTo('purchases.view', $guard);
     }
 
@@ -76,18 +74,13 @@ class PurchasesSummary extends Page implements HasTable
                     ->where('merchant_id', $merchantId)
                     ->with([
                         'merchant',
-                        'items.business',
                         'items.branch',
                     ]);
 
                 if ($user instanceof \App\Models\User) {
-                    $query
-                        ->whereHas('items.business.users', fn ($q) =>
-                        $q->where('users.id', $user->id)
-                        )
-                        ->whereHas('items.branch.users', fn ($q) =>
-                        $q->where('users.id', $user->id)
-                        );
+                    $query->whereHas('items.branch.users', fn ($q) =>
+                    $q->where('users.id', $user->id)
+                    );
                 }
 
                 return $query;
@@ -112,43 +105,66 @@ class PurchasesSummary extends Page implements HasTable
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('business.name')
-                    ->label('Business')
-                    ->searchable()
-                    ->limit(30)
-                    ->sortable()
+                BadgeColumn::make('branches')
+                    ->label('Branch')
+                    ->colors(['primary'])
+                    ->getStateUsing(function ($record) {
+                        return $record->items
+                            ->pluck('branch.name')
+                            ->filter()
+                            ->unique()
+                            ->values()
+                            ->toArray();
+                    })
+                    ->formatStateUsing(function ($state) {
+
+                        // ✅ Normalize state
+                        if (empty($state)) {
+                            return ['-'];
+                        }
+
+                        if (is_string($state)) {
+                            return $state;
+                        }
+
+                        if (! is_array($state)) {
+                            return '-';
+                        }
+
+                        // ✅ Limit badges
+                        if (count($state) <= 2) {
+                            return $state;
+                        }
+
+                        return array_merge(
+                            array_slice($state, 0, 2),
+                            ['+' . (count($state) - 2) . ' more']
+                        );
+                    })
                     ->toggleable(),
 
-                TextColumn::make('branch.name')
-                    ->label('Branch')
-                    ->searchable()
-                    ->sortable()
-                    ->limit(30)
-                    ->toggleable(),
+
+
 
                 TextColumn::make('items_count')
                     ->label('Items')
-                    ->toggleable()
                     ->counts('items')
                     ->sortable(),
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
-                    ->toggleable()
                     ->money('USD')
                     ->sortable(),
 
                 TextColumn::make('discount')
                     ->label('Discount')
                     ->money('USD')
-                    ->sortable()
-                    ->toggleable(),
+                    ->sortable(),
 
                 TextColumn::make('tax')
                     ->label('Tax')
                     ->money('USD')
-                    ->sortable()
-                    ->toggleable(),
+                    ->sortable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
@@ -156,11 +172,11 @@ class PurchasesSummary extends Page implements HasTable
                     ->sortable()
                     ->weight('bold'),
             ])
+
             ->filters([
-
-
-                SelectFilter::make('business_id')
-                    ->label('Business')
+                /* ✅ FIXED BRANCH FILTER */
+                SelectFilter::make('branch_id')
+                    ->label('Branch')
                     ->options(function () {
                         $user = Filament::auth()->user();
 
@@ -174,119 +190,73 @@ class PurchasesSummary extends Page implements HasTable
                             return [];
                         }
 
-                        $query = \App\Models\Business::query()
-                            ->where('merchant_id', $merchantId);
-
-                        if ($user instanceof \App\Models\User) {
-                            $query->whereHas('users', fn ($q) =>
-                            $q->where('users.id', $user->id)
-                            );
-                        }
-
-                        return $query->pluck('name', 'id')->toArray();
-                    })
-                    ->query(fn (Builder $query, array $data) =>
-                    filled($data['value'])
-                        ? $query->where('business_id', $data['value'])
-                        : null
-                    ),
-
-
-                SelectFilter::make('branch_id')
-                    ->label('Branch')
-                    ->options(function ($livewire) {
-                        $user = Filament::auth()->user();
-
-                        $merchantId = match (true) {
-                            $user instanceof \App\Models\Merchant => $user->id,
-                            $user instanceof \App\Models\User     => $user->merchant_id,
-                            default                               => null,
-                        };
-
-                        if (! $merchantId) {
-                            return [];
-                        }
-
-                        $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
-
                         $query = \App\Models\Branch::query()
                             ->where('merchant_id', $merchantId);
 
-                        if ($businessId) {
-                            $query->where('business_id', $businessId);
-                        }
-
                         if ($user instanceof \App\Models\User) {
                             $query->whereHas('users', fn ($q) =>
                             $q->where('users.id', $user->id)
                             );
                         }
 
-                        return $query
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray();
+                        return $query->orderBy('name')->pluck('name', 'id')->toArray();
                     })
                     ->query(fn (Builder $query, array $data) =>
                     filled($data['value'])
-                        ? $query->where('branch_id', $data['value'])
+                        ? $query->whereHas('items', fn ($q) =>
+                    $q->where('branch_id', $data['value'])
+                    )
                         : null
                     ),
-
             ])
-            ->paginated([10,25, 50, 100])
+
+            ->paginated([10, 25, 50, 100])
             ->defaultSort('purchase_date', 'desc');
     }
 
     /* ============================================================
-     |  IMPORTANT: FILTERED QUERY WITHOUT PAGINATION
+     |  FILTERED QUERY WITHOUT PAGINATION
      ============================================================ */
 
     protected function getFilteredTableQueryWithoutPagination(): Builder
     {
         $query = clone $this->getFilteredTableQuery();
-
-        // 🔥 THIS IS THE KEY FIX
         $query->getQuery()->limit = null;
         $query->getQuery()->offset = null;
-
         return $query;
     }
 
     /* ============================================================
-     |  STATS (FILTER-AWARE, UNPAGINATED)
+     |  STATS (UNCHANGED)
      ============================================================ */
+
     public function getPurchaseStats(): array
     {
         $filteredQuery = $this->getFilteredTableQueryWithoutPagination();
+        $purchaseIds   = (clone $filteredQuery)->pluck('purchases.id');
 
-        $totalPurchases = (clone $filteredQuery)->count();
+        $totalPurchases = $purchaseIds->count();
 
-        $purchaseIds = (clone $filteredQuery)->select('purchases.id');
-
-        // ✅ NEW: item rows count
         $totalItemLines = DB::table('purchase_items')
             ->whereIn('purchase_id', $purchaseIds)
             ->count();
 
-        // ✅ EXISTING: quantity sum
-        $totalItemQuantity = DB::table('purchase_items')
-            ->whereIn('purchase_id', $purchaseIds)
-            ->sum('quantity');
+        $totalItemQuantity = DB::table('purchase_item_variants as piv')
+            ->join('purchase_items as pi', 'pi.id', '=', 'piv.purchase_item_id')
+            ->whereIn('pi.purchase_id', $purchaseIds)
+            ->sum('piv.quantity');
 
         $totalAmount   = (clone $filteredQuery)->sum('total_amount');
         $totalDiscount = (clone $filteredQuery)->sum('discount');
         $totalTax      = (clone $filteredQuery)->sum('tax');
         $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
 
-        $avgPurchase = $totalPurchases > 0
-            ? $totalAmount / $totalPurchases
-            : 0;
+        $avgPurchase = $totalPurchases > 0 ? $totalAmount / $totalPurchases : 0;
 
         return [
             'total_purchases'      => (int) $totalPurchases,
-            'total_items_count'    => (int) $totalItemLines,     // 👈 rows
-            'total_items_quantity' => (float) $totalItemQuantity, // 👈 quantity
+            'total_items_count'    => (int) $totalItemLines,
+            'total_items_quantity' => (float) $totalItemQuantity,
             'total_amount'         => (float) $totalAmount,
             'total_discount'       => (float) $totalDiscount,
             'total_tax'            => (float) $totalTax,
@@ -294,22 +264,25 @@ class PurchasesSummary extends Page implements HasTable
             'avg_purchase'         => round($avgPurchase, 2),
         ];
     }
-
     protected function getHeaderActions(): array
     {
         return [
             Action::make('export')
                 ->label('Export to Excel')
                 ->icon('heroicon-o-arrow-down-tray')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
                 ->color('success')
                 ->action(function () {
 
                     $baseQuery = $this->getFilteredTableQueryWithoutPagination();
 
-                    // We export with relations + items_count
+
                     $exportQuery = (clone $baseQuery)
                         ->withCount('items')
-                        ->with(['merchant', 'business', 'branch']);
+                        ->with([
+                            'merchant',
+                            'items.branch',   // ✅ branch comes via purchase_items
+                        ]);
 
                     // --- Totals (same filtered dataset) ---
                     $purchaseIds = (clone $baseQuery)->select('purchases.id');
@@ -334,6 +307,9 @@ class PurchasesSummary extends Page implements HasTable
         ];
     }
 
-
-
 }
+
+
+
+
+

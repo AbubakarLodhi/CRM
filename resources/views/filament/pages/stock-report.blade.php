@@ -54,7 +54,7 @@
                 <x-filament::card>
                     <div class="flex items-center gap-2 text-sm text-gray-500">
                         <x-heroicon-o-archive-box class="h-4 w-4 text-primary-500" />
-                        <span>Total Products</span>
+                        <span>Total Product Variants</span>
                     </div>
                     <div class="mt-1 text-2xl font-semibold text-primary-700">
                         {{ $stats['total_products'] }}

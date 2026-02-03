@@ -40,21 +40,8 @@ class Sale extends Model
         return $this->belongsTo(Merchant::class);
     }
 
-    /**
-     * @return BelongsTo
-     */
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
-    }
 
-    /**
-     * @return BelongsTo
-     */
-    public function branch(): BelongsTo
-    {
-        return $this->belongsTo(Branch::class);
-    }
+
 
     /**
      * @return BelongsTo

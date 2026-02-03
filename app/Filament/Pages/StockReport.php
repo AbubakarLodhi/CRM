@@ -2,8 +2,7 @@
 
 namespace App\Filament\Pages;
 
-
-use App\Models\Product;
+use App\Models\ProductVariant;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
@@ -30,67 +29,60 @@ class StockReport extends Page implements HasTable
     protected string $view = 'filament.pages.stock-report';
 
     /* ============================================================
-     |  Expressions used ONLY for table display
+     |  EXPRESSIONS — USED ONLY FOR TABLE ROWS
      ============================================================ */
 
     protected function purchasedExpression(string $userId): string
     {
         return "
-        COALESCE(
-            (
-                SELECT SUM(pi.quantity)
-                FROM purchase_items pi
-                JOIN purchases p ON p.id = pi.purchase_id
-                WHERE pi.product_id = products.id
-                  AND p.branch_id IN (
-                      SELECT branch_id
-                      FROM branch_users
-                      WHERE user_id = '{$userId}'
-                  )
-            ),
-        0)
-    ";
+            COALESCE(
+                (
+                    SELECT SUM(piv.quantity)
+                    FROM purchase_item_variants piv
+                    JOIN purchase_items pi ON pi.id = piv.purchase_item_id
+                    WHERE piv.product_variant_id = product_variants.id
+                      AND pi.branch_id IN (
+                          SELECT branch_id
+                          FROM branch_users
+                          WHERE user_id = '{$userId}'
+                      )
+                ),
+            0)
+        ";
     }
-
-
 
     protected function soldExpression(string $userId): string
     {
         return "
-        COALESCE(
-            (
-                SELECT SUM(si.quantity)
-                FROM sale_items si
-                JOIN sales s ON s.id = si.sale_id
-                WHERE si.product_id = products.id
-                  AND s.branch_id IN (
-                      SELECT branch_id
-                      FROM branch_users
-                      WHERE user_id = '{$userId}'
-                  )
-            ),
-        0)
-    ";
+            COALESCE(
+                (
+                    SELECT SUM(siv.quantity)
+                    FROM sale_item_variants siv
+                    JOIN sale_items si ON si.id = siv.sale_item_id
+                    WHERE siv.product_variant_id = product_variants.id
+                      AND si.branch_id IN (
+                          SELECT branch_id
+                          FROM branch_users
+                          WHERE user_id = '{$userId}'
+                      )
+                ),
+            0)
+        ";
     }
-
-
 
     protected function stockExpression(string $userId): string
     {
-        return '('
-            . $this->purchasedExpression($userId)
-            . ' - '
-            . $this->soldExpression($userId)
-            . ')';
+        return '(' . $this->purchasedExpression($userId) . ' - ' . $this->soldExpression($userId) . ')';
     }
 
     /* ============================================================
-     |  TABLE (UNCHANGED STRUCTURE)
+     |  TABLE (CORRECT AS-IS)
      ============================================================ */
 
     public function table(Table $table): Table
     {
         $user = Filament::auth()->user();
+
         $merchantId = match (true) {
             $user instanceof \App\Models\Merchant => $user->id,
             $user instanceof \App\Models\User     => $user->merchant_id,
@@ -99,230 +91,191 @@ class StockReport extends Page implements HasTable
 
         return $table
             ->query(
-                Product::query()
-                    ->where('products.is_active', true)
-                    ->where('products.track_inventory', true)
+                ProductVariant::query()
+                    ->where('product_variants.is_active', true)
                     ->when($merchantId, fn ($q) =>
-                    $q->where('products.merchant_id', $merchantId)
+                    $q->where('product_variants.merchant_id', $merchantId)
                     )
-
                     ->when($user instanceof \App\Models\User, fn ($q) =>
-                    $q->whereHas('branches.users', fn ($u) =>
+                    $q->whereHas('product.branches.users', fn ($u) =>
                     $u->where('users.id', $user->id)
                     )
                     )
-                    ->select('products.*')
+                    ->with('product')
+                    ->select('product_variants.*')
                     ->selectRaw(
                         $user instanceof \App\Models\User
                             ? $this->purchasedExpression($user->id) . ' as total_purchased'
                             : '
-                       COALESCE(
-                          (SELECT SUM(pi.quantity)
-                          FROM purchase_items pi
-                          WHERE pi.product_id = products.id),
-                                0)
-                             as total_purchased'
+                                COALESCE(
+                                    (SELECT SUM(piv.quantity)
+                                     FROM purchase_item_variants piv
+                                     WHERE piv.product_variant_id = product_variants.id),
+                                0) as total_purchased'
                     )
                     ->selectRaw(
                         $user instanceof \App\Models\User
                             ? $this->soldExpression($user->id) . ' as total_sold'
                             : '
-                                      COALESCE(
-                                                (SELECT SUM(si.quantity)
-                                                    FROM sale_items si
-                                             WHERE si.product_id = products.id),
-                                                     0)
-                                              as total_sold'
+                                COALESCE(
+                                    (SELECT SUM(siv.quantity)
+                                     FROM sale_item_variants siv
+                                     WHERE siv.product_variant_id = product_variants.id),
+                                0) as total_sold'
                     )
                     ->selectRaw(
                         $user instanceof \App\Models\User
                             ? $this->stockExpression($user->id) . ' as current_stock'
                             : '
-                     (
-                        COALESCE(
-                              (SELECT SUM(pi.quantity)
-                              FROM purchase_items pi
-                              WHERE pi.product_id = products.id),
-                             0)
-                                   -
-                        COALESCE(
-                            (SELECT SUM(si.quantity)
-                            FROM sale_items si
-                            WHERE si.product_id = products.id),
-                         0)
-            )
-            as current_stock
-          '
+                                (
+                                    COALESCE(
+                                        (SELECT SUM(piv.quantity)
+                                         FROM purchase_item_variants piv
+                                         WHERE piv.product_variant_id = product_variants.id),
+                                    0)
+                                    -
+                                    COALESCE(
+                                        (SELECT SUM(siv.quantity)
+                                         FROM sale_item_variants siv
+                                         WHERE siv.product_variant_id = product_variants.id),
+                                    0)
+                                ) as current_stock'
                     )
-
-
             )
             ->columns([
-                TextColumn::make('name')
+                TextColumn::make('product.name')
                     ->label('Product')
-                    ->description(fn ($record) => $record->sku)
                     ->weight('bold')
                     ->searchable()
                     ->sortable(),
 
-                TextColumn::make('category.name')
-                    ->label('Category')
-                    ->toggleable(),
-
-                TextColumn::make('brand.name')
-                    ->label('Brand')
-                    ->toggleable(),
-
-                TextColumn::make('total_purchased')
-                    ->label('Purchased')
-                    ->numeric()
+                TextColumn::make('name')
+                    ->label('Variant')
+                    ->description(fn ($record) => $record->sku)
+                    ->searchable()
                     ->sortable(),
 
-                TextColumn::make('total_sold')
-                    ->label('Sold')
-                    ->numeric()
-                    ->sortable(),
+                TextColumn::make('total_purchased')->label('Purchased')->numeric()->sortable(),
+                TextColumn::make('total_sold')->label('Sold')->numeric()->sortable(),
 
                 TextColumn::make('current_stock')
                     ->label('Stock')
                     ->badge()
                     ->icon(fn ($state) =>
-                    $state <= 0
-                        ? 'heroicon-o-x-circle'
-                        : ($state <= 10
-                        ? 'heroicon-o-exclamation-triangle'
+                    $state <= 0 ? 'heroicon-o-x-circle'
+                        : ($state <= 10 ? 'heroicon-o-exclamation-triangle'
                         : 'heroicon-o-check-circle')
                     )
                     ->color(fn ($state) =>
-                    $state <= 0
-                        ? 'danger'
-                        : ($state <= 10
-                        ? 'warning'
-                        : 'success')
+                    $state <= 0 ? 'danger'
+                        : ($state <= 10 ? 'warning' : 'success')
                     )
                     ->sortable(),
 
-                TextColumn::make('unit')
-                    ->badge()
-                    ->toggleable(),
+                TextColumn::make('purchase_price')->label('Cost')->money('USD')->toggleable(),
+                TextColumn::make('selling_price')->label('Sale')->money('USD')->toggleable(),
 
-                TextColumn::make('purchase_price')
-                    ->label('Cost')
-                    ->money('USD')
-                    ->toggleable(),
-
-                TextColumn::make('selling_price')
-                    ->label('Sale')
-                    ->money('USD')
-                    ->toggleable(),
-
-                IconColumn::make('is_active')
-                    ->boolean()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')->boolean()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('category_id')
-                    ->relationship('category', 'name')
+                SelectFilter::make('product_id')
+                    ->relationship('product', 'name')
                     ->searchable()
                     ->preload(),
-
-                SelectFilter::make('brand_id')
-                    ->relationship('brand', 'name')
-                    ->searchable()
-                    ->preload(),
-
-                SelectFilter::make('branch_id')
-                    ->label('Branch')
-                    ->relationship(
-                        'branches',
-                        'name',
-                        fn (Builder $query) =>
-                        Filament::auth()->user() instanceof \App\Models\User
-                            ? $query->whereHas('users', fn ($u) =>
-                        $u->where('users.id', Filament::auth()->id())
-                        )
-                            : null
-                    )
-                    ->query(function (Builder $query, array $data) {
-                        if (filled($data['value'])) {
-                            $query->whereHas('branches', fn ($b) =>
-                            $b->where('branches.id', $data['value'])
-                            );
-                        }
-                    })
-                    ->searchable()
-                    ->preload(),
-
-
             ])
             ->striped()
-            ->paginated([10,25, 50, 100])
-            ->defaultSort('current_stock', 'asc')
-            ->emptyStateHeading('No stock data')
-            ->emptyStateDescription('Products with inventory tracking will appear here.');
+            ->paginated([10, 25, 50, 100])
+            ->defaultSort('current_stock', 'asc');
     }
 
     /* ============================================================
-     |  FILTER-AWARE TOP STATS (THE 3 MODULES YOU ASKED)
+     |  TOP STATS — FIXED & PORTAL-SAFE
      ============================================================ */
-
-    protected function filteredProductsQuery(): Builder
-    {
-        return $this->getFilteredTableQuery();
-    }
 
     public function getTopStats(): array
     {
-        $filteredQuery = $this->filteredProductsQuery();
+        $user = Filament::auth()->user();
 
-        // Product IDs in scope
-        $productIds = (clone $filteredQuery)->pluck('products.id');
+        $variantIds = collect();
+
+        if ($user instanceof \App\Models\User) {
+            // STAFF → only variants used in their branches
+            $branchIds = $user->branches()->pluck('branches.id');
+
+            $soldVariantIds = DB::table('sale_item_variants as sv')
+                ->join('sale_items as si', 'si.id', '=', 'sv.sale_item_id')
+                ->whereIn('si.branch_id', $branchIds)
+                ->pluck('sv.product_variant_id');
+
+            $purchasedVariantIds = DB::table('purchase_item_variants as pv')
+                ->join('purchase_items as pi', 'pi.id', '=', 'pv.purchase_item_id')
+                ->whereIn('pi.branch_id', $branchIds)
+                ->pluck('pv.product_variant_id');
+
+            $variantIds = $soldVariantIds
+                ->merge($purchasedVariantIds)
+                ->unique()
+                ->values();
+        } else {
+            // MERCHANT → all filtered variants
+            $variantIds = $this->getFilteredTableQuery()
+                ->pluck('product_variants.id');
+        }
 
 
-        // Quantities
-        $totalProducts = (clone $filteredQuery)->count();
 
-        $totalPurchasedQty = DB::table('purchase_items')
-            ->whereIn('product_id', $productIds)
-            ->sum('quantity');
+        $totalProducts = $variantIds->count();
 
-        $totalSoldQty = DB::table('sale_items')
-            ->whereIn('product_id', $productIds)
-            ->sum('quantity');
+        /* PURCHASED */
+        $totalPurchasedQty = DB::table('purchase_item_variants as piv')
+            ->join('purchase_items as pi', 'pi.id', '=', 'piv.purchase_item_id')
+            ->whereIn('piv.product_variant_id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('pi.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum('piv.quantity');
 
-        // Available stock
+
+        /* SOLD */
+        $totalSoldQty = DB::table('sale_item_variants as siv')
+            ->join('sale_items as si', 'si.id', '=', 'siv.sale_item_id')
+            ->whereIn('siv.product_variant_id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('si.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum('siv.quantity');
+
         $availableStock = $totalPurchasedQty - $totalSoldQty;
 
-        // Monetary totals
-        $totalSellingValue = DB::table('sale_items as si')
-            ->join('products as p', 'p.id', '=', 'si.product_id')
-            ->whereIn('si.product_id', $productIds)
-            ->sum(DB::raw('si.quantity * p.selling_price'));
+        /* REVENUE */
+        $totalRevenue = DB::table('sale_item_variants as siv')
+            ->join('sale_items as si', 'si.id', '=', 'siv.sale_item_id')
+            ->join('product_variants as pv', 'pv.id', '=', 'siv.product_variant_id')
+            ->whereIn('pv.id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('si.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum(DB::raw('siv.quantity * pv.selling_price'));
 
-        $totalBuyingCost = DB::table('purchase_items as pi')
-            ->join('products as p', 'p.id', '=', 'pi.product_id')
-            ->whereIn('pi.product_id', $productIds)
-            ->sum(DB::raw('pi.quantity * p.purchase_price'));
 
-        // Averages (SAFE divide)
-        $avgSellingPrice = $totalSoldQty > 0
-            ? $totalSellingValue / $totalSoldQty
-            : 0;
-
-        $avgBuyingPrice = $totalPurchasedQty > 0
-            ? $totalBuyingCost / $totalPurchasedQty
-            : 0;
+        /* BUYING COST */
+        $totalBuyingCost = DB::table('purchase_item_variants as piv')
+            ->join('purchase_items as pi', 'pi.id', '=', 'piv.purchase_item_id')
+            ->join('product_variants as pv', 'pv.id', '=', 'piv.product_variant_id')
+            ->whereIn('pv.id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('pi.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum(DB::raw('piv.quantity * pv.purchase_price'));
 
         return [
-            'total_products'        => (int) $totalProducts,
-            'total_purchased_qty'   => (float) $totalPurchasedQty,
-            'total_sold_qty'        => (float) $totalSoldQty,
-            'available_stock'       => (float) $availableStock,
-            'total_revenue'         => (float) $totalSellingValue,
-            'avg_selling_price'     => round($avgSellingPrice, 2),
-            'avg_buying_price'      => round($avgBuyingPrice, 2),
+            'total_products'      => (int) $totalProducts,
+            'total_purchased_qty' => (float) $totalPurchasedQty,
+            'total_sold_qty'      => (float) $totalSoldQty,
+            'available_stock'     => (float) $availableStock,
+            'total_revenue'       => (float) $totalRevenue,
+            'avg_selling_price'   => $totalSoldQty > 0 ? round($totalRevenue / $totalSoldQty, 2) : 0,
+            'avg_buying_price'    => $totalPurchasedQty > 0 ? round($totalBuyingCost / $totalPurchasedQty, 2) : 0,
         ];
     }
-
-
 }

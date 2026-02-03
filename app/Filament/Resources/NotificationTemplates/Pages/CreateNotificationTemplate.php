@@ -37,4 +37,8 @@ class CreateNotificationTemplate extends CreateRecord
             ->update(['is_active' => false]);
     }
 
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 }
