@@ -207,9 +207,9 @@
                         </div>
                     @endif
                 </td>
-                <td>${{ number_format($item->unit_price, 2) }}</td>
+                <td>Rs{{ number_format($item->unit_price, 2) }}</td>
                 <td>{{ $item->quantity }}</td>
-                <td>${{ number_format($item->line_total, 2) }}</td>
+                <td>Rs{{ number_format($item->line_total, 2) }}</td>
             </tr>
         @endforeach
         </tbody>
@@ -219,17 +219,17 @@
     <div class="summary">
         <div>
             <span>Net total</span>
-            <span>${{ number_format($record->subtotal, 2) }}</span>
+            <span>Rs{{ number_format($record->subtotal, 2) }}</span>
         </div>
 
         <div>
             <span>Tax</span>
-            <span>${{ number_format($record->tax, 2) }}</span>
+            <span>Rs{{ number_format($record->tax, 2) }}</span>
         </div>
 
         <div class="total">
             <span>Total</span>
-            <span>${{ number_format($record->total_amount, 2) }}</span>
+            <span>Rs{{ number_format($record->total_amount, 2) }}</span>
         </div>
     </div>
 
