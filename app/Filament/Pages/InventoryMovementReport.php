@@ -111,12 +111,12 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
                 TextColumn::make('unit_price')
                     ->label('Unit Price')
-                    ->money('USD')
+                    ->money('PKR')
                     ->toggleable(),
 
                 TextColumn::make('total')
                     ->label('Total')
-                    ->money('USD')
+                    ->money('PKR')
                     ->weight('bold')
                     ->sortable(),
 
@@ -275,8 +275,8 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
     {
         $records = $this->getRecords();
 
-            $in  = $records->where('direction', 'in')->sum('c  c    ');
-        $out = $records->where('direction', 'out')->sum('quantity');
+            $in  = $records->where('direction', 'in')->sum('quantity');
+            $out = $records->where('direction', 'out')->sum('quantity');
 
         return [
             'in'  => (float) $in,

@@ -65,11 +65,18 @@ class EditPurchase extends EditRecord
         unset($data['items']);
 
         $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
-        $discount = (float) ($data['discount'] ?? 0);
-        $tax      = (float) ($data['tax'] ?? 0);
+        $discountRate = (float) ($data['discount'] ?? 0);
+        $taxRate      = (float) ($data['tax'] ?? 0);
+
+        $discountRate = max(0, min(100, $discountRate));
+        $taxRate = max(0, min(100, $taxRate));
+
+        $discountAmount = $subtotal * ($discountRate / 100);
+        $taxableAmount = $subtotal - $discountAmount;
+        $taxAmount = $taxableAmount * ($taxRate / 100);
 
         $data['subtotal']     = $subtotal;
-        $data['total_amount'] = $subtotal - $discount + $tax;
+        $data['total_amount'] = $taxableAmount + $taxAmount;
 
         return $data;
     }

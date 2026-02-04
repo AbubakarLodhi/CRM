@@ -84,7 +84,7 @@
                         Total Amount
                     </div>
                     <div class="text-2xl font-bold text-success-700">
-                        {{ number_format($stats['total_amount'], 2) }}
+                        Rs {{ number_format($stats['total_amount'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -95,7 +95,7 @@
                         Avg Purchase
                     </div>
                     <div class="text-2xl font-bold text-warning-600">
-                        {{ number_format($stats['avg_purchase'], 2) }}
+                        Rs {{ number_format($stats['avg_purchase'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -116,7 +116,7 @@
                         Subtotal
                     </div>
                     <div class="text-2xl font-bold text-primary-700">
-                        {{ number_format($stats['total_subtotal'], 2) }}
+                        Rs {{ number_format($stats['total_subtotal'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -126,7 +126,7 @@
                         Total Discount
                     </div>
                     <div class="text-2xl font-bold text-danger-600">
-                        {{ number_format($stats['total_discount'], 2) }}
+                        Rs {{ number_format($stats['total_discount'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -136,7 +136,7 @@
                         Total Tax
                     </div>
                     <div class="text-2xl font-bold text-success-700">
-                        {{ number_format($stats['total_tax'], 2) }}
+                        Rs {{ number_format($stats['total_tax'], 2) }}
                     </div>
                 </x-filament::card>
 

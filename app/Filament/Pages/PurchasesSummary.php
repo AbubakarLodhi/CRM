@@ -153,22 +153,29 @@ class PurchasesSummary extends Page implements HasTable
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable(),
 
                 TextColumn::make('discount')
                     ->label('Discount')
-                    ->money('USD')
+                    ->money('PKR')
+                    ->getStateUsing(fn (Purchase $record) => (float) $record->subtotal * ((float) $record->discount / 100))
                     ->sortable(),
 
                 TextColumn::make('tax')
                     ->label('Tax')
-                    ->money('USD')
+                    ->money('PKR')
+                    ->getStateUsing(function (Purchase $record) {
+                        $subtotal = (float) $record->subtotal;
+                        $discountAmount = $subtotal * ((float) $record->discount / 100);
+                        $taxableAmount = $subtotal - $discountAmount;
+                        return $taxableAmount * ((float) $record->tax / 100);
+                    })
                     ->sortable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->weight('bold'),
             ])
@@ -247,8 +254,8 @@ class PurchasesSummary extends Page implements HasTable
             ->sum('piv.quantity');
 
         $totalAmount   = (clone $filteredQuery)->sum('total_amount');
-        $totalDiscount = (clone $filteredQuery)->sum('discount');
-        $totalTax      = (clone $filteredQuery)->sum('tax');
+        $totalDiscount = (clone $filteredQuery)->sum(DB::raw('subtotal * (discount / 100.0)'));
+        $totalTax      = (clone $filteredQuery)->sum(DB::raw('(subtotal - (subtotal * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
 
         $avgPurchase = $totalPurchases > 0 ? $totalAmount / $totalPurchases : 0;
@@ -294,8 +301,8 @@ class PurchasesSummary extends Page implements HasTable
                             ->count(),
 
                         'subtotal' => (float) (clone $baseQuery)->sum('subtotal'),
-                        'discount' => (float) (clone $baseQuery)->sum('discount'),
-                        'tax'      => (float) (clone $baseQuery)->sum('tax'),
+                        'discount' => (float) (clone $baseQuery)->sum(DB::raw('subtotal * (discount / 100.0)')),
+                        'tax'      => (float) (clone $baseQuery)->sum(DB::raw('(subtotal - (subtotal * (discount / 100.0))) * (tax / 100.0)')),
                         'total'    => (float) (clone $baseQuery)->sum('total_amount'),
                     ];
 
@@ -308,7 +315,6 @@ class PurchasesSummary extends Page implements HasTable
     }
 
 }
-
 
 
 

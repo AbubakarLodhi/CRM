@@ -54,7 +54,7 @@ class OrderInfolist
 
                         TextEntry::make('sale.total_amount')
                             ->label('Total Amount')
-                            ->money('USD')
+                            ->money('PKR')
                             ->weight('bold'),
 
                         TextEntry::make('created_at')

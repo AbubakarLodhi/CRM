@@ -43,7 +43,7 @@ class PayrollsTable
 
                 TextColumn::make('base_salary')
                     ->label('Base Salary')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable(),
 
                 TextColumn::make('total_allowances')
@@ -58,7 +58,7 @@ class PayrollsTable
 
                 TextColumn::make('net_salary')
                     ->label('Net Salary')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->weight('bold'),
 

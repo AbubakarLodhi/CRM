@@ -54,25 +54,25 @@ class SalesTable
 
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('discount')
-                    ->label('Discount')
-                    ->money('USD')
+                    ->label('Discount (%)')
+                    ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2) . '%')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('tax')
-                    ->label('Tax')
-                    ->money('USD')
+                    ->label('Tax (%)')
+                    ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2) . '%')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->weight('bold'),
 

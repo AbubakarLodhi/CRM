@@ -38,13 +38,23 @@ class PurchaseForm
                                 ->default(fn () => 'PUR-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
                                 ->required()
                                 ->maxLength(255)
-                                ->unique(ignoreRecord: true),
+                                ->unique(ignoreRecord: true)
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.purchase_no');
+                                    $livewire->resetErrorBag('data.purchase_no');
+                                }),
 
                             DatePicker::make('purchase_date')
                                 ->label('Purchase Date')
                                 ->default(now())
                                 ->required()
-                                ->displayFormat('d/m/Y'),
+                                ->displayFormat('d/m/Y')
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.purchase_date');
+                                    $livewire->resetErrorBag('data.purchase_date');
+                                }),
 
                             Hidden::make('merchant_id')
                                 ->default(fn () => self::merchantId())
@@ -112,6 +122,7 @@ class PurchaseForm
                                 ->searchable()
                                 ->preload()
                                 ->required()
+                                ->live()
                                 ->reactive()
                                 ->options(function () {
 
@@ -147,7 +158,9 @@ class PurchaseForm
                                         ->mapWithKeys(fn ($p) => [$p->id => "{$p->name} ({$p->sku})"])
                                         ->all();
                                 })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.product_id');
+                                    $livewire->resetErrorBag('data.items.*.product_id');
 
                                     // Reset dependents when product changes
                                     $set('branch_id', null);
@@ -180,6 +193,8 @@ class PurchaseForm
                                     // ✅ Auto-select if only one branch exists
                                     if ($branchIds->count() === 1) {
                                         $set('branch_id', $branchIds->first());
+                                        $livewire->resetValidation('data.items.*.branch_id');
+                                        $livewire->resetErrorBag('data.items.*.branch_id');
                                     }
 
                                     // Pricing
@@ -204,6 +219,7 @@ class PurchaseForm
                             Select::make('product_variant_id')
                                 ->label('Product Variant')
                                 ->searchable()
+                                ->live()
                                 ->reactive()
                                 ->required()
                                 ->options(function (callable $get): array {
@@ -243,7 +259,9 @@ class PurchaseForm
                                     $set('product_variant_id', $variantId);
                                 })
 
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.product_variant_id');
+                                    $livewire->resetErrorBag('data.items.*.product_variant_id');
                                     if (! $state) {
                                         return;
                                     }
@@ -268,6 +286,7 @@ class PurchaseForm
                                 ->label('Branch')
                                 ->searchable()
                                 ->required()
+                                ->live()
                                 ->reactive()
                                 ->allowHtml() // ✅ required for indentation
                                 ->options(function (callable $get): array {
@@ -330,6 +349,10 @@ class PurchaseForm
                                     if ($branches->count() === 1) {
                                         $set('branch_id', $branches->first());
                                     }
+                                })
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.branch_id');
+                                    $livewire->resetErrorBag('data.items.*.branch_id');
                                 }),
 
                             /* -------- QUANTITY -------- */
@@ -339,9 +362,10 @@ class PurchaseForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->reactive()
-                                ->debounce(300)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.quantity');
+                                    $livewire->resetErrorBag('data.items.*.quantity');
                                     $qty = max(1, (float) ($state ?? 1));
                                     $unit = (float) ($get('unit_price') ?? 0);
 
@@ -358,9 +382,10 @@ class PurchaseForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->reactive()
-                                ->debounce(300)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.unit_price');
+                                    $livewire->resetErrorBag('data.items.*.unit_price');
                                     $unit = max(0, (float) ($state ?? 0));
                                     $qty = (float) ($get('quantity') ?? 1);
 
@@ -405,17 +430,39 @@ class PurchaseForm
                         ),
 
                     TextInput::make('discount')
+                        ->label('Discount (%)')
                         ->numeric()
                         ->default(0)
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->step(0.01)
+                        ->suffix('%')
                         ->reactive()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            if ($state === null || $state === '') {
+                                $set('discount', 0);
+                            }
+                        })
+                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                         ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
                         self::recalcTotals($set, $get)
                         ),
 
                     TextInput::make('tax')
+                        ->label('Tax (%)')
                         ->numeric()
                         ->default(0)
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->step(0.01)
+                        ->suffix('%')
                         ->reactive()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            if ($state === null || $state === '') {
+                                $set('tax', 0);
+                            }
+                        })
+                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                         ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
                         self::recalcTotals($set, $get)
                         ),
@@ -471,13 +518,38 @@ class PurchaseForm
 
     private static function recalcTotals(callable $set, callable $get): void
     {
-        $items = $get('items') ?? [];
+        $items = $get('items');
+        $rootPrefix = '';
+
+        if (! is_array($items)) {
+            $items = $get('../../items') ?? [];
+            $rootPrefix = '../../';
+        }
+
         $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_total'] ?? 0));
 
-        $discount = (float) ($get('discount') ?? 0);
-        $tax      = (float) ($get('tax') ?? 0);
+        $discountRate = $get('discount');
+        $taxRate      = $get('tax');
 
-        $set('subtotal', $subtotal);
-        $set('total_amount', $subtotal - $discount + $tax);
+        if ($discountRate === null) {
+            $discountRate = $get('../../discount');
+        }
+
+        if ($taxRate === null) {
+            $taxRate = $get('../../tax');
+        }
+
+        $discountRate = (float) ($discountRate ?? 0);
+        $taxRate      = (float) ($taxRate ?? 0);
+
+        $discountRate = max(0, min(100, $discountRate));
+        $taxRate = max(0, min(100, $taxRate));
+
+        $discountAmount = $subtotal * ($discountRate / 100);
+        $taxableAmount = $subtotal - $discountAmount;
+        $taxAmount = $taxableAmount * ($taxRate / 100);
+
+        $set($rootPrefix . 'subtotal', $subtotal);
+        $set($rootPrefix . 'total_amount', $taxableAmount + $taxAmount);
     }
 }

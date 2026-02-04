@@ -60,24 +60,24 @@ class ExpensesTable
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->toggleable()
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable(),
 
                 TextColumn::make('discount')
                     ->label('Discount')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('tax')
                     ->label('Tax')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->weight('bold'),
 

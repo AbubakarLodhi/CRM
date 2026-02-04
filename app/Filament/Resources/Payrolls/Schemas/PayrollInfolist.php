@@ -53,7 +53,7 @@ class PayrollInfolist
                     ->schema([
                         TextEntry::make('base_salary')
                             ->label('Base Salary')
-                            ->money('USD'),
+                            ->money('PKR'),
                         TextEntry::make('total_allowances')
                             ->label('Total Allowances')
                             ->formatStateUsing(fn ($record) => '$'.number_format(collect($record->allowances ?? [])->sum(fn ($item) => (float) ($item['amount'] ?? 0)), 2)),
@@ -62,7 +62,7 @@ class PayrollInfolist
                             ->formatStateUsing(fn ($record) => '$'.number_format(collect($record->deductions ?? [])->sum(fn ($item) => (float) ($item['amount'] ?? 0)), 2)),
                         TextEntry::make('net_salary')
                             ->label('Net Salary')
-                            ->money('USD')
+                            ->money('PKR')
                             ->weight('bold')
                             ->columnSpanFull(),
                     ]),

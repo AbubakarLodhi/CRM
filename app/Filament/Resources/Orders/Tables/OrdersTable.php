@@ -84,7 +84,7 @@ class OrdersTable
 
                 TextColumn::make('sale.total_amount')
                     ->label('Total Amount')
-                    ->money('USD')
+                    ->money('PKR')
                     ->sortable()
                     ->weight('bold'),
 

@@ -120,13 +120,26 @@ class SalesSummary extends Page implements HasTable
                     ->counts('items')
                     ->sortable(),
 
-                TextColumn::make('subtotal')->money('USD')->toggleable(),
-                TextColumn::make('discount')->money('USD')->toggleable(),
-                TextColumn::make('tax')->money('USD')->toggleable(),
+                TextColumn::make('subtotal')->money('PKR')->toggleable(),
+                TextColumn::make('discount')
+                    ->label('Discount')
+                    ->money('PKR')
+                    ->getStateUsing(fn (Sale $record) => (float) $record->subtotal * ((float) $record->discount / 100))
+                    ->toggleable(),
+                TextColumn::make('tax')
+                    ->label('Tax')
+                    ->money('PKR')
+                    ->getStateUsing(function (Sale $record) {
+                        $subtotal = (float) $record->subtotal;
+                        $discountAmount = $subtotal * ((float) $record->discount / 100);
+                        $taxableAmount = $subtotal - $discountAmount;
+                        return $taxableAmount * ((float) $record->tax / 100);
+                    })
+                    ->toggleable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
-                    ->money('USD')
+                    ->money('PKR')
                     ->weight('bold')
                     ->sortable(),
             ])
@@ -224,8 +237,8 @@ class SalesSummary extends Page implements HasTable
         // MONETARY TOTALS (SALE LEVEL)
         // -----------------------------
         $totalAmount   = (clone $filteredQuery)->sum('total_amount');
-        $totalDiscount = (clone $filteredQuery)->sum('discount');
-        $totalTax      = (clone $filteredQuery)->sum('tax');
+        $totalDiscount = (clone $filteredQuery)->sum(DB::raw('subtotal * (discount / 100.0)'));
+        $totalTax      = (clone $filteredQuery)->sum(DB::raw('(subtotal - (subtotal * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
 
         $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
@@ -277,8 +290,8 @@ class SalesSummary extends Page implements HasTable
                             ->sum('sv.quantity'),
 
                         'subtotal' => (float) (clone $baseQuery)->sum('subtotal'),
-                        'discount' => (float) (clone $baseQuery)->sum('discount'),
-                        'tax'      => (float) (clone $baseQuery)->sum('tax'),
+                        'discount' => (float) (clone $baseQuery)->sum(DB::raw('subtotal * (discount / 100.0)')),
+                        'tax'      => (float) (clone $baseQuery)->sum(DB::raw('(subtotal - (subtotal * (discount / 100.0))) * (tax / 100.0)')),
                         'total'    => (float) (clone $baseQuery)->sum('total_amount'),
                     ];
 

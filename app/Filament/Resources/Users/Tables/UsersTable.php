@@ -19,6 +19,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class UsersTable
 {
@@ -49,10 +50,14 @@ class UsersTable
 
              TextColumn::make('name')
                     ->limit(30)
+                    ->extraAttributes(['class' => 'max-w-xs truncate'])
+                    ->tooltip(fn (User $record) => $record->name)
                     ->searchable(),
                 TextColumn::make('email')
                     ->label('Email address')
                     ->limit(30)
+                    ->extraAttributes(['class' => 'max-w-xs truncate'])
+                    ->tooltip(fn (User $record) => $record->email)
                     ->searchable(),
                 TextColumn::make('email_verified_at')
                     ->dateTime()
@@ -62,6 +67,8 @@ class UsersTable
                     ->label('Merchant')
                     ->sortable()
                     ->limit(30)
+                    ->extraAttributes(['class' => 'max-w-xs truncate'])
+                    ->tooltip(fn (User $record) => $record->merchant?->name)
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
 
@@ -72,7 +79,9 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('primary')
                     ->getStateUsing(function (User $record) {
-                        $names = $record->businesses->pluck('name');
+                        $names = $record->businesses
+                            ->pluck('name')
+                            ->map(fn (string $name) => Str::limit($name, 20));
 
                         $visible = $names->take(2);
                         $hiddenCount = $names->count() - $visible->count();
@@ -94,7 +103,9 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('success')
                     ->getStateUsing(function (User $record) {
-                        $names = $record->branches->pluck('name');
+                        $names = $record->branches
+                            ->pluck('name')
+                            ->map(fn (string $name) => Str::limit($name, 20));
 
                         $visible = $names->take(2);
                         $hiddenCount = $names->count() - $visible->count();
@@ -114,7 +125,9 @@ class UsersTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->getStateUsing(function (User $record) {
                         // get role names assigned to this user
-                        $names = $record->roles->pluck('name');
+                        $names = $record->roles
+                            ->pluck('name')
+                            ->map(fn (string $name) => Str::limit($name, 20));
 
                         $visible = $names->take(2); // show first 2 roles
                         $hiddenCount = $names->count() - $visible->count();

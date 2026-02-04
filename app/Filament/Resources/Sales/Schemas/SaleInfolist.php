@@ -61,11 +61,11 @@ class SaleInfolist
 
                                 TextEntry::make('unit_price')
                                     ->label('Unit Price')
-                                    ->money('USD'),
+                                    ->money('PKR'),
 
                                 TextEntry::make('line_total')
                                     ->label('Line Total')
-                                    ->money('USD'),
+                                    ->money('PKR'),
                             ])
                             ->columns(5),
                     ]),
@@ -76,19 +76,19 @@ class SaleInfolist
                     ->schema([
                         TextEntry::make('subtotal')
                             ->label('Subtotal')
-                            ->money('USD'),
+                            ->money('PKR'),
 
                         TextEntry::make('discount')
-                            ->label('Discount')
-                            ->money('USD'),
+                            ->label('Discount (%)')
+                            ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2) . '%'),
 
                         TextEntry::make('tax')
-                            ->label('Tax')
-                            ->money('USD'),
+                            ->label('Tax (%)')
+                            ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2) . '%'),
 
                         TextEntry::make('total_amount')
                             ->label('Total Amount')
-                            ->money('USD')
+                            ->money('PKR')
                             ->weight('bold'),
                     ]),
 

@@ -55,11 +55,11 @@ class ExpenseInfolist
 
                                 TextEntry::make('unit_price')
                                     ->label('Unit Price')
-                                    ->money('USD'),
+                                    ->money('PKR'),
 
                                 TextEntry::make('line_total')
                                     ->label('Line Total')
-                                    ->money('USD'),
+                                    ->money('PKR'),
                             ])
                             ->columns(4),
                     ]),
@@ -70,19 +70,19 @@ class ExpenseInfolist
                     ->schema([
                         TextEntry::make('subtotal')
                             ->label('Subtotal')
-                            ->money('USD'),
+                            ->money('PKR'),
 
                         TextEntry::make('discount')
                             ->label('Discount')
-                            ->money('USD'),
+                            ->money('PKR'),
 
                         TextEntry::make('tax')
                             ->label('Tax')
-                            ->money('USD'),
+                            ->money('PKR'),
 
                         TextEntry::make('total_amount')
                             ->label('Total Amount')
-                            ->money('USD')
+                            ->money('PKR')
                             ->weight('bold'),
                     ]),
 

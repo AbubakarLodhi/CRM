@@ -41,13 +41,23 @@ class SaleForm
                                 ->default(fn () => 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
                                 ->required()
                                 ->maxLength(255)
-                                ->unique(ignoreRecord: true),
+                                ->unique(ignoreRecord: true)
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.sale_no');
+                                    $livewire->resetErrorBag('data.sale_no');
+                                }),
 
                             DatePicker::make('sale_date')
                                 ->label('Sale Date')
                                 ->default(now())
                                 ->required()
-                                ->displayFormat('d/m/Y'),
+                                ->displayFormat('d/m/Y')
+                                ->live()
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.sale_date');
+                                    $livewire->resetErrorBag('data.sale_date');
+                                }),
 
                             Select::make('customer_id')
                                 ->label('Customer')
@@ -75,6 +85,7 @@ class SaleForm
                                         $set('customer_id', Customer::create($data)->id)
                                         )
                                 )
+                                ->live()
                                 ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (
                                     $livewire->resetValidation('data.customer_id') ||
                                     $livewire->resetErrorBag('data.customer_id')
@@ -161,6 +172,7 @@ class SaleForm
                                 ->searchable()
                                 ->preload()
                                 ->required()
+                                ->live()
                                 ->reactive()
                                 ->options(function () {
 
@@ -200,7 +212,9 @@ class SaleForm
                                         ])
                                         ->all();
                                 })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.product_id');
+                                    $livewire->resetErrorBag('data.items.*.product_id');
 
                                     // Reset dependents
                                     $set('branch_id', null);
@@ -235,6 +249,10 @@ class SaleForm
                                     // ✅ AUTO-SELECT branch if only one
                                     if ($branchIds->count() === 1) {
                                         $set('branch_id', $branchIds->first());
+                                        if (isset($livewire)) {
+                                            $livewire->resetValidation('data.items.*.branch_id');
+                                            $livewire->resetErrorBag('data.items.*.branch_id');
+                                        }
                                     }
                                 }),
 
@@ -243,6 +261,7 @@ class SaleForm
                             Select::make('product_variant_id')
                                 ->label('Product Variant')
                                 ->searchable()
+                                ->live()
                                 ->reactive()
                                 ->required()
                                 ->options(function (callable $get): array {
@@ -268,7 +287,9 @@ class SaleForm
                                         })
                                         ->all();
                                 })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.product_variant_id');
+                                    $livewire->resetErrorBag('data.items.*.product_variant_id');
 
                                     if (! $state) {
                                         return;
@@ -293,6 +314,7 @@ class SaleForm
                                 ->label('Branch')
                                 ->searchable()
                                 ->required()
+                                ->live()
                                 ->reactive()
                                 ->allowHtml() // ✅ REQUIRED for indentation
                                 ->options(function (callable $get): array {
@@ -334,9 +356,11 @@ class SaleForm
                                         )
                                         ->toArray();
                                 })
-                                ->afterStateUpdated(fn (callable $set) => [
-                                    $set('product_variant_id', null),
-                                ]),
+                                ->afterStateUpdated(function (callable $set, $livewire) {
+                                    $livewire->resetValidation('data.items.*.branch_id');
+                                    $livewire->resetErrorBag('data.items.*.branch_id');
+                                    $set('product_variant_id', null);
+                                }),
 
                             /* -------- QUANTITY -------- */
                             TextInput::make('quantity')
@@ -345,9 +369,10 @@ class SaleForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->reactive()
-                                ->debounce(300)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.quantity');
+                                    $livewire->resetErrorBag('data.items.*.quantity');
                                     $qty  = max(1, (float) ($state ?? 1));
                                     $unit = (float) ($get('unit_price') ?? 0);
 
@@ -364,9 +389,10 @@ class SaleForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->reactive()
-                                ->debounce(300)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.unit_price');
+                                    $livewire->resetErrorBag('data.items.*.unit_price');
                                     $unit = max(0, (float) ($state ?? 0));
                                     $qty  = (float) ($get('quantity') ?? 1);
 
@@ -406,28 +432,52 @@ class SaleForm
                 ->schema([
                     Placeholder::make('subtotal_display')
                         ->label('Subtotal')
+                        ->live()
                         ->content(fn (callable $get) =>
                         number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
                     TextInput::make('discount')
+                        ->label('Discount (%)')
                         ->numeric()
                         ->default(0)
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->step(0.01)
+                        ->suffix('%')
                         ->reactive()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            if ($state === null || $state === '') {
+                                $set('discount', 0);
+                            }
+                        })
+                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                         ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
                         self::recalcTotals($set, $get)
                         ),
 
                     TextInput::make('tax')
+                        ->label('Tax (%)')
                         ->numeric()
                         ->default(0)
+                        ->minValue(0)
+                        ->maxValue(100)
+                        ->step(0.01)
+                        ->suffix('%')
                         ->reactive()
+                        ->afterStateHydrated(function ($state, callable $set) {
+                            if ($state === null || $state === '') {
+                                $set('tax', 0);
+                            }
+                        })
+                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                         ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
                         self::recalcTotals($set, $get)
                         ),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
+                        ->live()
                         ->content(fn (callable $get) =>
                         number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
@@ -477,13 +527,38 @@ class SaleForm
 
     private static function recalcTotals(callable $set, callable $get): void
     {
-        $items = $get('items') ?? [];
+        $items = $get('items');
+        $rootPrefix = '';
+
+        if (! is_array($items)) {
+            $items = $get('../../items') ?? [];
+            $rootPrefix = '../../';
+        }
+
         $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_total'] ?? 0));
 
-        $discount = (float) ($get('discount') ?? 0);
-        $tax      = (float) ($get('tax') ?? 0);
+        $discountRate = $get('discount');
+        $taxRate      = $get('tax');
 
-        $set('subtotal', $subtotal);
-        $set('total_amount', $subtotal - $discount + $tax);
+        if ($discountRate === null) {
+            $discountRate = $get('../../discount');
+        }
+
+        if ($taxRate === null) {
+            $taxRate = $get('../../tax');
+        }
+
+        $discountRate = (float) ($discountRate ?? 0);
+        $taxRate      = (float) ($taxRate ?? 0);
+
+        $discountRate = max(0, min(100, $discountRate));
+        $taxRate = max(0, min(100, $taxRate));
+
+        $discountAmount = $subtotal * ($discountRate / 100);
+        $taxableAmount = $subtotal - $discountAmount;
+        $taxAmount = $taxableAmount * ($taxRate / 100);
+
+        $set($rootPrefix . 'subtotal', $subtotal);
+        $set($rootPrefix . 'total_amount', $taxableAmount + $taxAmount);
     }
 }
