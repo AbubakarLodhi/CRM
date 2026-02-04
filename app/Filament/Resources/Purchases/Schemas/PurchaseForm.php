@@ -90,7 +90,60 @@ class PurchaseForm
              * =========================== */
             Section::make('Purchase Items')
                 ->columnSpanFull()
+                ->headerActions([
+                    \Filament\Actions\Action::make('usePercentMode')
+                        ->label('Percent')
+                        ->extraAttributes(fn (callable $get) => [
+                            'class' => 'discount-mode-toggle left' . (($get('discount_mode') ?? 'percent') === 'percent' ? ' is-active' : ''),
+                        ])
+                        ->disabled(fn (callable $get) => ($get('discount_mode') ?? 'percent') === 'percent')
+                        ->action(function (callable $set, callable $get) {
+                            $items = $get('items') ?? [];
+
+                            foreach ($items as &$item) {
+                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $discountRate = (float) ($item['discount'] ?? 0);
+                                $discountAmount = $lineTotal * ($discountRate / 100);
+                                $taxableAmount = $lineTotal - $discountAmount;
+                                $taxRate = (float) ($item['tax'] ?? 0);
+                                $taxAmount = $taxableAmount * ($taxRate / 100);
+
+                                $item['discount_amount'] = round($discountAmount, 2);
+                                $item['tax_amount'] = round($taxAmount, 2);
+                            }
+
+                            $set('items', $items);
+                            $set('discount_mode', 'percent');
+                        }),
+                    \Filament\Actions\Action::make('useAmountMode')
+                        ->label('Amount')
+                        ->extraAttributes(fn (callable $get) => [
+                            'class' => 'discount-mode-toggle right' . (($get('discount_mode') ?? 'percent') === 'amount' ? ' is-active' : ''),
+                        ])
+                        ->disabled(fn (callable $get) => ($get('discount_mode') ?? 'percent') === 'amount')
+                        ->action(function (callable $set, callable $get) {
+                            $items = $get('items') ?? [];
+
+                            foreach ($items as &$item) {
+                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $discountRate = (float) ($item['discount'] ?? 0);
+                                $discountAmount = $lineTotal * ($discountRate / 100);
+                                $taxableAmount = $lineTotal - $discountAmount;
+                                $taxRate = (float) ($item['tax'] ?? 0);
+                                $taxAmount = $taxableAmount * ($taxRate / 100);
+
+                                $item['discount_amount'] = round($discountAmount, 2);
+                                $item['tax_amount'] = round($taxAmount, 2);
+                            }
+
+                            $set('items', $items);
+                            $set('discount_mode', 'amount');
+                        }),
+                ])
                 ->schema([
+                    Hidden::make('discount_mode')
+                        ->default('percent')
+                        ->dehydrated(false),
                     Repeater::make('items')
                         ->schema([
 
@@ -399,6 +452,19 @@ class PurchaseForm
                                     $set('unit_price', $unit);
                                     $set('line_total', $unit * $qty);
 
+                                    if (($get('../../discount_mode') ?? 'percent') === 'amount') {
+                                        $lineTotal = (float) ($get('line_total') ?? 0);
+                                        $discountAmount = (float) ($get('discount_amount') ?? 0);
+                                        $taxAmount = (float) ($get('tax_amount') ?? 0);
+
+                                        $discountRate = $lineTotal > 0 ? ($discountAmount / $lineTotal) * 100 : 0;
+                                        $taxableAmount = $lineTotal - ($lineTotal * ($discountRate / 100));
+                                        $taxRate = $taxableAmount > 0 ? ($taxAmount / $taxableAmount) * 100 : 0;
+
+                                        $set('discount', round($discountRate, 2));
+                                        $set('tax', round($taxRate, 2));
+                                    }
+
                                     self::recalcTotals($set, $get);
                                 }),
 
@@ -421,7 +487,27 @@ class PurchaseForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     self::recalcTotals($set, $get);
                                 })
-                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state),
+                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
+                                ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') !== 'amount'),
+
+                            TextInput::make('discount_amount')
+                                ->label('Discount (Rs)')
+                                ->numeric()
+                                ->default(0)
+                                ->minValue(0)
+                                ->step(0.01)
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $lineTotal = (float) ($get('line_total') ?? 0);
+                                    $amount = round(max(0, (float) ($state ?? 0)), 2);
+                                    $rate = $lineTotal > 0 ? ($amount / $lineTotal) * 100 : 0;
+
+                                    $set('discount_amount', $amount);
+                                    $set('discount', $rate);
+                                    self::recalcTotals($set, $get);
+                                })
+                                ->dehydrateStateUsing(fn () => null)
+                                ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') === 'amount'),
 
                             TextInput::make('tax')
                                 ->label('Tax (%)')
@@ -442,7 +528,30 @@ class PurchaseForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     self::recalcTotals($set, $get);
                                 })
-                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state),
+                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
+                                ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') !== 'amount'),
+
+                            TextInput::make('tax_amount')
+                                ->label('Tax (Rs)')
+                                ->numeric()
+                                ->default(0)
+                                ->minValue(0)
+                                ->step(0.01)
+                                ->live(debounce: 300)
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    $lineTotal = (float) ($get('line_total') ?? 0);
+                                    $discountRate = (float) ($get('discount') ?? 0);
+                                    $discountAmount = $lineTotal * ($discountRate / 100);
+                                    $taxableAmount = $lineTotal - $discountAmount;
+                                    $amount = round(max(0, (float) ($state ?? 0)), 2);
+                                    $rate = $taxableAmount > 0 ? ($amount / $taxableAmount) * 100 : 0;
+
+                                    $set('tax_amount', $amount);
+                                    $set('tax', $rate);
+                                    self::recalcTotals($set, $get);
+                                })
+                                ->dehydrateStateUsing(fn () => null)
+                                ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') === 'amount'),
 
                             /* -------- LINE TOTAL -------- */
                             TextInput::make('line_total')

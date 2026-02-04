@@ -90,3 +90,33 @@
 .merchant-logo-center .filepond--root {
     margin-inline: auto;
 }
+
+/* --------------------------------------------
+ | Discount/Tax mode toggle (segmented buttons)
+ |---------------------------------------------
+ */
+.discount-mode-toggle {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #334155;
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.discount-mode-toggle.left {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.discount-mode-toggle.right {
+    border-left: 0;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.discount-mode-toggle.is-active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
