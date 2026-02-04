@@ -73,3 +73,20 @@
     overflow-wrap: anywhere;
     word-break: break-word;
 }
+
+/* --------------------------------------------
+ | Center merchant logo upload/card blocks
+ | (scoped to merchant-logo wrappers)
+ |---------------------------------------------
+ */
+.merchant-logo-center {
+    display: flex;
+    justify-content: center;
+    text-align: center;
+}
+
+.merchant-logo-center .fi-fo-file-upload,
+.merchant-logo-center .fi-fo-view,
+.merchant-logo-center .filepond--root {
+    margin-inline: auto;
+}

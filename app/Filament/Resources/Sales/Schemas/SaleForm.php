@@ -106,6 +106,7 @@ class SaleForm
                         ->schema([
                             FileUpload::make('merchant_logo')
                                 ->label('')
+                                ->extraAttributes(['class' => 'merchant-logo-center'])
                                 ->image()
                                 ->disk('public')
                                 ->directory('merchants/logos')
@@ -114,6 +115,7 @@ class SaleForm
                                 ->dehydrated(false),
 
                             View::make('filament.pages.merchant-card')
+                                ->extraAttributes(['class' => 'merchant-logo-center'])
                                 ->visible(fn () => self::merchantHasLogo()),
                         ]),
                 ]),
@@ -373,6 +375,11 @@ class SaleForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.quantity');
                                     $livewire->resetErrorBag('data.items.*.quantity');
+                                    if ($state === null || $state === '') {
+                                        $set('line_total', 0);
+                                        self::recalcTotals($set, $get);
+                                        return;
+                                    }
                                     $qty  = max(1, (float) ($state ?? 1));
                                     $unit = (float) ($get('unit_price') ?? 0);
 

@@ -161,6 +161,11 @@ class ExpenseForm
                                 ->reactive()
                                 ->debounce(300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state === null || $state === '') {
+                                        $set('line_total', 0);
+                                        self::recalcTotals($set, $get);
+                                        return;
+                                    }
                                     // ✅ Clamp quantity to minimum 1
                                     $qty = max(1, (float)($state ?? 1));
 
