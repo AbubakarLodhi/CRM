@@ -37,6 +37,8 @@ class EditPurchase extends EditRecord
             'quantity'           => $item->quantity,
             'unit_price'         => $item->unit_price,
             'line_total'         => $item->line_total,
+            'discount'           => $item->discount ?? 0,
+            'tax'                => $item->tax ?? 0,
         ])->toArray();
 
         return $data;
@@ -65,18 +67,27 @@ class EditPurchase extends EditRecord
         unset($data['items']);
 
         $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
-        $discountRate = (float) ($data['discount'] ?? 0);
-        $taxRate      = (float) ($data['tax'] ?? 0);
+        $totalDiscount = 0.0;
+        $totalTax = 0.0;
 
-        $discountRate = max(0, min(100, $discountRate));
-        $taxRate = max(0, min(100, $taxRate));
+        foreach ($items as $item) {
+            $lineTotal = (float) ($item['line_total'] ?? 0);
+            $discountRate = (float) ($item['discount'] ?? 0);
+            $taxRate = (float) ($item['tax'] ?? 0);
 
-        $discountAmount = $subtotal * ($discountRate / 100);
-        $taxableAmount = $subtotal - $discountAmount;
-        $taxAmount = $taxableAmount * ($taxRate / 100);
+            $discountRate = max(0, min(100, $discountRate));
+            $taxRate = max(0, min(100, $taxRate));
+
+            $discountAmount = $lineTotal * ($discountRate / 100);
+            $taxableAmount = $lineTotal - $discountAmount;
+            $taxAmount = $taxableAmount * ($taxRate / 100);
+
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxAmount;
+        }
 
         $data['subtotal']     = $subtotal;
-        $data['total_amount'] = $taxableAmount + $taxAmount;
+        $data['total_amount'] = $subtotal - $totalDiscount + $totalTax;
 
         return $data;
     }
@@ -107,6 +118,8 @@ class EditPurchase extends EditRecord
                     'quantity'    => $item['quantity'],
                     'unit_price'  => $item['unit_price'],
                     'line_total'  => $item['line_total'],
+                    'discount'    => $item['discount'] ?? 0,
+                    'tax'         => $item['tax'] ?? 0,
                 ]);
 
                 // ✅ MATCH SALE

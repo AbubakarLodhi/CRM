@@ -24,10 +24,6 @@ class VariantsTable
                     ->limit(30)
                     ->searchable(),
 
-                TextColumn::make('sku')
-                    ->label('SKU')
-                    ->searchable(),
-
                 TextColumn::make('product.name')
                     ->label('Product')
                     ->sortable()

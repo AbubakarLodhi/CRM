@@ -16,8 +16,8 @@ class Sale extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'customer_id', 'sale_no', 'sale_date', 'subtotal', 'discount',
-        'tax', 'total_amount', 'notes', 'created_by',
+        'merchant_id', 'customer_id', 'sale_no', 'sale_date', 'subtotal',
+        'total_amount', 'notes', 'created_by',
     ];
 
     /** @var string $keyType */
@@ -27,8 +27,6 @@ class Sale extends Model
     protected $casts = [
         'sale_date' => 'date',
         'subtotal' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'tax' => 'decimal:2',
         'total_amount' => 'decimal:2',
     ];
 

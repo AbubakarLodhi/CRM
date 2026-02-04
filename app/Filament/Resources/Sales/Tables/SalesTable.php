@@ -59,14 +59,31 @@ class SalesTable
                     ->toggleable(),
 
                 TextColumn::make('discount')
-                    ->label('Discount (%)')
-                    ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2) . '%')
+                    ->label('Discount')
+                    ->money('PKR')
+                    ->getStateUsing(function (Sale $record) {
+                        return $record->items->sum(function ($item) {
+                            $lineTotal = (float) ($item->line_total ?? 0);
+                            $discountRate = (float) ($item->discount ?? 0);
+                            return $lineTotal * ($discountRate / 100);
+                        });
+                    })
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('tax')
-                    ->label('Tax (%)')
-                    ->formatStateUsing(fn ($state) => number_format((float) ($state ?? 0), 2) . '%')
+                    ->label('Tax')
+                    ->money('PKR')
+                    ->getStateUsing(function (Sale $record) {
+                        return $record->items->sum(function ($item) {
+                            $lineTotal = (float) ($item->line_total ?? 0);
+                            $discountRate = (float) ($item->discount ?? 0);
+                            $taxRate = (float) ($item->tax ?? 0);
+                            $discountAmount = $lineTotal * ($discountRate / 100);
+                            $taxableAmount = $lineTotal - $discountAmount;
+                            return $taxableAmount * ($taxRate / 100);
+                        });
+                    })
                     ->sortable()
                     ->toggleable(),
 

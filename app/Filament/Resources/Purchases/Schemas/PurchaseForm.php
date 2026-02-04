@@ -402,6 +402,48 @@ class PurchaseForm
                                     self::recalcTotals($set, $get);
                                 }),
 
+                            TextInput::make('discount')
+                                ->label('Discount (%)')
+                                ->numeric()
+                                ->default(0)
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->step(0.01)
+                                ->suffix('%')
+                                ->live(debounce: 300)
+                                ->afterStateHydrated(function ($state, callable $set) {
+                                    if ($state === null || $state === '') {
+                                        $set('discount', 0);
+                                        return;
+                                    }
+                                    $set('discount', (float) $state);
+                                })
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    self::recalcTotals($set, $get);
+                                })
+                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state),
+
+                            TextInput::make('tax')
+                                ->label('Tax (%)')
+                                ->numeric()
+                                ->default(0)
+                                ->minValue(0)
+                                ->maxValue(100)
+                                ->step(0.01)
+                                ->suffix('%')
+                                ->live(debounce: 300)
+                                ->afterStateHydrated(function ($state, callable $set) {
+                                    if ($state === null || $state === '') {
+                                        $set('tax', 0);
+                                        return;
+                                    }
+                                    $set('tax', (float) $state);
+                                })
+                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    self::recalcTotals($set, $get);
+                                })
+                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state),
+
                             /* -------- LINE TOTAL -------- */
                             TextInput::make('line_total')
                                 ->label('Line Total')
@@ -418,6 +460,9 @@ class PurchaseForm
                         ->addActionLabel('Add Item')
                         ->reorderable(false)
                         ->deletable(true)
+                        ->afterStateHydrated(function (callable $set, callable $get) {
+                            self::recalcTotals($set, $get);
+                        })
                         ->afterStateUpdated(fn (callable $set, callable $get) =>
                         self::recalcTotals($set, $get)
                         ),
@@ -436,43 +481,40 @@ class PurchaseForm
                         number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
-                    TextInput::make('discount')
-                        ->label('Discount (%)')
-                        ->numeric()
-                        ->default(0)
-                        ->minValue(0)
-                        ->maxValue(100)
-                        ->step(0.01)
-                        ->suffix('%')
-                        ->reactive()
-                        ->afterStateHydrated(function ($state, callable $set) {
-                            if ($state === null || $state === '') {
-                                $set('discount', 0);
-                            }
-                        })
-                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
-                        ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
-                        self::recalcTotals($set, $get)
-                        ),
+                    Placeholder::make('total_discount_display')
+                        ->label('Discount')
+                        ->content(function (callable $get) {
+                            $items = $get('items') ?? [];
+                            $totalDiscount = collect($items)->sum(function ($item) {
+                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $rate = (float) ($item['discount'] ?? 0);
+                                return $lineTotal * ($rate / 100);
+                            });
 
-                    TextInput::make('tax')
-                        ->label('Tax (%)')
-                        ->numeric()
-                        ->default(0)
-                        ->minValue(0)
-                        ->maxValue(100)
-                        ->step(0.01)
-                        ->suffix('%')
-                        ->reactive()
-                        ->afterStateHydrated(function ($state, callable $set) {
-                            if ($state === null || $state === '') {
-                                $set('tax', 0);
-                            }
-                        })
-                        ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
-                        ->afterStateUpdated(fn ($state, callable $set, callable $get) =>
-                        self::recalcTotals($set, $get)
-                        ),
+                            $totalPercent = collect($items)->sum(fn ($item) => (float) ($item['discount'] ?? 0));
+
+                            return number_format($totalDiscount, 2)
+                                . ' (' . number_format($totalPercent, 2) . '%)';
+                        }),
+
+                    Placeholder::make('total_tax_display')
+                        ->label('Tax')
+                        ->content(function (callable $get) {
+                            $items = $get('items') ?? [];
+                            $totalTax = collect($items)->sum(function ($item) {
+                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $discountRate = (float) ($item['discount'] ?? 0);
+                                $taxRate = (float) ($item['tax'] ?? 0);
+                                $discountAmount = $lineTotal * ($discountRate / 100);
+                                $taxableAmount = $lineTotal - $discountAmount;
+                                return $taxableAmount * ($taxRate / 100);
+                            });
+
+                            $totalPercent = collect($items)->sum(fn ($item) => (float) ($item['tax'] ?? 0));
+
+                            return number_format($totalTax, 2)
+                                . ' (' . number_format($totalPercent, 2) . '%)';
+                        }),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
@@ -481,6 +523,8 @@ class PurchaseForm
                         ),
 
                     Hidden::make('subtotal')->default(0)->dehydrated(),
+                    Hidden::make('total_discount')->default(0)->dehydrated(),
+                    Hidden::make('total_tax')->default(0)->dehydrated(),
                     Hidden::make('total_amount')->default(0)->dehydrated(),
                 ]),
 
@@ -534,29 +578,28 @@ class PurchaseForm
         }
 
         $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_total'] ?? 0));
+        $totalDiscount = 0.0;
+        $totalTax = 0.0;
 
-        $discountRate = $get('discount');
-        $taxRate      = $get('tax');
+        foreach ($items as $item) {
+            $lineTotal = (float) ($item['line_total'] ?? 0);
+            $discountRate = (float) ($item['discount'] ?? 0);
+            $taxRate = (float) ($item['tax'] ?? 0);
 
-        if ($discountRate === null) {
-            $discountRate = $get('../../discount');
+            $discountRate = max(0, min(100, $discountRate));
+            $taxRate = max(0, min(100, $taxRate));
+
+            $discountAmount = $lineTotal * ($discountRate / 100);
+            $taxableAmount = $lineTotal - $discountAmount;
+            $taxAmount = $taxableAmount * ($taxRate / 100);
+
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxAmount;
         }
-
-        if ($taxRate === null) {
-            $taxRate = $get('../../tax');
-        }
-
-        $discountRate = (float) ($discountRate ?? 0);
-        $taxRate      = (float) ($taxRate ?? 0);
-
-        $discountRate = max(0, min(100, $discountRate));
-        $taxRate = max(0, min(100, $taxRate));
-
-        $discountAmount = $subtotal * ($discountRate / 100);
-        $taxableAmount = $subtotal - $discountAmount;
-        $taxAmount = $taxableAmount * ($taxRate / 100);
 
         $set($rootPrefix . 'subtotal', $subtotal);
-        $set($rootPrefix . 'total_amount', $taxableAmount + $taxAmount);
+        $set($rootPrefix . 'total_discount', $totalDiscount);
+        $set($rootPrefix . 'total_tax', $totalTax);
+        $set($rootPrefix . 'total_amount', $subtotal - $totalDiscount + $totalTax);
     }
 }

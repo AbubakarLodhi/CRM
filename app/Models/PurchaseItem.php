@@ -22,6 +22,8 @@ class PurchaseItem extends Model
         'quantity',
         'unit_price',
         'line_total',
+        'discount',
+        'tax',
     ];
 
     public function business(): BelongsTo
@@ -45,6 +47,8 @@ class PurchaseItem extends Model
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'line_total' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'tax' => 'decimal:2',
     ];
 
     /**

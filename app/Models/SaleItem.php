@@ -24,6 +24,8 @@ class SaleItem extends Model
         'quantity',
         'unit_price',
         'line_total',
+        'discount',
+        'tax',
     ];
 
 
@@ -38,6 +40,8 @@ class SaleItem extends Model
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'line_total' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'tax' => 'decimal:2',
     ];
 
     public function sale(): BelongsTo

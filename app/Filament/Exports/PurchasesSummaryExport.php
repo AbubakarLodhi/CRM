@@ -70,8 +70,19 @@ class PurchasesSummaryExport implements
             $branchText ?: '-',
             (int) $purchase->items_count,
             (float) $purchase->subtotal,
-            (float) $purchase->discount,
-            (float) $purchase->tax,
+            (float) $purchase->items->sum(function ($item) {
+                $lineTotal = (float) ($item->line_total ?? 0);
+                $discountRate = (float) ($item->discount ?? 0);
+                return $lineTotal * ($discountRate / 100);
+            }),
+            (float) $purchase->items->sum(function ($item) {
+                $lineTotal = (float) ($item->line_total ?? 0);
+                $discountRate = (float) ($item->discount ?? 0);
+                $taxRate = (float) ($item->tax ?? 0);
+                $discountAmount = $lineTotal * ($discountRate / 100);
+                $taxableAmount = $lineTotal - $discountAmount;
+                return $taxableAmount * ($taxRate / 100);
+            }),
             (float) $purchase->total_amount,
         ];
     }

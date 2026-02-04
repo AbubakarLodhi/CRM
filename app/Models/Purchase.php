@@ -16,7 +16,7 @@ class Purchase extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'purchase_no', 'purchase_date', 'subtotal', 'discount', 'tax',
+        'merchant_id', 'purchase_no', 'purchase_date', 'subtotal',
         'total_amount', 'notes', 'created_by'
     ];
 
@@ -27,8 +27,6 @@ class Purchase extends Model
     protected $casts = [
         'purchase_date' => 'date',
         'subtotal' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'tax' => 'decimal:2',
         'total_amount' => 'decimal:2',
     ];
 

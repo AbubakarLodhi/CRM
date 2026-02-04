@@ -11,6 +11,25 @@
 
         // Customer for Sale | Supplier for Purchase
         $party = $isSale ? $record->customer : $record->supplier;
+        $totalDiscount = 0;
+        $totalTax = 0;
+        $totalDiscountPercent = 0;
+        $totalTaxPercent = 0;
+
+        foreach ($record->items as $item) {
+            $lineTotal = (float) ($item->line_total ?? 0);
+            $discountRate = (float) ($item->discount ?? 0);
+            $taxRate = (float) ($item->tax ?? 0);
+
+            $discountAmount = $lineTotal * ($discountRate / 100);
+            $taxableAmount = $lineTotal - $discountAmount;
+            $taxAmount = $taxableAmount * ($taxRate / 100);
+
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxAmount;
+            $totalDiscountPercent += $discountRate;
+            $totalTaxPercent += $taxRate;
+        }
     @endphp
 
     <title>Invoice {{ $invoiceNo }}</title>
@@ -30,6 +49,9 @@
             background: #fff;
             padding: 40px;
             border-radius: 12px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         .header {
@@ -106,6 +128,9 @@
         }
 
         @media print {
+            html, body {
+                height: 100%;
+            }
             body {
                 background: #fff;
                 padding: 0;
@@ -114,6 +139,7 @@
             .invoice {
                 box-shadow: none;
                 border-radius: 0;
+                min-height: 100%;
             }
         }
     </style>
@@ -192,6 +218,9 @@
             <th>Price</th>
             <th>Qty</th>
             <th>Subtotal</th>
+            <th>Discount (%)</th>
+            <th>Tax (%)</th>
+            <th>Total</th>
         </tr>
         </thead>
         <tbody>
@@ -210,28 +239,24 @@
                 <td>Rs{{ number_format($item->unit_price, 2) }}</td>
                 <td>{{ $item->quantity }}</td>
                 <td>Rs{{ number_format($item->line_total, 2) }}</td>
+                <td>{{ number_format((float) ($item->discount ?? 0), 2) }}%</td>
+                <td>{{ number_format((float) ($item->tax ?? 0), 2) }}%</td>
+                @php
+                    $lineTotal = (float) ($item->line_total ?? 0);
+                    $discountRate = (float) ($item->discount ?? 0);
+                    $taxRate = (float) ($item->tax ?? 0);
+
+                    $discountAmount = $lineTotal * ($discountRate / 100);
+                    $taxableAmount = $lineTotal - $discountAmount;
+                    $taxAmount = $taxableAmount * ($taxRate / 100);
+
+                    $lineGrandTotal = $taxableAmount + $taxAmount;
+                @endphp
+                <td>Rs{{ number_format($lineGrandTotal, 2) }}</td>
             </tr>
         @endforeach
         </tbody>
     </table>
-
-    {{-- SUMMARY --}}
-    <div class="summary">
-        <div>
-            <span>Net total</span>
-            <span>Rs{{ number_format($record->subtotal, 2) }}</span>
-        </div>
-
-        <div>
-            <span>Tax</span>
-            <span>Rs{{ number_format($record->tax, 2) }}</span>
-        </div>
-
-        <div class="total">
-            <span>Total</span>
-            <span>Rs{{ number_format($record->total_amount, 2) }}</span>
-        </div>
-    </div>
 
     {{-- NOTES --}}
     @if($record->notes)
@@ -240,6 +265,29 @@
             {{ $record->notes }}
         </div>
     @endif
+
+    {{-- SUMMARY (MOVED TO END FOR PRINT) --}}
+    <div class="summary" style="margin-top:auto; margin-bottom: 24px;">
+        <div>
+            <span>Net total</span>
+            <span>Rs{{ number_format($record->subtotal, 2) }}</span>
+        </div>
+
+        <div>
+            <span>Discount ({{ number_format($totalDiscountPercent, 2) }}%)</span>
+            <span>Rs{{ number_format($totalDiscount, 2) }}</span>
+        </div>
+
+        <div>
+            <span>Tax ({{ number_format($totalTaxPercent, 2) }}%)</span>
+            <span>Rs{{ number_format($totalTax, 2) }}</span>
+        </div>
+
+        <div class="total">
+            <span>Total</span>
+            <span>Rs{{ number_format($record->total_amount, 2) }}</span>
+        </div>
+    </div>
 
 </div>
 

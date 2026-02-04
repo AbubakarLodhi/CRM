@@ -73,8 +73,19 @@ class SalesSummaryExport implements
             $branchText ?: '-',
             (int) $sale->items_count,
             (float) $sale->subtotal,
-            (float) $sale->discount,
-            (float) $sale->tax,
+            (float) $sale->items->sum(function ($item) {
+                $lineTotal = (float) ($item->line_total ?? 0);
+                $discountRate = (float) ($item->discount ?? 0);
+                return $lineTotal * ($discountRate / 100);
+            }),
+            (float) $sale->items->sum(function ($item) {
+                $lineTotal = (float) ($item->line_total ?? 0);
+                $discountRate = (float) ($item->discount ?? 0);
+                $taxRate = (float) ($item->tax ?? 0);
+                $discountAmount = $lineTotal * ($discountRate / 100);
+                $taxableAmount = $lineTotal - $discountAmount;
+                return $taxableAmount * ($taxRate / 100);
+            }),
             (float) $sale->total_amount,
         ];
     }
