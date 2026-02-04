@@ -523,6 +523,7 @@ class SaleForm
                                 ->minValue(0)
                                 ->maxValue(100)
                                 ->step(0.01)
+                                ->default(16)
                                 ->suffix('%')
                                 ->live(debounce: 300)
                                 ->afterStateHydrated(function ($state, callable $set) {

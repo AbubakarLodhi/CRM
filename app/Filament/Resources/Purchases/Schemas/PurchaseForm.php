@@ -515,6 +515,7 @@ class PurchaseForm
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(100)
+                                ->default(16)
                                 ->step(0.01)
                                 ->suffix('%')
                                 ->live(debounce: 300)
