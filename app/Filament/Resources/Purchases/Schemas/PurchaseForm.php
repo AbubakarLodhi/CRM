@@ -425,7 +425,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->live(debounce: 400)
+                                ->lazy()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.quantity');
                                     $livewire->resetErrorBag('data.items.*.quantity');
@@ -448,7 +448,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->live(debounce: 400)
+                                ->lazy()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.unit_price');
                                     $livewire->resetErrorBag('data.items.*.unit_price');
@@ -522,7 +522,7 @@ class PurchaseForm
                                     'max' => 'Discount amount cannot be greater than the line subtotal.',
                                 ])
                                 ->step(0.01)
-                                ->live(debounce: 400)
+                                ->lazy()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.discount_amount');
                                     $livewire->resetErrorBag('data.items.*.discount_amount');
@@ -588,7 +588,7 @@ class PurchaseForm
                                     'max' => 'Tax amount cannot be greater than the taxable line amount.',
                                 ])
                                 ->step(0.01)
-                                ->live(debounce: 400)
+                                ->lazy()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.tax_amount');
                                     $livewire->resetErrorBag('data.items.*.tax_amount');
