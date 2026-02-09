@@ -25,13 +25,15 @@ class EnsureStaffIsVerified
         ) {
             Filament::auth()->logout();
 
-            throw ValidationException::withMessages([
-                'email' => match ($user->status) {
-                    User::STATUS_PENDING  => 'Your account is pending approval.',
-                    User::STATUS_REJECTED => 'Your account has been rejected. Please contact the administrator.',
-                    default               => 'Your account is inactive.',
-                },
-            ]);
+            $message = match ($user->status) {
+                User::STATUS_PENDING  => 'Your account is pending approval.',
+                User::STATUS_REJECTED => 'Your account has been rejected. Please contact the administrator.',
+                default               => 'Your account is inactive.',
+            };
+
+            return redirect()
+                ->to(Filament::getLoginUrl())
+                ->withErrors(['data.email' => $message]);
         }
 
         return $next($request);

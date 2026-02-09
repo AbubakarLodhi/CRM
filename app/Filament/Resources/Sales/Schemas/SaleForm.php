@@ -401,6 +401,10 @@ class SaleForm
                                     $livewire->resetErrorBag('data.items.*.product_variant_id');
 
                                     if (! $state) {
+                                        $set('unit_price', 0);
+                                        $set('line_subtotal', 0);
+                                        $set('line_total', 0);
+                                        self::recalcTotals($set, $get);
                                         return;
                                     }
 
@@ -429,7 +433,7 @@ class SaleForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->live(debounce: 300)
+                                ->live(debounce: 400)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.quantity');
                                     $livewire->resetErrorBag('data.items.*.quantity');
@@ -439,7 +443,6 @@ class SaleForm
                                     $qty  = max(1, (float) ($state ?? 1));
                                     $unit = (float) ($get('unit_price') ?? 0);
 
-                                    $set('quantity', $qty);
                                     $set('line_subtotal', $unit * $qty);
                                     self::updateLineTotalDisplay($set, $get);
 
@@ -453,7 +456,7 @@ class SaleForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->live(debounce: 300)
+                                ->live(debounce: 400)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.unit_price');
                                     $livewire->resetErrorBag('data.items.*.unit_price');
@@ -463,7 +466,6 @@ class SaleForm
                                     $unit = max(0, (float) ($state ?? 0));
                                     $qty  = (float) ($get('quantity') ?? 1);
 
-                                    $set('unit_price', $unit);
                                     $set('line_subtotal', $unit * $qty);
 
                                     if (($get('../../discount_mode') ?? 'percent') === 'amount') {
@@ -491,7 +493,7 @@ class SaleForm
                                 ->maxValue(100)
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->live(debounce: 300)
+                                ->live(debounce: 400)
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('discount', 0);
@@ -515,7 +517,7 @@ class SaleForm
                                 ->default(0)
                                 ->minValue(0)
                                 ->step(0.01)
-                                ->live(debounce: 300)
+                                ->live(debounce: 400)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
@@ -524,7 +526,6 @@ class SaleForm
                                     $amount = round(max(0, (float) ($state ?? 0)), 2);
                                     $rate = $lineTotal > 0 ? ($amount / $lineTotal) * 100 : 0;
 
-                                    $set('discount_amount', $amount);
                                     $set('discount', $rate);
                                     self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
@@ -541,7 +542,7 @@ class SaleForm
                                 ->step(0.01)
                                 ->default(16)
                                 ->suffix('%')
-                                ->live(debounce: 300)
+                                ->live(debounce: 400)
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('tax', 0);
@@ -565,7 +566,7 @@ class SaleForm
                                 ->default(0)
                                 ->minValue(0)
                                 ->step(0.01)
-                                ->live(debounce: 300)
+                                ->live(debounce: 400)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
@@ -577,7 +578,6 @@ class SaleForm
                                     $amount = round(max(0, (float) ($state ?? 0)), 2);
                                     $rate = $taxableAmount > 0 ? ($amount / $taxableAmount) * 100 : 0;
 
-                                    $set('tax_amount', $amount);
                                     $set('tax', $rate);
                                     self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
@@ -767,9 +767,23 @@ class SaleForm
         $lineSubtotal = (float) ($get('line_subtotal') ?? $get('line_total') ?? 0);
         $discountRate = (float) ($get('discount') ?? 0);
         $taxRate = (float) ($get('tax') ?? 0);
+        $discountAmountInput = (float) ($get('discount_amount') ?? 0);
+        $taxAmountInput = (float) ($get('tax_amount') ?? 0);
+        $discountMode = $get('../../discount_mode') ?? 'percent';
+
+        if ($discountMode === 'amount' && $discountAmountInput > 0 && $lineSubtotal > 0) {
+            $discountRate = ($discountAmountInput / $lineSubtotal) * 100;
+            $set('discount', round($discountRate, 2));
+        }
 
         $discountAmount = $lineSubtotal * ($discountRate / 100);
         $taxableAmount = $lineSubtotal - $discountAmount;
+
+        if ($discountMode === 'amount' && $taxAmountInput > 0 && $taxableAmount > 0) {
+            $taxRate = ($taxAmountInput / $taxableAmount) * 100;
+            $set('tax', round($taxRate, 2));
+        }
+
         $taxAmount = $taxableAmount * ($taxRate / 100);
 
         $set('line_total', round($taxableAmount + $taxAmount, 2));
