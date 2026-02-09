@@ -488,7 +488,7 @@ class PurchaseForm
                                 ])
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->live(debounce: 400)
+                                ->lazy()
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('discount', 0);
@@ -552,7 +552,7 @@ class PurchaseForm
                                 ->default(16)
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->live(debounce: 400)
+                                ->lazy()
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('tax', 0);
