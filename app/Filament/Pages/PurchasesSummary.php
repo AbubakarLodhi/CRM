@@ -10,10 +10,12 @@ use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -191,6 +193,25 @@ class PurchasesSummary extends Page implements HasTable
             ])
 
             ->filters([
+                Filter::make('purchase_date_range')
+                    ->label('Date Range')
+                    ->form([
+                        DatePicker::make('from')
+                            ->label('From'),
+                        DatePicker::make('to')
+                            ->label('To'),
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        return $query
+                            ->when(
+                                $data['from'] ?? null,
+                                fn (Builder $query, $date) => $query->whereDate('purchase_date', '>=', $date)
+                            )
+                            ->when(
+                                $data['to'] ?? null,
+                                fn (Builder $query, $date) => $query->whereDate('purchase_date', '<=', $date)
+                            );
+                    }),
                 /* ✅ FIXED BRANCH FILTER */
                 SelectFilter::make('branch_id')
                     ->label('Branch')
@@ -335,6 +356,5 @@ class PurchasesSummary extends Page implements HasTable
     }
 
 }
-
 
 

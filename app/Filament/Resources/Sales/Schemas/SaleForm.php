@@ -136,13 +136,15 @@ class SaleForm
                             $items = $get('items') ?? [];
 
                             foreach ($items as &$item) {
-                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
                                 $discountRate = (float) ($item['discount'] ?? 0);
                                 $discountAmount = $lineTotal * ($discountRate / 100);
                                 $taxableAmount = $lineTotal - $discountAmount;
                                 $taxRate = (float) ($item['tax'] ?? 0);
                                 $taxAmount = $taxableAmount * ($taxRate / 100);
 
+                                $item['line_subtotal'] = $lineTotal;
+                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
                                 $item['discount_amount'] = round($discountAmount, 2);
                                 $item['tax_amount'] = round($taxAmount, 2);
                             }
@@ -160,13 +162,15 @@ class SaleForm
                             $items = $get('items') ?? [];
 
                             foreach ($items as &$item) {
-                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
                                 $discountRate = (float) ($item['discount'] ?? 0);
                                 $discountAmount = $lineTotal * ($discountRate / 100);
                                 $taxableAmount = $lineTotal - $discountAmount;
                                 $taxRate = (float) ($item['tax'] ?? 0);
                                 $taxAmount = $taxableAmount * ($taxRate / 100);
 
+                                $item['line_subtotal'] = $lineTotal;
+                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
                                 $item['discount_amount'] = round($discountAmount, 2);
                                 $item['tax_amount'] = round($taxAmount, 2);
                             }
@@ -310,61 +314,6 @@ class SaleForm
                                         }
                                     }
                                 }),
-
-
-        /* -------- VARIANT -------- */
-                            Select::make('product_variant_id')
-                                ->label('Product Variant')
-                                ->searchable()
-                                ->live()
-                                ->reactive()
-                                ->required()
-                                ->options(function (callable $get): array {
-
-                                    $productId = $get('product_id');
-
-                                    if (! $productId) {
-                                        return [];
-                                    }
-
-                                    return \App\Models\ProductVariant::query()
-                                        ->where('product_id', $productId)
-                                        ->limit(50)
-                                        ->get()
-                                        ->mapWithKeys(function ($variant) {
-                                            $label =
-                                                $variant->name
-                                                ?? $variant->sku
-                                                ?? $variant->option_values
-                                                ?? substr($variant->id, 0, 8);
-
-                                            return [$variant->id => $label];
-                                        })
-                                        ->all();
-                                })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                                    $livewire->resetValidation('data.items.*.product_variant_id');
-                                    $livewire->resetErrorBag('data.items.*.product_variant_id');
-
-                                    if (! $state) {
-                                        return;
-                                    }
-
-                                    $variant = \App\Models\ProductVariant::select(['id', 'selling_price'])->find($state);
-
-                                    if (! $variant) {
-                                        return;
-                                    }
-
-                                    $qty  = (float) ($get('quantity') ?? 1);
-                                    $unit = (float) ($variant->selling_price ?? 0);
-
-                                    $set('unit_price', $unit);
-                                    $set('line_total', $unit * $qty);
-
-                                    self::recalcTotals($set, $get);
-                                }),
-
                             Select::make('branch_id')
                                 ->label('Branch')
                                 ->searchable()
@@ -417,6 +366,62 @@ class SaleForm
                                     $set('product_variant_id', null);
                                 }),
 
+        /* -------- VARIANT -------- */
+                            Select::make('product_variant_id')
+                                ->label('Product Variant')
+                                ->searchable()
+                                ->live()
+                                ->reactive()
+                                ->required()
+                                ->options(function (callable $get): array {
+
+                                    $productId = $get('product_id');
+
+                                    if (! $productId) {
+                                        return [];
+                                    }
+
+                                    return \App\Models\ProductVariant::query()
+                                        ->where('product_id', $productId)
+                                        ->limit(50)
+                                        ->get()
+                                        ->mapWithKeys(function ($variant) {
+                                            $label =
+                                                $variant->name
+                                                ?? $variant->sku
+                                                ?? $variant->option_values
+                                                ?? substr($variant->id, 0, 8);
+
+                                            return [$variant->id => $label];
+                                        })
+                                        ->all();
+                                })
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.product_variant_id');
+                                    $livewire->resetErrorBag('data.items.*.product_variant_id');
+
+                                    if (! $state) {
+                                        return;
+                                    }
+
+                                    $variant = \App\Models\ProductVariant::select(['id', 'selling_price'])->find($state);
+
+                                    if (! $variant) {
+                                        return;
+                                    }
+
+                                    $qty  = (float) ($get('quantity') ?? 1);
+                                    $unit = (float) ($variant->selling_price ?? 0);
+
+                                    $set('unit_price', $unit);
+                                    $set('line_subtotal', $unit * $qty);
+                                    self::updateLineTotalDisplay($set, $get);
+
+                                    self::recalcTotals($set, $get);
+                                }),
+
+
+
                             /* -------- QUANTITY -------- */
                             TextInput::make('quantity')
                                 ->label('Quantity')
@@ -428,16 +433,15 @@ class SaleForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.quantity');
                                     $livewire->resetErrorBag('data.items.*.quantity');
-                                    if ($state === null || $state === '') {
-                                        $set('line_total', 0);
-                                        self::recalcTotals($set, $get);
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
                                     }
                                     $qty  = max(1, (float) ($state ?? 1));
                                     $unit = (float) ($get('unit_price') ?? 0);
 
                                     $set('quantity', $qty);
-                                    $set('line_total', $unit * $qty);
+                                    $set('line_subtotal', $unit * $qty);
+                                    self::updateLineTotalDisplay($set, $get);
 
                                     self::recalcTotals($set, $get);
                                 }),
@@ -453,14 +457,17 @@ class SaleForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.unit_price');
                                     $livewire->resetErrorBag('data.items.*.unit_price');
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
+                                        return;
+                                    }
                                     $unit = max(0, (float) ($state ?? 0));
                                     $qty  = (float) ($get('quantity') ?? 1);
 
                                     $set('unit_price', $unit);
-                                    $set('line_total', $unit * $qty);
+                                    $set('line_subtotal', $unit * $qty);
 
                                     if (($get('../../discount_mode') ?? 'percent') === 'amount') {
-                                        $lineTotal = (float) ($get('line_total') ?? 0);
+                                        $lineTotal = (float) ($get('line_subtotal') ?? 0);
                                         $discountAmount = (float) ($get('discount_amount') ?? 0);
                                         $taxAmount = (float) ($get('tax_amount') ?? 0);
 
@@ -472,6 +479,7 @@ class SaleForm
                                         $set('tax', round($taxRate, 2));
                                     }
 
+                                    self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
                                 }),
 
@@ -492,28 +500,36 @@ class SaleForm
                                     $set('discount', (float) $state);
                                 })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
+                                        return;
+                                    }
+                                    self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
                                 })
                                 ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                                 ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') !== 'amount'),
 
                             TextInput::make('discount_amount')
-                                ->label('Discount (Rs)')
+                                ->label('Discount (PKR)')
                                 ->numeric()
                                 ->default(0)
                                 ->minValue(0)
                                 ->step(0.01)
                                 ->live(debounce: 300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $lineTotal = (float) ($get('line_total') ?? 0);
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
+                                        return;
+                                    }
+                                    $lineTotal = (float) ($get('line_subtotal') ?? 0);
                                     $amount = round(max(0, (float) ($state ?? 0)), 2);
                                     $rate = $lineTotal > 0 ? ($amount / $lineTotal) * 100 : 0;
 
                                     $set('discount_amount', $amount);
                                     $set('discount', $rate);
+                                    self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
                                 })
-                                ->dehydrateStateUsing(fn () => null)
+                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                                 ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') === 'amount'),
 
                             TextInput::make('tax')
@@ -534,20 +550,27 @@ class SaleForm
                                     $set('tax', (float) $state);
                                 })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
+                                        return;
+                                    }
+                                    self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
                                 })
                                 ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                                 ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') !== 'amount'),
 
                             TextInput::make('tax_amount')
-                                ->label('Tax (Rs)')
+                                ->label('Tax (PKR)')
                                 ->numeric()
                                 ->default(0)
                                 ->minValue(0)
                                 ->step(0.01)
                                 ->live(debounce: 300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    $lineTotal = (float) ($get('line_total') ?? 0);
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
+                                        return;
+                                    }
+                                    $lineTotal = (float) ($get('line_subtotal') ?? 0);
                                     $discountRate = (float) ($get('discount') ?? 0);
                                     $discountAmount = $lineTotal * ($discountRate / 100);
                                     $taxableAmount = $lineTotal - $discountAmount;
@@ -556,9 +579,10 @@ class SaleForm
 
                                     $set('tax_amount', $amount);
                                     $set('tax', $rate);
+                                    self::updateLineTotalDisplay($set, $get);
                                     self::recalcTotals($set, $get);
                                 })
-                                ->dehydrateStateUsing(fn () => null)
+                                ->dehydrateStateUsing(fn ($state) => $state === null || $state === '' ? 0 : $state)
                                 ->visible(fn (callable $get) => ($get('../../discount_mode') ?? 'percent') === 'amount'),
 
                             /* -------- LINE TOTAL -------- */
@@ -567,7 +591,11 @@ class SaleForm
                                 ->numeric()
                                 ->disabled()
                                 ->dehydrated()
+                                ->dehydrateStateUsing(fn ($state, callable $get) => $get('line_subtotal') ?? 0)
                                 ->default(0),
+                            Hidden::make('line_subtotal')
+                                ->default(0)
+                                ->dehydrated(false),
                         ])
                         ->columns(4)
                         ->defaultItems(1)
@@ -578,6 +606,22 @@ class SaleForm
                         ->reorderable(false)
                         ->deletable(true)
                         ->afterStateHydrated(function (callable $set, callable $get) {
+                            $items = $get('items') ?? [];
+
+                            foreach ($items as &$item) {
+                                $lineSubtotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
+                                $discountRate = (float) ($item['discount'] ?? 0);
+                                $taxRate = (float) ($item['tax'] ?? 0);
+
+                                $discountAmount = $lineSubtotal * ($discountRate / 100);
+                                $taxableAmount = $lineSubtotal - $discountAmount;
+                                $taxAmount = $taxableAmount * ($taxRate / 100);
+
+                                $item['line_subtotal'] = $lineSubtotal;
+                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
+                            }
+
+                            $set('items', $items);
                             self::recalcTotals($set, $get);
                         })
                         ->afterStateUpdated(fn (callable $set, callable $get) =>
@@ -596,7 +640,7 @@ class SaleForm
                         ->label('Subtotal')
                         ->live()
                         ->content(fn (callable $get) =>
-                        number_format((float) ($get('subtotal') ?? 0), 2)
+                        'PKR' . number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_discount_display')
@@ -605,15 +649,12 @@ class SaleForm
                         ->content(function (callable $get) {
                             $items = $get('items') ?? [];
                             $totalDiscount = collect($items)->sum(function ($item) {
-                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
                                 $rate = (float) ($item['discount'] ?? 0);
                                 return $lineTotal * ($rate / 100);
                             });
 
-                            $totalPercent = collect($items)->sum(fn ($item) => (float) ($item['discount'] ?? 0));
-
-                            return number_format($totalDiscount, 2)
-                                . ' (' . number_format($totalPercent, 2) . '%)';
+                            return 'PKR' . number_format($totalDiscount, 2);
                         }),
 
                     Placeholder::make('total_tax_display')
@@ -622,7 +663,7 @@ class SaleForm
                         ->content(function (callable $get) {
                             $items = $get('items') ?? [];
                             $totalTax = collect($items)->sum(function ($item) {
-                                $lineTotal = (float) ($item['line_total'] ?? 0);
+                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
                                 $discountRate = (float) ($item['discount'] ?? 0);
                                 $taxRate = (float) ($item['tax'] ?? 0);
                                 $discountAmount = $lineTotal * ($discountRate / 100);
@@ -630,17 +671,14 @@ class SaleForm
                                 return $taxableAmount * ($taxRate / 100);
                             });
 
-                            $totalPercent = collect($items)->sum(fn ($item) => (float) ($item['tax'] ?? 0));
-
-                            return number_format($totalTax, 2)
-                                . ' (' . number_format($totalPercent, 2) . '%)';
+                            return 'PKR' . number_format($totalTax, 2);
                         }),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
                         ->live()
                         ->content(fn (callable $get) =>
-                        number_format((float) ($get('total_amount') ?? 0), 2)
+                        'PKR' . number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
 
                     Hidden::make('subtotal')->default(0)->dehydrated(),
@@ -698,12 +736,12 @@ class SaleForm
             $rootPrefix = '../../';
         }
 
-        $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_total'] ?? 0));
+        $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0));
         $totalDiscount = 0.0;
         $totalTax = 0.0;
 
         foreach ($items as $item) {
-            $lineTotal = (float) ($item['line_total'] ?? 0);
+            $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
             $discountRate = (float) ($item['discount'] ?? 0);
             $taxRate = (float) ($item['tax'] ?? 0);
 
@@ -722,5 +760,18 @@ class SaleForm
         $set($rootPrefix . 'total_discount', $totalDiscount);
         $set($rootPrefix . 'total_tax', $totalTax);
         $set($rootPrefix . 'total_amount', $subtotal - $totalDiscount + $totalTax);
+    }
+
+    private static function updateLineTotalDisplay(callable $set, callable $get): void
+    {
+        $lineSubtotal = (float) ($get('line_subtotal') ?? $get('line_total') ?? 0);
+        $discountRate = (float) ($get('discount') ?? 0);
+        $taxRate = (float) ($get('tax') ?? 0);
+
+        $discountAmount = $lineSubtotal * ($discountRate / 100);
+        $taxableAmount = $lineSubtotal - $discountAmount;
+        $taxAmount = $taxableAmount * ($taxRate / 100);
+
+        $set('line_total', round($taxableAmount + $taxAmount, 2));
     }
 }

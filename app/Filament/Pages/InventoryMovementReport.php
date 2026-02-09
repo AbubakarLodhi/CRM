@@ -15,6 +15,7 @@ use Filament\Forms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class InventoryMovementReport extends Page implements HasTable, HasForms
@@ -73,7 +74,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
     public function table(Table $table): Table
     {
         return $table
-            ->records(fn () => $this->getRecords())
+            ->records(fn (int|string $page = 1, int|string|null $recordsPerPage = null) => $this->getPaginatedRecords($page, $recordsPerPage))
             ->columns([
                 TextColumn::make('date')
                     ->label('Date')
@@ -265,6 +266,27 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         }
 
         return $records;
+    }
+
+    protected function getPaginatedRecords(int|string $page = 1, int|string|null $recordsPerPage = null): LengthAwarePaginator|Collection
+    {
+        $records = $this->getRecords();
+
+        if ($recordsPerPage === null || $recordsPerPage === 'all') {
+            return $records;
+        }
+
+        $page = max(1, (int) $page);
+        $perPage = max(1, (int) $recordsPerPage);
+        $results = $records->forPage($page, $perPage)->values();
+
+        return new LengthAwarePaginator(
+            $results,
+            $records->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'query' => request()->query()]
+        );
     }
 
     /* ============================================================

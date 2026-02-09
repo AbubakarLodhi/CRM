@@ -61,6 +61,44 @@
             margin-bottom: 30px;
         }
 
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .close-btn {
+            border: none;
+            background: #e2e8f0;
+            color: #0f172a;
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 32px;
+            text-align: center;
+        }
+
+        .close-btn:hover {
+            background: #cbd5f5;
+        }
+
+        .print-btn {
+            border: none;
+            background: #6366f1;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 20px;
+        }
+
+        .print-btn:hover {
+            background: #4f46e5;
+        }
+
         .brand img {
             height: 42px;
         }
@@ -103,8 +141,10 @@
         .summary {
             width: 300px;
             margin-left: auto;
-            margin-top: 30px;
+            margin-top: auto;
             font-size: 14px;
+            break-inside: avoid;
+            page-break-inside: avoid;
         }
 
         .summary div {
@@ -139,7 +179,22 @@
             .invoice {
                 box-shadow: none;
                 border-radius: 0;
-                min-height: 100%;
+                min-height: 100vh;
+                height: 100vh;
+                padding: 24px;
+                padding-bottom: 200px;
+            }
+
+            .close-btn,
+            .print-btn {
+                display: none;
+            }
+
+            .summary {
+                position: fixed;
+                right: 24px;
+                bottom: 24px;
+                margin-top: 0;
             }
         }
     </style>
@@ -161,6 +216,25 @@
         <div class="invoice-meta">
             <div><strong>Date:</strong> {{ $invoiceDate?->format('F d, Y') }}</div>
             <div><strong>Invoice #</strong> {{ $invoiceNo }}</div>
+        </div>
+
+        <div class="header-actions">
+            <button
+                class="print-btn"
+                type="button"
+                onclick="window.print()"
+            >
+                Print
+            </button>
+
+            <button
+                class="close-btn"
+                type="button"
+                aria-label="Close"
+                onclick="if (window.opener) { window.close(); } else { window.history.back(); }"
+            >
+                ×
+            </button>
         </div>
     </div>
 
@@ -267,19 +341,19 @@
     @endif
 
     {{-- SUMMARY (MOVED TO END FOR PRINT) --}}
-    <div class="summary" style="margin-top:auto; margin-bottom: 24px;">
+    <div class="summary" style="margin-bottom: 24px;">
         <div>
             <span>Net total</span>
             <span>Rs{{ number_format($record->subtotal, 2) }}</span>
         </div>
 
         <div>
-            <span>Discount ({{ number_format($totalDiscountPercent, 2) }}%)</span>
+            <span>Discount</span>
             <span>Rs{{ number_format($totalDiscount, 2) }}</span>
         </div>
 
         <div>
-            <span>Tax ({{ number_format($totalTaxPercent, 2) }}%)</span>
+            <span>Tax</span>
             <span>Rs{{ number_format($totalTax, 2) }}</span>
         </div>
 

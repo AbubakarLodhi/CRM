@@ -59,6 +59,7 @@ class EditSale extends EditRecord
     {
         $items = $data['items'] ?? [];
         unset($data['items']);
+        $items = self::normalizeItems($items);
 
         $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
         $totalDiscount = 0.0;
@@ -94,6 +95,7 @@ class EditSale extends EditRecord
              * RECREATE ITEMS + VARIANTS
              * ------------------------- */
             $items = $this->form->getState()['items'] ?? [];
+            $items = self::normalizeItems($items);
 
             $this->record->items()->delete();
 
@@ -156,5 +158,38 @@ class EditSale extends EditRecord
                 }
             }
         });
+    }
+
+    private static function normalizeItems(array $items): array
+    {
+        foreach ($items as &$item) {
+            $lineTotal = (float) ($item['line_total'] ?? 0);
+
+            $discountRate = (float) ($item['discount'] ?? 0);
+            $discountAmount = (float) ($item['discount_amount'] ?? 0);
+
+            if ($discountAmount > 0 && $lineTotal > 0) {
+                $discountRate = ($discountAmount / $lineTotal) * 100;
+            }
+
+            $discountRate = max(0, min(100, $discountRate));
+            $discountAmount = $lineTotal * ($discountRate / 100);
+
+            $taxRate = (float) ($item['tax'] ?? 0);
+            $taxAmount = (float) ($item['tax_amount'] ?? 0);
+
+            $taxableAmount = $lineTotal - $discountAmount;
+
+            if ($taxAmount > 0 && $taxableAmount > 0) {
+                $taxRate = ($taxAmount / $taxableAmount) * 100;
+            }
+
+            $taxRate = max(0, min(100, $taxRate));
+
+            $item['discount'] = round($discountRate, 2);
+            $item['tax'] = round($taxRate, 2);
+        }
+
+        return $items;
     }
 }
