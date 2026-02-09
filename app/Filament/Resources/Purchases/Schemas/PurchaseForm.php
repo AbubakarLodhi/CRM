@@ -423,6 +423,7 @@ class PurchaseForm
                                 ->label('Quantity')
                                 ->inputMode('numeric')
                                 ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'quantity'])
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
@@ -447,6 +448,7 @@ class PurchaseForm
                                 ->label('Unit Price')
                                 ->inputMode('decimal')
                                 ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'unit_price'])
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
@@ -483,6 +485,7 @@ class PurchaseForm
                                 ->label('Discount (%)')
                                 ->inputMode('decimal')
                                 ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'discount'])
                                 ->default(0)
                                 ->minValue(0)
                                 ->rule('max:100')
@@ -515,6 +518,7 @@ class PurchaseForm
                                 ->label('Discount (PKR)')
                                 ->inputMode('decimal')
                                 ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'discount_amount'])
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(function (callable $get) {
@@ -548,6 +552,7 @@ class PurchaseForm
                                 ->label('Tax (%)')
                                 ->inputMode('decimal')
                                 ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'tax'])
                                 ->default(0)
                                 ->minValue(0)
                                 ->rule('max:100')
@@ -581,6 +586,7 @@ class PurchaseForm
                                 ->label('Tax (PKR)')
                                 ->inputMode('decimal')
                                 ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'tax_amount'])
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(function (callable $get) {
@@ -620,6 +626,7 @@ class PurchaseForm
                                 ->numeric()
                                 ->disabled()
                                 ->dehydrated()
+                                ->extraInputAttributes(['data-line-field' => 'line_total'])
                                 ->dehydrateStateUsing(fn ($state, callable $get) => $get('line_subtotal') ?? 0)
                                 ->default(0),
                             Hidden::make('line_subtotal')
@@ -667,12 +674,14 @@ class PurchaseForm
                 ->schema([
                     Placeholder::make('subtotal_display')
                         ->label('Subtotal')
+                        ->extraAttributes(['data-summary' => 'subtotal'])
                         ->content(fn (callable $get) =>
                         'PKR' . number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_discount_display')
                         ->label('Discount')
+                        ->extraAttributes(['data-summary' => 'discount'])
                         ->content(function (callable $get) {
                             $items = $get('items') ?? [];
                             $totalDiscount = collect($items)->sum(function ($item) {
@@ -686,6 +695,7 @@ class PurchaseForm
 
                     Placeholder::make('total_tax_display')
                         ->label('Tax')
+                        ->extraAttributes(['data-summary' => 'tax'])
                         ->content(function (callable $get) {
                             $items = $get('items') ?? [];
                             $totalTax = collect($items)->sum(function ($item) {
@@ -702,6 +712,7 @@ class PurchaseForm
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
+                        ->extraAttributes(['data-summary' => 'total'])
                         ->content(fn (callable $get) =>
                         'PKR' . number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
@@ -722,6 +733,7 @@ class PurchaseForm
                         ->maxLength(255)
                         ->rows(3),
                 ]),
+            View::make('filament.forms.line-calc-script'),
         ]);
     }
 
