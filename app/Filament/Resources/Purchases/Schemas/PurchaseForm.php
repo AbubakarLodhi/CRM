@@ -425,7 +425,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->lazy()
+                                ->live(debounce: 700)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.quantity');
                                     $livewire->resetErrorBag('data.items.*.quantity');
@@ -448,7 +448,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->lazy()
+                                ->live(debounce: 700)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.unit_price');
                                     $livewire->resetErrorBag('data.items.*.unit_price');
@@ -488,7 +488,7 @@ class PurchaseForm
                                 ])
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->lazy()
+                                ->live(debounce: 700)
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('discount', 0);
@@ -522,7 +522,7 @@ class PurchaseForm
                                     'max' => 'Discount amount cannot be greater than the line subtotal.',
                                 ])
                                 ->step(0.01)
-                                ->lazy()
+                                ->live(debounce: 700)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.discount_amount');
                                     $livewire->resetErrorBag('data.items.*.discount_amount');
@@ -552,7 +552,7 @@ class PurchaseForm
                                 ->default(16)
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->lazy()
+                                ->live(debounce: 700)
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('tax', 0);
@@ -588,7 +588,7 @@ class PurchaseForm
                                     'max' => 'Tax amount cannot be greater than the taxable line amount.',
                                 ])
                                 ->step(0.01)
-                                ->lazy()
+                                ->live(debounce: 700)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.tax_amount');
                                     $livewire->resetErrorBag('data.items.*.tax_amount');
