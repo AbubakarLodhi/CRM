@@ -421,7 +421,8 @@ class PurchaseForm
                             /* -------- QUANTITY -------- */
                             TextInput::make('quantity')
                                 ->label('Quantity')
-                                ->numeric()
+                                ->inputMode('numeric')
+                                ->rule('numeric')
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
@@ -444,7 +445,8 @@ class PurchaseForm
                             /* -------- UNIT PRICE -------- */
                             TextInput::make('unit_price')
                                 ->label('Unit Price')
-                                ->numeric()
+                                ->inputMode('decimal')
+                                ->rule('numeric')
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
@@ -479,7 +481,8 @@ class PurchaseForm
 
                             TextInput::make('discount')
                                 ->label('Discount (%)')
-                                ->numeric()
+                                ->inputMode('decimal')
+                                ->rule('numeric')
                                 ->default(0)
                                 ->minValue(0)
                                 ->rule('max:100')
@@ -510,7 +513,8 @@ class PurchaseForm
 
                             TextInput::make('discount_amount')
                                 ->label('Discount (PKR)')
-                                ->numeric()
+                                ->inputMode('decimal')
+                                ->rule('numeric')
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(function (callable $get) {
@@ -542,7 +546,8 @@ class PurchaseForm
 
                             TextInput::make('tax')
                                 ->label('Tax (%)')
-                                ->numeric()
+                                ->inputMode('decimal')
+                                ->rule('numeric')
                                 ->default(0)
                                 ->minValue(0)
                                 ->rule('max:100')
@@ -574,7 +579,8 @@ class PurchaseForm
 
                             TextInput::make('tax_amount')
                                 ->label('Tax (PKR)')
-                                ->numeric()
+                                ->inputMode('decimal')
+                                ->rule('numeric')
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(function (callable $get) {
