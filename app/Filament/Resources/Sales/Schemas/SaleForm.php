@@ -469,7 +469,7 @@ class SaleForm
                                     $set('line_subtotal', $unit * $qty);
 
                                     if (($get('../../discount_mode') ?? 'percent') === 'amount') {
-                                        $lineTotal = (float) ($get('line_subtotal') ?? 0);
+                                        $lineTotal = (float) ($get('unit_price') ?? 0);
                                         $discountAmount = (float) ($get('discount_amount') ?? 0);
                                         $taxAmount = (float) ($get('tax_amount') ?? 0);
 
@@ -490,7 +490,10 @@ class SaleForm
                                 ->numeric()
                                 ->default(0)
                                 ->minValue(0)
-                                ->maxValue(100)
+                                ->rule('max:100')
+                                ->validationMessages([
+                                    'max' => 'The discount (%) field must not be greater than 100.',
+                                ])
                                 ->step(0.01)
                                 ->suffix('%')
                                 ->live(debounce: 400)
@@ -501,7 +504,9 @@ class SaleForm
                                     }
                                     $set('discount', (float) $state);
                                 })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.discount');
+                                    $livewire->resetErrorBag('data.items.*.discount');
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
                                     }
@@ -516,9 +521,19 @@ class SaleForm
                                 ->numeric()
                                 ->default(0)
                                 ->minValue(0)
+                                ->maxValue(function (callable $get) {
+                                    $lineSubtotal = (float) ($get('line_subtotal') ?? 0);
+
+                                    return max(0, $lineSubtotal);
+                                })
+                                ->validationMessages([
+                                    'max' => 'Discount amount cannot be greater than the line subtotal.',
+                                ])
                                 ->step(0.01)
                                 ->live(debounce: 400)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.discount_amount');
+                                    $livewire->resetErrorBag('data.items.*.discount_amount');
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
                                     }
@@ -538,7 +553,10 @@ class SaleForm
                                 ->numeric()
                                 ->default(0)
                                 ->minValue(0)
-                                ->maxValue(100)
+                                ->rule('max:100')
+                                ->validationMessages([
+                                    'max' => 'The tax (%) field must not be greater than 100.',
+                                ])
                                 ->step(0.01)
                                 ->default(16)
                                 ->suffix('%')
@@ -550,7 +568,9 @@ class SaleForm
                                     }
                                     $set('tax', (float) $state);
                                 })
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.tax');
+                                    $livewire->resetErrorBag('data.items.*.tax');
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
                                     }
@@ -565,16 +585,27 @@ class SaleForm
                                 ->numeric()
                                 ->default(0)
                                 ->minValue(0)
+                                ->maxValue(function (callable $get) {
+                                    $lineSubtotal = (float) ($get('line_subtotal') ?? 0);
+                                    $discountAmount = (float) ($get('discount_amount') ?? 0);
+                                    $taxableAmount = $lineSubtotal - $discountAmount;
+
+                                    return max(0, $taxableAmount);
+                                })
+                                ->validationMessages([
+                                    'max' => 'Tax amount cannot be greater than the taxable line amount.',
+                                ])
                                 ->step(0.01)
                                 ->live(debounce: 400)
-                                ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                    $livewire->resetValidation('data.items.*.tax_amount');
+                                    $livewire->resetErrorBag('data.items.*.tax_amount');
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
                                     }
-                                    $lineTotal = (float) ($get('line_subtotal') ?? 0);
-                                    $discountRate = (float) ($get('discount') ?? 0);
-                                    $discountAmount = $lineTotal * ($discountRate / 100);
-                                    $taxableAmount = $lineTotal - $discountAmount;
+                                    $lineSubtotal = (float) ($get('line_subtotal') ?? 0);
+                                    $discountAmount = (float) ($get('discount_amount') ?? 0);
+                                    $taxableAmount = $lineSubtotal - $discountAmount;
                                     $amount = round(max(0, (float) ($state ?? 0)), 2);
                                     $rate = $taxableAmount > 0 ? ($amount / $taxableAmount) * 100 : 0;
 
@@ -764,7 +795,9 @@ class SaleForm
 
     private static function updateLineTotalDisplay(callable $set, callable $get): void
     {
-        $lineSubtotal = (float) ($get('line_subtotal') ?? $get('line_total') ?? 0);
+        $unitPrice = (float) ($get('unit_price') ?? 0);
+        $qty = max(1, (float) ($get('quantity') ?? 1));
+        $lineSubtotal = (float) ($get('line_subtotal') ?? ($unitPrice * $qty));
         $discountRate = (float) ($get('discount') ?? 0);
         $taxRate = (float) ($get('tax') ?? 0);
         $discountAmountInput = (float) ($get('discount_amount') ?? 0);
@@ -777,15 +810,18 @@ class SaleForm
         }
 
         $discountAmount = $lineSubtotal * ($discountRate / 100);
-        $taxableAmount = $lineSubtotal - $discountAmount;
+        $taxableLine = max(0, $lineSubtotal - $discountAmount);
 
-        if ($discountMode === 'amount' && $taxAmountInput > 0 && $taxableAmount > 0) {
-            $taxRate = ($taxAmountInput / $taxableAmount) * 100;
+        if ($discountMode === 'amount' && $taxAmountInput > 0 && $taxableLine > 0) {
+            $taxRate = ($taxAmountInput / $taxableLine) * 100;
             $set('tax', round($taxRate, 2));
         }
 
-        $taxAmount = $taxableAmount * ($taxRate / 100);
+        $taxAmount = $discountMode === 'amount'
+            ? $taxAmountInput
+            : ($taxableLine * ($taxRate / 100));
+        $lineTotal = $taxableLine + $taxAmount;
 
-        $set('line_total', round($taxableAmount + $taxAmount, 2));
+        $set('line_total', round($lineTotal, 2));
     }
 }
