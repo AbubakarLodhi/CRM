@@ -153,7 +153,10 @@ class CreateSale extends CreateRecord
     private static function normalizeItems(array $items): array
     {
         foreach ($items as &$item) {
-            $lineTotal = (float) ($item['line_total'] ?? 0);
+            $qty = (float) ($item['quantity'] ?? 0);
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
+            $lineSubtotal = $qty * $unitPrice;
+            $lineTotal = $lineSubtotal;
 
             $discountRate = (float) ($item['discount'] ?? 0);
             $discountAmount = (float) ($item['discount_amount'] ?? 0);
@@ -176,6 +179,7 @@ class CreateSale extends CreateRecord
 
             $taxRate = max(0, min(100, $taxRate));
 
+            $item['line_total'] = $lineTotal;
             $item['discount'] = round($discountRate, 2);
             $item['tax'] = round($taxRate, 2);
         }

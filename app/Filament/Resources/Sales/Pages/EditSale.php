@@ -28,6 +28,10 @@ class EditSale extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $data['items'] = $this->record->items->map(fn ($item) => [
+            'line_subtotal'      => (float) $item->line_total,
+            'discount_amount'    => (float) $item->line_total * ((float) ($item->discount ?? 0) / 100),
+            'tax_amount'         => ((float) $item->line_total - ((float) $item->line_total * ((float) ($item->discount ?? 0) / 100)))
+                * ((float) ($item->tax ?? 0) / 100),
             'branch_id'          => $item->branch_id,
             'product_id'         => $item->product_id,
             'product_variant_id' => optional($item->variants->first())->product_variant_id,
@@ -163,7 +167,10 @@ class EditSale extends EditRecord
     private static function normalizeItems(array $items): array
     {
         foreach ($items as &$item) {
-            $lineTotal = (float) ($item['line_total'] ?? 0);
+            $qty = (float) ($item['quantity'] ?? 0);
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
+            $lineSubtotal = $qty * $unitPrice;
+            $lineTotal = $lineSubtotal;
 
             $discountRate = (float) ($item['discount'] ?? 0);
             $discountAmount = (float) ($item['discount_amount'] ?? 0);
@@ -186,6 +193,7 @@ class EditSale extends EditRecord
 
             $taxRate = max(0, min(100, $taxRate));
 
+            $item['line_total'] = $lineTotal;
             $item['discount'] = round($discountRate, 2);
             $item['tax'] = round($taxRate, 2);
         }

@@ -92,7 +92,7 @@
             var taxAmount = 0;
 
             if (discountMode === 'amount') {
-                taxAmount = Math.min(taxAmountInput, taxableLine);
+                taxAmount = Math.min(taxAmountInput, lineSubtotal);
                 taxRate = taxableLine > 0 ? (taxAmount / taxableLine) * 100 : 0;
             } else {
                 taxAmount = taxableLine * (taxRate / 100);

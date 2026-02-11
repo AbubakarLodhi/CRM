@@ -427,7 +427,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->live(debounce: 700)
+                                ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.quantity');
                                     $livewire->resetErrorBag('data.items.*.quantity');
@@ -452,7 +452,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->live(debounce: 700)
+                                ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.unit_price');
                                     $livewire->resetErrorBag('data.items.*.unit_price');
@@ -494,7 +494,7 @@ class PurchaseForm
                                 ])
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->live(debounce: 700)
+                                ->reactive()
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('discount', 0);
@@ -522,7 +522,9 @@ class PurchaseForm
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(function (callable $get) {
-                                    $lineSubtotal = (float) ($get('line_subtotal') ?? 0);
+                                    $qty = (float) ($get('quantity') ?? 0);
+                                    $unit = (float) ($get('unit_price') ?? 0);
+                                    $lineSubtotal = $qty * $unit;
 
                                     return max(0, $lineSubtotal);
                                 })
@@ -530,7 +532,7 @@ class PurchaseForm
                                     'max' => 'Discount amount cannot be greater than the line subtotal.',
                                 ])
                                 ->step(0.01)
-                                ->live(debounce: 700)
+                                ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.discount_amount');
                                     $livewire->resetErrorBag('data.items.*.discount_amount');
@@ -562,7 +564,7 @@ class PurchaseForm
                                 ->default(16)
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->live(debounce: 700)
+                                ->reactive()
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('tax', 0);
@@ -590,17 +592,17 @@ class PurchaseForm
                                 ->default(0)
                                 ->minValue(0)
                                 ->maxValue(function (callable $get) {
-                                    $lineSubtotal = (float) ($get('line_subtotal') ?? 0);
-                                    $discountAmount = (float) ($get('discount_amount') ?? 0);
-                                    $taxableAmount = $lineSubtotal - $discountAmount;
+                                    $qty = (float) ($get('quantity') ?? 0);
+                                    $unit = (float) ($get('unit_price') ?? 0);
+                                    $lineSubtotal = $qty * $unit;
 
-                                    return max(0, $taxableAmount);
+                                    return max(0, $lineSubtotal);
                                 })
                                 ->validationMessages([
-                                    'max' => 'Tax amount cannot be greater than the taxable line amount.',
+                                    'max' => 'Tax amount cannot be greater than the line subtotal.',
                                 ])
                                 ->step(0.01)
-                                ->live(debounce: 700)
+                                ->reactive()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.tax_amount');
                                     $livewire->resetErrorBag('data.items.*.tax_amount');
@@ -627,7 +629,6 @@ class PurchaseForm
                                 ->disabled()
                                 ->dehydrated()
                                 ->extraInputAttributes(['data-line-field' => 'line_total'])
-                                ->dehydrateStateUsing(fn ($state, callable $get) => $get('line_subtotal') ?? 0)
                                 ->default(0),
                             Hidden::make('line_subtotal')
                                 ->default(0)
@@ -643,17 +644,47 @@ class PurchaseForm
                         ->deletable(true)
                         ->afterStateHydrated(function (callable $set, callable $get) {
                             $items = $get('items') ?? [];
+                            $discountMode = $get('discount_mode') ?? 'percent';
 
                             foreach ($items as &$item) {
-                                $lineSubtotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
+                                $qty = (float) ($item['quantity'] ?? 0);
+                                $unit = (float) ($item['unit_price'] ?? 0);
+                                $lineSubtotal = (float) ($item['line_subtotal'] ?? ($qty * $unit));
+                                if ($lineSubtotal <= 0) {
+                                    $lineSubtotal = (float) ($item['line_total'] ?? 0);
+                                }
+
                                 $discountRate = (float) ($item['discount'] ?? 0);
                                 $taxRate = (float) ($item['tax'] ?? 0);
 
-                                $discountAmount = $lineSubtotal * ($discountRate / 100);
-                                $taxableAmount = $lineSubtotal - $discountAmount;
-                                $taxAmount = $taxableAmount * ($taxRate / 100);
+                                if ($discountMode === 'amount') {
+                                    $discountAmount = (float) ($item['discount_amount'] ?? 0);
+                                    if ($discountAmount <= 0 && $discountRate > 0) {
+                                        $discountAmount = $lineSubtotal * ($discountRate / 100);
+                                    }
+                                    $discountAmount = min(max(0, $discountAmount), $lineSubtotal);
+                                    $discountRate = $lineSubtotal > 0 ? ($discountAmount / $lineSubtotal) * 100 : 0;
+
+                                    $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+                                    $taxAmount = (float) ($item['tax_amount'] ?? 0);
+                                    if ($taxAmount <= 0 && $taxRate > 0) {
+                                        $taxAmount = $taxableAmount * ($taxRate / 100);
+                                    }
+                                    $taxAmount = min(max(0, $taxAmount), $lineSubtotal);
+                                    $taxRate = $taxableAmount > 0 ? ($taxAmount / $taxableAmount) * 100 : 0;
+                                } else {
+                                    $discountRate = max(0, min(100, $discountRate));
+                                    $taxRate = max(0, min(100, $taxRate));
+                                    $discountAmount = $lineSubtotal * ($discountRate / 100);
+                                    $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+                                    $taxAmount = $taxableAmount * ($taxRate / 100);
+                                }
 
                                 $item['line_subtotal'] = $lineSubtotal;
+                                $item['discount'] = round(min(100, $discountRate), 2);
+                                $item['tax'] = round(min(100, $taxRate), 2);
+                                $item['discount_amount'] = round($discountAmount, 2);
+                                $item['tax_amount'] = round($taxAmount, 2);
                                 $item['line_total'] = round($taxableAmount + $taxAmount, 2);
                             }
 
@@ -682,33 +713,16 @@ class PurchaseForm
                     Placeholder::make('total_discount_display')
                         ->label('Discount')
                         ->extraAttributes(['data-summary' => 'discount'])
-                        ->content(function (callable $get) {
-                            $items = $get('items') ?? [];
-                            $totalDiscount = collect($items)->sum(function ($item) {
-                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
-                                $rate = (float) ($item['discount'] ?? 0);
-                                return $lineTotal * ($rate / 100);
-                            });
-
-                            return 'PKR' . number_format($totalDiscount, 2);
-                        }),
+                        ->content(fn (callable $get) =>
+                        'PKR' . number_format((float) ($get('total_discount') ?? 0), 2)
+                        ),
 
                     Placeholder::make('total_tax_display')
                         ->label('Tax')
                         ->extraAttributes(['data-summary' => 'tax'])
-                        ->content(function (callable $get) {
-                            $items = $get('items') ?? [];
-                            $totalTax = collect($items)->sum(function ($item) {
-                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
-                                $discountRate = (float) ($item['discount'] ?? 0);
-                                $taxRate = (float) ($item['tax'] ?? 0);
-                                $discountAmount = $lineTotal * ($discountRate / 100);
-                                $taxableAmount = $lineTotal - $discountAmount;
-                                return $taxableAmount * ($taxRate / 100);
-                            });
-
-                            return 'PKR' . number_format($totalTax, 2);
-                        }),
+                        ->content(fn (callable $get) =>
+                        'PKR' . number_format((float) ($get('total_tax') ?? 0), 2)
+                        ),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
@@ -773,21 +787,36 @@ class PurchaseForm
             $rootPrefix = '../../';
         }
 
-        $subtotal = collect($items)->sum(fn ($item) => (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0));
+        $discountMode = $get($rootPrefix . 'discount_mode') ?? 'percent';
+        $subtotal = 0.0;
         $totalDiscount = 0.0;
         $totalTax = 0.0;
 
         foreach ($items as $item) {
-            $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
-            $discountRate = (float) ($item['discount'] ?? 0);
-            $taxRate = (float) ($item['tax'] ?? 0);
+            $qty = (float) ($item['quantity'] ?? 0);
+            $unit = (float) ($item['unit_price'] ?? 0);
+            $lineSubtotal = (float) ($item['line_subtotal'] ?? ($qty * $unit));
+            if ($lineSubtotal <= 0) {
+                $lineSubtotal = (float) ($item['line_total'] ?? 0);
+            }
 
-            $discountRate = max(0, min(100, $discountRate));
-            $taxRate = max(0, min(100, $taxRate));
+            $subtotal += $lineSubtotal;
 
-            $discountAmount = $lineTotal * ($discountRate / 100);
-            $taxableAmount = $lineTotal - $discountAmount;
-            $taxAmount = $taxableAmount * ($taxRate / 100);
+            if ($discountMode === 'amount') {
+                $discountAmountInput = (float) ($item['discount_amount'] ?? 0);
+                $discountAmount = min(max(0, $discountAmountInput), $lineSubtotal);
+                $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+
+                $taxAmountInput = (float) ($item['tax_amount'] ?? 0);
+                $taxAmount = min(max(0, $taxAmountInput), $lineSubtotal);
+            } else {
+                $discountRate = max(0, min(100, (float) ($item['discount'] ?? 0)));
+                $taxRate = max(0, min(100, (float) ($item['tax'] ?? 0)));
+
+                $discountAmount = $lineSubtotal * ($discountRate / 100);
+                $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+                $taxAmount = $taxableAmount * ($taxRate / 100);
+            }
 
             $totalDiscount += $discountAmount;
             $totalTax += $taxAmount;
@@ -803,24 +832,28 @@ class PurchaseForm
     {
         $unitPrice = (float) ($get('unit_price') ?? 0);
         $qty = max(1, (float) ($get('quantity') ?? 1));
-        $lineSubtotal = (float) ($get('line_subtotal') ?? ($unitPrice * $qty));
+        $lineSubtotal = $unitPrice * $qty;
         $discountRate = (float) ($get('discount') ?? 0);
         $taxRate = (float) ($get('tax') ?? 0);
         $discountAmountInput = (float) ($get('discount_amount') ?? 0);
         $taxAmountInput = (float) ($get('tax_amount') ?? 0);
         $discountMode = $get('../../discount_mode') ?? 'percent';
 
-        if ($discountMode === 'amount' && $discountAmountInput > 0 && $lineSubtotal > 0) {
+        $set('line_subtotal', $lineSubtotal);
+
+        if ($discountMode === 'amount' && $lineSubtotal > 0) {
+            $discountAmountInput = min(max(0, $discountAmountInput), $lineSubtotal);
             $discountRate = ($discountAmountInput / $lineSubtotal) * 100;
-            $set('discount', round($discountRate, 2));
+            $set('discount', round(min(100, $discountRate), 2));
         }
 
         $discountAmount = $lineSubtotal * ($discountRate / 100);
         $taxableLine = max(0, $lineSubtotal - $discountAmount);
 
-        if ($discountMode === 'amount' && $taxAmountInput > 0 && $taxableLine > 0) {
+        if ($discountMode === 'amount' && $taxableLine > 0) {
+            $taxAmountInput = min(max(0, $taxAmountInput), $lineSubtotal);
             $taxRate = ($taxAmountInput / $taxableLine) * 100;
-            $set('tax', round($taxRate, 2));
+            $set('tax', round(min(100, $taxRate), 2));
         }
 
         $taxAmount = $discountMode === 'amount'
