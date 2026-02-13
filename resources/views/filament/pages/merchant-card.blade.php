@@ -6,26 +6,22 @@
     $logo = $merchant?->logo?->photo_url;
 @endphp
 
-<div class="flex flex-col items-center space-y-2">
+<div class="flex flex-col items-center space-y-2 text-center">
     @if ($logo)
-        <div class="h-28 w-28 flex items-center justify-center overflow-hidden">
+        <div class="h-24 w-24 flex items-center justify-center overflow-hidden rounded-lg bg-white shadow-sm">
             <img
                 src="{{ asset('storage/' . $logo) }}"
-                class="max-h-full max-w-full object-contain"
+                class="h-full w-full object-contain"
                 alt="Merchant Logo"
             />
         </div>
     @else
-        <div class="h-28 w-28 border-2 border-dashed rounded-lg flex items-center justify-center text-sm text-gray-400">
+        <div class="h-24 w-24 border-2 border-dashed rounded-lg flex items-center justify-center text-sm text-gray-400">
             Upload logo
         </div>
     @endif
 
-    <div class="text-lg font-semibold text-center">
+    <div class="max-w-[12rem] text-base font-semibold leading-tight break-words">
         {{ $merchant?->name }}
-    </div>
-
-    <div class="text-sm text-gray-500 text-center">
-        {{ $merchant?->country ?? '' }}
     </div>
 </div>
