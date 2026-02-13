@@ -184,6 +184,10 @@ class SaleForm
                         ->default('percent')
                         ->dehydrated(false),
                     Repeater::make('items')
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation();
+                            $livewire->resetErrorBag();
+                        })
                         ->schema([
 
 
@@ -278,6 +282,10 @@ class SaleForm
                                     // Reset dependents
                                     $set('branch_id', null);
                                     $set('product_variant_id', null);
+                                    $set('unit_price', 0);
+                                    $set('line_subtotal', 0);
+                                    $set('line_total', 0);
+                                    self::recalcTotals($set, $get);
 
                                     if (! $state) {
                                         return;
@@ -716,7 +724,7 @@ class SaleForm
                         ->live()
                         ->extraAttributes(['data-summary' => 'subtotal'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('subtotal') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_discount_display')
@@ -724,7 +732,7 @@ class SaleForm
                         ->live()
                         ->extraAttributes(['data-summary' => 'discount'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('total_discount') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('total_discount') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_tax_display')
@@ -732,7 +740,7 @@ class SaleForm
                         ->live()
                         ->extraAttributes(['data-summary' => 'tax'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('total_tax') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('total_tax') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_amount_display')
@@ -740,7 +748,7 @@ class SaleForm
                         ->live()
                         ->extraAttributes(['data-summary' => 'total'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('total_amount') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
 
                     Hidden::make('subtotal')->default(0)->dehydrated(),

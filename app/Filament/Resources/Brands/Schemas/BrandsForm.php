@@ -20,7 +20,12 @@ class BrandsForm
                 //
                        TextInput::make('name')
                            ->required()
-                           ->maxLength(255),
+                           ->maxLength(255)
+                           ->live()
+                           ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                               $livewire->resetValidation('data.name');
+                               $livewire->resetErrorBag('data.name');
+                           }),
                 FileUpload::make('brand_logo')
                     ->label('Brand Logo')
                     ->image()

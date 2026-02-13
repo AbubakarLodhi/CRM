@@ -21,6 +21,13 @@ class CreateBrands extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
 
+    protected function preserveFormDataWhenCreatingAnother(array $data): array
+    {
+        return [
+            'brand_logo' => null,
+        ];
+    }
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $this->categoryIds = $data['category_ids'] ?? [];
@@ -114,5 +121,4 @@ class CreateBrands extends CreateRecord
         ]);
     }
 }
-
 

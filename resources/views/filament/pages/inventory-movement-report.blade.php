@@ -51,36 +51,36 @@
         <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
 
             {{-- Total In --}}
-            <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
-                <div class="flex items-center gap-2 text-sm font-medium text-gray-600">
+            <div class="rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-gray-900">
+                <div class="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                     <x-heroicon-o-arrow-down-tray class="h-4 w-4 text-success-500" />
                     <span>Total In</span>
                 </div>
-                <div class="mt-1 text-xl font-semibold text-success-600">
+                <div class="mt-1 text-xl font-semibold text-success-600 dark:text-success-400 report-stat-value">
                     {{ number_format($stats['in']) }}
                 </div>
             </div>
 
             {{-- Total Out --}}
-            <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
-                <div class="flex items-center gap-2 text-sm font-medium text-gray-600">
+            <div class="rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-gray-900">
+                <div class="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                     <x-heroicon-o-arrow-up-tray class="h-4 w-4 text-danger-500" />
                     <span>Total Out</span>
                 </div>
-                <div class="mt-1 text-xl font-semibold text-danger-600">
+                <div class="mt-1 text-xl font-semibold text-danger-600 dark:text-danger-400 report-stat-value">
                     {{ number_format($stats['out']) }}
                 </div>
             </div>
 
             {{-- Net Movement --}}
-            <div class="rounded-xl bg-white px-4 py-3 shadow-sm">
-                <div class="flex items-center gap-2 text-sm font-medium text-gray-600">
+            <div class="rounded-xl bg-white px-4 py-3 shadow-sm dark:bg-gray-900">
+                <div class="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300">
                     <x-heroicon-o-arrows-right-left
                         class="h-4 w-4 {{ $stats['net'] < 0 ? 'text-danger-500' : 'text-success-500' }}"
                     />
                     <span>Net Movement</span>
                 </div>
-                <div class="mt-1 text-xl font-semibold {{ $stats['net'] < 0 ? 'text-danger-600' : 'text-success-600' }}">
+                <div class="mt-1 text-xl font-semibold {{ $stats['net'] < 0 ? 'text-danger-600 dark:text-danger-400' : 'text-success-600 dark:text-success-400' }} report-stat-value">
                     {{ number_format($stats['net']) }}
                 </div>
             </div>

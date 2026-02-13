@@ -56,7 +56,7 @@
                         <x-heroicon-o-archive-box class="h-4 w-4 text-primary-500" />
                         <span>Total Product Variants</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-primary-700">
+                    <div class="mt-1 text-2xl font-semibold text-primary-700 report-stat-value">
                         {{ $stats['total_products'] }}
                     </div>
                 </x-filament::card>
@@ -67,7 +67,7 @@
                         <x-heroicon-o-arrow-down-tray class="h-4 w-4 text-indigo-500" />
                         <span>Total Purchased Qty</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-indigo-700">
+                    <div class="mt-1 text-2xl font-semibold text-indigo-700 report-stat-value">
                         {{ number_format($stats['total_purchased_qty']) }}
                     </div>
                 </x-filament::card>
@@ -78,7 +78,7 @@
                         <x-heroicon-o-arrow-up-tray class="h-4 w-4 text-emerald-500" />
                         <span>Total Sold Qty</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-emerald-700">
+                    <div class="mt-1 text-2xl font-semibold text-emerald-700 report-stat-value">
                         {{ number_format($stats['total_sold_qty']) }}
                     </div>
                 </x-filament::card>
@@ -91,7 +91,7 @@
                         />
                         <span>Available Stock</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold {{ $stats['available_stock'] < 0 ? 'text-danger-600' : 'text-success-600' }}">
+                    <div class="mt-1 text-2xl font-semibold {{ $stats['available_stock'] < 0 ? 'text-danger-600' : 'text-success-600' }} report-stat-value">
                         {{ number_format($stats['available_stock']) }}
                     </div>
                 </x-filament::card>
@@ -113,8 +113,8 @@
                         <x-heroicon-o-banknotes class="h-4 w-4 text-success-500" />
                         <span>Total Revenue</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-success-700">
-                        {{ number_format($stats['total_revenue'], 2) }}
+                    <div class="mt-1 text-2xl font-semibold text-success-700 report-stat-value">
+                        PKR {{ number_format($stats['total_revenue'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -124,8 +124,8 @@
                         <x-heroicon-o-tag class="h-4 w-4 text-sky-500" />
                         <span>Avg Selling Price</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-sky-700">
-                        {{ number_format($stats['avg_selling_price'], 2) }}
+                    <div class="mt-1 text-2xl font-semibold text-sky-700 report-stat-value">
+                        PKR {{ number_format($stats['avg_selling_price'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -135,8 +135,8 @@
                         <x-heroicon-o-shopping-cart class="h-4 w-4 text-amber-500" />
                         <span>Avg Buying Price</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-amber-700">
-                        {{ number_format($stats['avg_buying_price'], 2) }}
+                    <div class="mt-1 text-2xl font-semibold text-amber-700 report-stat-value">
+                        PKR {{ number_format($stats['avg_buying_price'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -150,8 +150,8 @@
                         />
                         <span>Avg Profit / Item</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold {{ $profit < 0 ? 'text-danger-600' : 'text-emerald-600' }}">
-                        {{ number_format($profit, 2) }}
+                    <div class="mt-1 text-2xl font-semibold {{ $profit < 0 ? 'text-danger-600' : 'text-emerald-600' }} report-stat-value">
+                        PKR {{ number_format($profit, 2) }}
                     </div>
                 </x-filament::card>
 

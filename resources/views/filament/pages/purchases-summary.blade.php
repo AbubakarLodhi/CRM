@@ -36,7 +36,7 @@
         <div class="mb-6">
             <h2 class="mb-3 text-lg font-semibold">Purchase Overview</h2>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 
                 {{-- Total Purchases --}}
                 <x-filament::card>
@@ -44,7 +44,7 @@
                         <x-heroicon-o-shopping-cart class="h-4 w-4 text-primary-500"/>
                         Total Purchases
                     </div>
-                    <div class="text-2xl font-bold">
+                    <div class="text-2xl font-bold report-stat-value">
                         {{ $stats['total_purchases'] }}
                     </div>
                 </x-filament::card>
@@ -55,7 +55,7 @@
                         <x-heroicon-o-rectangle-stack class="h-4 w-4 text-info-500"/>
                         Items Count
                     </div>
-                    <div class="text-2xl font-bold">
+                    <div class="text-2xl font-bold report-stat-value">
                         {{ $stats['total_items_count'] }}
                     </div>
                     <div class="text-xs text-gray-400">
@@ -69,7 +69,7 @@
                         <x-heroicon-o-cube class="h-4 w-4 text-success-500"/>
                         Total Quantity
                     </div>
-                    <div class="text-2xl font-bold text-success-700">
+                    <div class="text-2xl font-bold text-success-700 report-stat-value">
                         {{ number_format($stats['total_items_quantity']) }}
                     </div>
                     <div class="text-xs text-gray-400">
@@ -83,8 +83,8 @@
                         <x-heroicon-o-currency-dollar class="h-4 w-4 text-success-600"/>
                         Total Amount
                     </div>
-                    <div class="text-2xl font-bold text-success-700">
-                        PKR {{ number_format($stats['total_amount'], 2) }}
+                    <div class="text-2xl font-bold text-success-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['total_amount'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -94,8 +94,8 @@
                         <x-heroicon-o-chart-bar class="h-4 w-4 text-warning-500"/>
                         Avg Purchase
                     </div>
-                    <div class="text-2xl font-bold text-warning-600">
-                        PKR {{ number_format($stats['avg_purchase'], 2) }}
+                    <div class="text-2xl font-bold text-warning-600 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['avg_purchase'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -115,8 +115,8 @@
                         <x-heroicon-o-receipt-percent class="h-4 w-4 text-primary-500"/>
                         Subtotal
                     </div>
-                    <div class="text-2xl font-bold text-primary-700">
-                        PKR {{ number_format($stats['total_subtotal'], 2) }}
+                    <div class="text-2xl font-bold text-primary-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['total_subtotal'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -125,8 +125,8 @@
                         <x-heroicon-o-tag class="h-4 w-4 text-danger-500"/>
                         Total Discount
                     </div>
-                    <div class="text-2xl font-bold text-danger-600">
-                        PKR {{ number_format($stats['total_discount'], 2) }}
+                    <div class="text-2xl font-bold text-danger-600 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['total_discount'], 2) }}
                     </div>
                 </x-filament::card>
 
@@ -135,8 +135,8 @@
                         <x-heroicon-o-scale class="h-4 w-4 text-success-500"/>
                         Total Tax
                     </div>
-                    <div class="text-2xl font-bold text-success-700">
-                        PKR {{ number_format($stats['total_tax'], 2) }}
+                    <div class="text-2xl font-bold text-success-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['total_tax'], 2) }}
                     </div>
                 </x-filament::card>
 

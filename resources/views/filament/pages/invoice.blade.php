@@ -52,6 +52,7 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
         }
 
         .header {
@@ -168,12 +169,17 @@
         }
 
         @media print {
+            @page {
+                size: A4;
+                margin: 12mm;
+            }
             html, body {
                 height: 100%;
             }
             body {
                 background: #fff;
                 padding: 0;
+                margin: 0;
             }
 
             .invoice {
@@ -181,8 +187,8 @@
                 border-radius: 0;
                 min-height: 100vh;
                 height: 100vh;
-                padding: 24px;
-                padding-bottom: 200px;
+                padding: 12mm;
+                box-sizing: border-box;
             }
 
             .close-btn,
@@ -191,10 +197,17 @@
             }
 
             .summary {
-                position: fixed;
-                right: 24px;
-                bottom: 24px;
-                margin-top: 0;
+                position: static;
+                margin-top: auto;
+            }
+
+            .invoice,
+            .card,
+            table,
+            .notes,
+            .summary {
+                break-inside: avoid;
+                page-break-inside: avoid;
             }
         }
     </style>

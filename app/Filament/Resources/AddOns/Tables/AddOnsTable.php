@@ -29,6 +29,7 @@ class AddOnsTable
 
                 TextColumn::make('price')
                     ->label('Price')
+                    ->money('PKR')
                     ->sortable(),
 
                 TextColumn::make('brandModel.name')

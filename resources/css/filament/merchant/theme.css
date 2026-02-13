@@ -120,3 +120,26 @@
     border-color: #2563eb;
     color: #fff;
 }
+
+/* --------------------------------------------
+ | Report stats: prevent wrapping large values
+ |---------------------------------------------
+ */
+.report-stat-value {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
+    line-height: 1.2;
+}
+
+.report-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+@media (min-width: 1280px) {
+    .report-stats-grid {
+        grid-template-columns: repeat(4, minmax(240px, 1fr));
+    }
+}

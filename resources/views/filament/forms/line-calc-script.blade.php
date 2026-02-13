@@ -20,7 +20,7 @@
     function formatMoney(value) {
         var fixed = (Math.round(value * 100) / 100).toFixed(2);
 
-        return 'PKR' + fixed;
+        return 'PKR ' + fixed;
     }
 
     function getInputValue(container, field) {

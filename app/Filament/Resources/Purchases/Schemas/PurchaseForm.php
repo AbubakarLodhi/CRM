@@ -149,6 +149,10 @@ class PurchaseForm
                         ->default('percent')
                         ->dehydrated(false),
                     Repeater::make('items')
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation();
+                            $livewire->resetErrorBag();
+                        })
                         ->schema([
 
 //                            /* -------- BUSINESS -------- */
@@ -224,6 +228,10 @@ class PurchaseForm
                                     // Reset dependents when product changes
                                     $set('branch_id', null);
                                     $set('product_variant_id', null);
+                                    $set('unit_price', 0);
+                                    $set('line_subtotal', 0);
+                                    $set('line_total', 0);
+                                    self::recalcTotals($set, $get);
 
                                     if (! $state) {
                                         return;
@@ -707,28 +715,28 @@ class PurchaseForm
                         ->label('Subtotal')
                         ->extraAttributes(['data-summary' => 'subtotal'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('subtotal') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_discount_display')
                         ->label('Discount')
                         ->extraAttributes(['data-summary' => 'discount'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('total_discount') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('total_discount') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_tax_display')
                         ->label('Tax')
                         ->extraAttributes(['data-summary' => 'tax'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('total_tax') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('total_tax') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
                         ->extraAttributes(['data-summary' => 'total'])
                         ->content(fn (callable $get) =>
-                        'PKR' . number_format((float) ($get('total_amount') ?? 0), 2)
+                        'PKR ' . number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
 
                     Hidden::make('subtotal')->default(0)->dehydrated(),

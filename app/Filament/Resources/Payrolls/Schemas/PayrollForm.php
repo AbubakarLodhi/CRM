@@ -16,6 +16,20 @@ use Illuminate\Database\Eloquent\Builder;
 
 class PayrollForm
 {
+    private static function getCurrency(): string
+    {
+        $user = Filament::auth()->user();
+        $merchant = $user instanceof \App\Models\Merchant ? $user : $user?->merchant;
+        $currency = $merchant?->settings?->currency;
+
+        return $currency ?: 'PKR';
+    }
+
+    private static function currencyPrefix(): string
+    {
+        return self::getCurrency().' ';
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
@@ -119,7 +133,7 @@ class PayrollForm
                         ->required()
                         ->default(0)
                         ->minValue(0)
-                        ->prefix('$')
+                        ->prefix(fn () => self::currencyPrefix())
                         ->reactive()
                         ->debounce(300)
                         ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -142,7 +156,7 @@ class PayrollForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->prefix('$')
+                                ->prefix(fn () => self::currencyPrefix())
                                 ->reactive()
                                 ->debounce(300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -152,7 +166,7 @@ class PayrollForm
                         ->columns(2)
                         ->defaultItems(0)
                         ->collapsible()
-                        ->itemLabel(fn (array $state): string => ($state['name'] ?? '').' - $'.number_format((float) ($state['amount'] ?? 0), 2))
+                        ->itemLabel(fn (array $state): string => ($state['name'] ?? '').' - '.self::getCurrency().' '.number_format((float) ($state['amount'] ?? 0), 2))
                         ->addActionLabel('Add Allowance')
                         ->reorderable(false)
                         ->deletable(true)
@@ -176,7 +190,7 @@ class PayrollForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->prefix('$')
+                                ->prefix(fn () => self::currencyPrefix())
                                 ->reactive()
                                 ->debounce(300)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
@@ -186,7 +200,7 @@ class PayrollForm
                         ->columns(2)
                         ->defaultItems(0)
                         ->collapsible()
-                        ->itemLabel(fn (array $state): string => ($state['name'] ?? '').' - $'.number_format((float) ($state['amount'] ?? 0), 2))
+                        ->itemLabel(fn (array $state): string => ($state['name'] ?? '').' - '.self::getCurrency().' '.number_format((float) ($state['amount'] ?? 0), 2))
                         ->addActionLabel('Add Deduction')
                         ->reorderable(false)
                         ->deletable(true)
@@ -201,16 +215,16 @@ class PayrollForm
                 ->schema([
                     Placeholder::make('base_salary_display')
                         ->label('Base Salary')
-                        ->content(fn (callable $get): string => '$'.number_format((float) ($get('base_salary') ?? 0), 2)),
+                        ->content(fn (callable $get): string => self::getCurrency().' '.number_format((float) ($get('base_salary') ?? 0), 2)),
                     Placeholder::make('total_allowances_display')
                         ->label('Total Allowances')
-                        ->content(fn (callable $get): string => '$'.number_format(self::calculateTotal($get('allowances') ?? []), 2)),
+                        ->content(fn (callable $get): string => self::getCurrency().' '.number_format(self::calculateTotal($get('allowances') ?? []), 2)),
                     Placeholder::make('total_deductions_display')
                         ->label('Total Deductions')
-                        ->content(fn (callable $get): string => '$'.number_format(self::calculateTotal($get('deductions') ?? []), 2)),
+                        ->content(fn (callable $get): string => self::getCurrency().' '.number_format(self::calculateTotal($get('deductions') ?? []), 2)),
                     Placeholder::make('net_salary_display')
                         ->label('Net Salary')
-                        ->content(fn (callable $get): string => '$'.number_format((float) ($get('net_salary') ?? 0), 2))
+                        ->content(fn (callable $get): string => self::getCurrency().' '.number_format((float) ($get('net_salary') ?? 0), 2))
                         ->columnSpanFull()
                         ->extraAttributes(['class' => 'text-lg font-bold']),
                     Hidden::make('net_salary')->default(0)->dehydrated(),
