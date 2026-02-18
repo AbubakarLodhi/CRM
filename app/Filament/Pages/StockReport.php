@@ -2,8 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Exports\StockReportExport;
 use App\Models\ProductVariant;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -15,6 +17,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class StockReport extends Page implements HasTable
 {
@@ -186,6 +189,51 @@ class StockReport extends Page implements HasTable
             ->striped()
             ->paginated([10, 25, 50, 100])
             ->defaultSort('current_stock', 'asc');
+    }
+
+    protected function getFilteredTableQueryWithoutPagination(): Builder
+    {
+        $query = clone $this->getFilteredTableQuery();
+        $query->getQuery()->limit = null;
+        $query->getQuery()->offset = null;
+        return $query;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('export')
+                ->label('Export to Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
+                ->color('success')
+                ->action(function () {
+                    $baseQuery = $this->getFilteredTableQueryWithoutPagination();
+
+                    $exportQuery = (clone $baseQuery)
+                        ->with('product');
+
+                    $totalsRow = DB::query()
+                        ->fromSub($baseQuery, 'stock')
+                        ->selectRaw('COALESCE(sum(total_purchased), 0) as purchased')
+                        ->selectRaw('COALESCE(sum(total_sold), 0) as sold')
+                        ->selectRaw('COALESCE(sum(current_stock), 0) as stock')
+                        ->first();
+
+                    $totals = [
+                        'purchased' => (float) ($totalsRow->purchased ?? 0),
+                        'sold'      => (float) ($totalsRow->sold ?? 0),
+                        'stock'     => (float) ($totalsRow->stock ?? 0),
+                    ];
+
+                    $stats = $this->getTopStats();
+
+                    return Excel::download(
+                        new StockReportExport($exportQuery, $totals, $stats),
+                        'stock-report-' . now()->format('Y-m-d_H-i-s') . '.xlsx'
+                    );
+                }),
+        ];
     }
 
     /* ============================================================

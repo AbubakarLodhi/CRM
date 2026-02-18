@@ -49,6 +49,9 @@ class EditMerchantSetting extends EditRecord
                 ? [$merchant->profilePhoto->photo_url]
                 : null;
 
+            $data['cash_in_hand'] = $merchant->cash_in_hand;
+            $data['cash_in_bank'] = $merchant->cash_in_bank;
+
             return $data;
         }
 
@@ -106,6 +109,13 @@ class EditMerchantSetting extends EditRecord
                 // ✅ THIS WAS MISSING
                 $merchant->logo()?->delete();
             }
+        }
+
+        if (array_key_exists('cash_in_hand', $state) || array_key_exists('cash_in_bank', $state)) {
+            $merchant->update([
+                'cash_in_hand' => $state['cash_in_hand'] ?? 0,
+                'cash_in_bank' => $state['cash_in_bank'] ?? 0,
+            ]);
         }
 
         $this->redirect(request()->header('Referer'), navigate: false);

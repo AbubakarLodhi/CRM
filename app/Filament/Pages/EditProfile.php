@@ -7,8 +7,11 @@ use App\Enums\AttachmentType;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -46,6 +49,14 @@ class EditProfile extends Page
             'profile_photo' => $merchant->profilePhoto
                 ? [$merchant->profilePhoto->photo_url]
                 : null,
+            'phone' => $merchant->phone,
+            'address_line_1' => $merchant->address_line_1,
+            'address_line_2' => $merchant->address_line_2,
+            'city' => $merchant->city,
+            'website' => $merchant->website,
+            'whatsapp_number' => $merchant->whatsapp_number,
+            'ntn_number' => $merchant->ntn_number,
+            'extra_fields' => $merchant->extra_fields ?? [],
         ];
     }
 
@@ -57,24 +68,94 @@ class EditProfile extends Page
         return $schema
             ->statePath('data')
             ->components([
-                TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
+                Section::make('Profile')
+                    ->schema([
+                        TextInput::make('name')
+                            ->required()
+                            ->maxLength(255),
 
-                TextInput::make('email')
-                    ->disabled()
-                    ->dehydrated(false),
+                        TextInput::make('email')
+                            ->disabled()
+                            ->dehydrated(false),
 
-                FileUpload::make('profile_photo')
-                    ->label('Profile Photo')
-                    ->image()
-                    ->disk('public')
-                    ->directory('merchants/profile-photos')
-                    ->imagePreviewHeight(120)
-                    ->getUploadedFileNameForStorageUsing(function ($file) {
-                        $ext = $file->getClientOriginalExtension();
-                        return 'profile-photo-' . now()->format('YmdHis') . '.' . $ext;
-                    }),
+                        FileUpload::make('profile_photo')
+                            ->label('Profile Photo')
+                            ->image()
+                            ->disk('public')
+                            ->directory('merchants/profile-photos')
+                            ->imagePreviewHeight(120)
+                            ->getUploadedFileNameForStorageUsing(function ($file) {
+                                $ext = $file->getClientOriginalExtension();
+                                return 'profile-photo-' . now()->format('YmdHis') . '.' . $ext;
+                            }),
+                    ])->columns(2),
+
+                Section::make('Merchant Details')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('phone')
+                            ->label('Phone No')
+                            ->tel()
+                            ->maxLength(50),
+
+                        TextInput::make('website')
+                            ->label('Website')
+                            ->maxLength(255),
+
+                        TextInput::make('address_line_1')
+                            ->label('Address Line 1')
+                            ->maxLength(255),
+
+                        TextInput::make('address_line_2')
+                            ->label('Address Line 2')
+                            ->maxLength(255),
+
+                        TextInput::make('city')
+                            ->label('City')
+                            ->maxLength(120),
+
+                        TextInput::make('whatsapp_number')
+                            ->label('WhatsApp No')
+                            ->tel()
+                            ->maxLength(50),
+
+                        TextInput::make('ntn_number')
+                            ->label('NTN No (Optional)')
+                            ->maxLength(50),
+
+//                        TextInput::make('cash_in_hand')
+//                            ->label('Cash In Hand')
+//                            ->prefix('PKR')
+//                            ->numeric()
+//                            ->default(0)
+//                            ->minValue(0)
+//                            ->step(0.01),
+//
+//                        TextInput::make('cash_in_bank')
+//                            ->label('Cash In Bank')
+//                            ->prefix('PKR')
+//                            ->numeric()
+//                            ->default(0)
+//                            ->minValue(0)
+//                            ->step(0.01),
+
+                        Repeater::make('extra_fields')
+                            ->label('Additional Fields')
+                            ->columnSpanFull()
+                            ->schema([
+                                TextInput::make('label')
+                                    ->label('Field')
+                                    ->required()
+                                    ->maxLength(100),
+                                TextInput::make('value')
+                                    ->label('Value')
+                                    ->required()
+                                    ->maxLength(255),
+                            ])
+                            ->default([])
+                            ->addActionLabel('Add Field')
+                            ->reorderable(false),
+                    ]),
             ]);
     }
 
@@ -88,6 +169,14 @@ class EditProfile extends Page
 
         $merchant->update([
             'name' => $this->data['name'],
+            'phone' => $this->data['phone'] ?? null,
+            'address_line_1' => $this->data['address_line_1'] ?? null,
+            'address_line_2' => $this->data['address_line_2'] ?? null,
+            'city' => $this->data['city'] ?? null,
+            'website' => $this->data['website'] ?? null,
+            'whatsapp_number' => $this->data['whatsapp_number'] ?? null,
+            'ntn_number' => $this->data['ntn_number'] ?? null,
+            'extra_fields' => array_values($this->data['extra_fields'] ?? []),
         ]);
 
         $uploaded = collect($this->data['profile_photo'] ?? []);

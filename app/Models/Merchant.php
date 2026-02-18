@@ -45,6 +45,14 @@ class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordCo
     protected $fillable = [
         'name', 'phone', 'password', 'email', 'status', 'address_line_1', 'address_line_2', 'city',
         'social_media_handles', 'website', 'is_active',
+        'whatsapp_number', 'ntn_number', 'extra_fields',
+        'cash_in_hand', 'cash_in_bank',
+    ];
+
+    protected $casts = [
+        'extra_fields' => 'array',
+        'cash_in_hand' => 'decimal:2',
+        'cash_in_bank' => 'decimal:2',
     ];
 
     /**

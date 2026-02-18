@@ -5,6 +5,7 @@ namespace App\Filament\Resources\MerchantSettings\Schemas;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -64,6 +65,29 @@ class MerchantSettingForm
                         ->label('Default')
                         ->default('#E5E7EB')
                         ->required(),
+                ]),
+
+            Section::make('Cash Accounts')
+                ->columnSpanFull()
+                ->columns(2)
+                ->schema([
+                    TextInput::make('cash_in_hand')
+                        ->label('Cash In Hand')
+                        ->prefix('PKR')
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->dehydrated(false),
+
+                    TextInput::make('cash_in_bank')
+                        ->label('Cash In Bank')
+                        ->prefix('PKR')
+                        ->numeric()
+                        ->default(0)
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->dehydrated(false),
                 ]),
 
             /* ================= MERCHANT ================= */

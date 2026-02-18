@@ -2,7 +2,9 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Exports\InventoryMovementReportExport;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Grid;
@@ -17,6 +19,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Facades\Excel;
 
 class InventoryMovementReport extends Page implements HasTable, HasForms
 {
@@ -304,6 +307,32 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             'in'  => (float) $in,
             'out' => (float) $out,
             'net' => (float) ($in - $out),
+        ];
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('export')
+                ->label('Export to Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
+                ->color('success')
+                ->action(function () {
+                    $records = $this->getRecords();
+
+                    $totals = [
+                        'quantity' => (float) $records->sum('quantity'),
+                        'total'    => (float) $records->sum('total'),
+                    ];
+
+                    $stats = $this->getMovementStats();
+
+                    return Excel::download(
+                        new InventoryMovementReportExport($records, $totals, $stats),
+                        'inventory-movement-report-' . now()->format('Y-m-d_H-i-s') . '.xlsx'
+                    );
+                }),
         ];
     }
 }
