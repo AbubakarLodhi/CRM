@@ -17,12 +17,9 @@ class RolesForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $currentGuard = Filament::getCurrentPanel()->getAuthGuard();
+        $enabledModules = self::getEnabledModules();
+        $actions = ['view', 'create', 'update', 'delete'];
 
-        $guardLabels = [
-            'merchant' => 'merchant',
-            'staff' => 'staff',
-        ];
         return $schema
             ->columns(1)
             ->components([
@@ -47,6 +44,19 @@ class RolesForm
 
                 Section::make('Permissions')
                     ->schema([
+                        Checkbox::make('permissions_select_all')
+                            ->label('Select All')
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) use ($enabledModules, $actions) {
+                                foreach ($enabledModules as $module) {
+                                    $set("permissions.{$module}.enabled", $state);
+                                    foreach ($actions as $action) {
+                                        $set("permissions.{$module}.{$action}", $state);
+                                    }
+                                }
+                            })
+                            ->dehydrated(false),
+
                         Fieldset::make('Assign Permissions')
                             ->schema(static::getPermissionRows())
                             ->columns(1)
@@ -56,9 +66,14 @@ class RolesForm
             ]);
     }
 
+    protected static function getEnabledModules(): array
+    {
+        return PermissionModule::enabledForCurrentMerchant();
+    }
+
     protected static function getPermissionRows(): array
     {
-        $enabledModules = PermissionModule::enabledForCurrentMerchant();
+        $enabledModules = self::getEnabledModules();
         $actions = ['view', 'create', 'update', 'delete'];
 
         // 🔹 DISPLAY-ONLY ALIASES (NO FUNCTIONAL IMPACT)

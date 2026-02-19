@@ -23,6 +23,7 @@ class PermissionsSeeder extends Seeder
             'businesses' => ['view', 'create', 'update', 'delete'],
             'branches' => ['view', 'create', 'update', 'delete'],
             'customers' => ['view', 'create', 'update', 'delete'],
+            'vendors' => ['view', 'create', 'update', 'delete'],
             'reports' => ['view', 'create', 'update', 'delete'],
             'categories' => ['view', 'create', 'update', 'delete'],
             'sub_categories' => ['view', 'create', 'update', 'delete'],

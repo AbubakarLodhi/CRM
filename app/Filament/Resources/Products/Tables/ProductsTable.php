@@ -58,7 +58,8 @@ class ProductsTable
 //                    ->sortable(),
 
                 IconColumn::make('is_active')
-                    ->boolean(),
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger'),
 
                 TextColumn::make('merchant.name')
                     ->label('Merchant')

@@ -193,7 +193,30 @@ class SalesSummary extends Page implements HasTable
 
                 SelectFilter::make('customer_id')
                     ->label('Customer')
-                    ->relationship('customer', 'name'),
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        return \App\Models\Customer::query()
+                            ->where('merchant_id', $merchantId)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(fn (Builder $query, array $data) =>
+                        filled($data['value'])
+                            ? $query->where('customer_id', $data['value'])
+                            : null
+                    ),
 
 
 

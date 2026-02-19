@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\Customers\Schemas;
+namespace App\Filament\Resources\Vendors\Schemas;
 
-use App\Models\Customer;
 use App\Models\Merchant;
 use App\Models\User;
+use App\Models\Vendor;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
@@ -12,14 +12,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
 
-class CustomerForm
+class VendorForm
 {
-    /**
-     * ✅ Reusable components
-     * Used by:
-     * - Customer Resource (Create/Edit)
-     * - Sale inline modal (Create Customer)
-     */
     public static function components(): array
     {
         return [
@@ -46,14 +40,13 @@ class CustomerForm
                 ->label('Email address')
                 ->email()
                 ->maxLength(255)
-                ->unique(Customer::class, 'email', ignoreRecord: true)
+                ->unique(Vendor::class, 'email', ignoreRecord: true)
                 ->nullable()
                 ->live()
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                     $livewire->resetValidation('data.email');
                     $livewire->resetErrorBag('data.email');
                 }),
-
 
             TextInput::make('postal_code')
                 ->label('Postal Code')
@@ -67,6 +60,7 @@ class CustomerForm
                     $livewire->resetValidation('data.postal_code');
                     $livewire->resetErrorBag('data.postal_code');
                 }),
+
             Select::make('country_id')
                 ->label('Country')
                 ->relationship('country', 'name')
@@ -106,21 +100,19 @@ class CustomerForm
                     default => null,
                 })
                 ->required(),
+
             TextInput::make('occupation')
                 ->label('Occupation')
                 ->maxLength(255)
                 ->nullable(),
+
             TextInput::make('reference')
-                ->label('Reference Customer')
+                ->label('Reference Vendor')
                 ->maxLength(255)
                 ->nullable(),
         ];
     }
 
-    /**
-     * ✅ Standard Filament schema entrypoint
-     * Used by CustomerResource
-     */
     public static function configure(Schema $schema): Schema
     {
         return $schema->components(self::components());

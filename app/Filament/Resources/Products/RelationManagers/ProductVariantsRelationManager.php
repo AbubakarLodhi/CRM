@@ -51,7 +51,9 @@ class ProductVariantsRelationManager extends RelationManager
                 TextColumn::make('name')->searchable(),
                 TextColumn::make('sku')->searchable(),
                 TextColumn::make('selling_price')->money()->sortable(),
-                IconColumn::make('is_active')->boolean(),
+                IconColumn::make('is_active')
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger'),
             ])
             ->headerActions([
                 CreateAction::make(),

@@ -240,7 +240,10 @@ class StockReport extends Page implements HasTable
                 TextColumn::make('purchase_price')->label('Cost')->money('PKR')->toggleable(),
                 TextColumn::make('selling_price')->label('Sale')->money('PKR')->toggleable(),
 
-                IconColumn::make('is_active')->boolean()->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger')
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('product_id')

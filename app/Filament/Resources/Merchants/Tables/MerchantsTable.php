@@ -81,7 +81,8 @@ class MerchantsTable
                 TextColumn::make('website')
                     ->searchable(),
                 IconColumn::make('is_active')
-                    ->boolean(),
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger'),
                 BadgeColumn::make('status')
                     ->colors([
                         'primary' => 'pending',

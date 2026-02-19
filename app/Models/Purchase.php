@@ -16,8 +16,8 @@ class Purchase extends Model
 
     /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'purchase_no', 'purchase_date', 'subtotal',
-        'total_amount', 'notes', 'created_by'
+        'merchant_id', 'vendor_id', 'purchase_no', 'purchase_date', 'subtotal',
+        'total_amount', 'notes', 'created_by', 'payment_type',
     ];
 
     /** @var string $keyType */
@@ -28,6 +28,7 @@ class Purchase extends Model
         'purchase_date' => 'date',
         'subtotal' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'payment_type' => 'string',
     ];
 
     /**
@@ -38,6 +39,10 @@ class Purchase extends Model
         return $this->belongsTo(Merchant::class);
     }
 
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
+    }
 
 
     /**

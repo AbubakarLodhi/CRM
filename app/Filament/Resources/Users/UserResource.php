@@ -27,7 +27,7 @@ class UserResource extends Resource
     protected static ?string $pluralModelLabel = 'Staff';
 
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 4;
     protected static ?string $recordTitleAttribute = 'name';
     public static function canViewAny(): bool
     {

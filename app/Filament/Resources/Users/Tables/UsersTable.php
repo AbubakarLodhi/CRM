@@ -142,8 +142,8 @@ class UsersTable
 
 
         IconColumn::make('is_active')
-                    ->color('primary')
-                    ->boolean(),
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger'),
                 BadgeColumn::make('status')
                     ->formatStateUsing(fn (string $state) => ucfirst($state))
                     ->colors([

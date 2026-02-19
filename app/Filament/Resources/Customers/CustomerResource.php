@@ -26,7 +26,7 @@ class CustomerResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'Customer';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 6;
 
     public static function canViewAny(): bool
     {

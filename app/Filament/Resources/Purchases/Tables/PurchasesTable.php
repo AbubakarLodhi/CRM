@@ -54,6 +54,13 @@ class PurchasesTable
                     ->searchable()
                     ->toggleable(),
 
+                TextColumn::make('vendor.name')
+                    ->label('Vendor')
+                    ->limit(30)
+                    ->sortable()
+                    ->searchable()
+                    ->toggleable(),
+
                 /* -----------------------------
                  * BUSINESS (FROM ITEMS)
                  * ----------------------------- */
@@ -155,6 +162,14 @@ class PurchasesTable
                     ->money('PKR')
                     ->weight('bold')
                     ->sortable(),
+
+                TextColumn::make('payment_type')
+                    ->label('Payment')
+                    ->badge()
+                    ->color(fn ($state) => $state === 'credit' ? 'warning' : 'success')
+                    ->formatStateUsing(fn ($state) => ucfirst((string) $state))
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 BadgeColumn::make('return_status')
                     ->label('Return')

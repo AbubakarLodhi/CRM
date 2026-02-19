@@ -21,6 +21,7 @@ class PermissionsModulesSeeder extends Seeder
             'orders' => 'Orders',
             'branches' => 'Branches',
             'customers' => 'Customers',
+            'vendors' => 'Vendors',
             'categories' => 'Categories',
             'sub_categories'=>'Sub Categories',
             'brands' => 'Brands',
@@ -39,7 +40,6 @@ class PermissionsModulesSeeder extends Seeder
             PermissionModule::updateOrCreate(
                 ['module' => $key],
                 [
-                    'id' => (string) Str::uuid(),
                     'label' => $label,
                 ]
             );

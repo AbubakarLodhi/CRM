@@ -22,7 +22,7 @@ class NotificationTemplateResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'NotificationTemplate';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 9;
 
     public static function form(Schema $schema): Schema
     {

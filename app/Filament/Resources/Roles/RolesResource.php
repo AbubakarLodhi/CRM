@@ -25,7 +25,7 @@ class RolesResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Key;
 
 
-    protected static ?int $navigationSort =6;
+    protected static ?int $navigationSort =5;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -14,8 +14,8 @@ class PurchaseReturnsTable
     {
         return $table
             ->columns([
-                TextColumn::make('id')
-                    ->label('ID'),
+//                TextColumn::make('id')
+//                    ->label('ID'),
                 TextColumn::make('merchant.name')
                     ->label('Merchant')
                     ->searchable()
@@ -58,11 +58,11 @@ class PurchaseReturnsTable
                 //
             ])
             ->recordActions([
-                EditAction::make(),
+               // EditAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                   // DeleteBulkAction::make(),
                 ]),
             ]);
     }

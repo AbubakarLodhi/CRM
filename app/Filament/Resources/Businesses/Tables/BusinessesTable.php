@@ -84,8 +84,8 @@ class BusinessesTable
                     }),
                 IconColumn::make('status')
                     ->label('Active')
-                    ->color('primary')
-                    ->boolean(),
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

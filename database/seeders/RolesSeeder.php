@@ -36,6 +36,8 @@ class RolesSeeder extends Seeder
                 'brands.*',
                 'addons.*',
                 'customers.*',
+
+                'vendors.*',
                 'roles_permissions.*',
                 'reports.view',
                 'merchants.view',
@@ -50,6 +52,7 @@ class RolesSeeder extends Seeder
                 'orders.view',
                 'orders.update',
                 'customers.view',
+                'vendors.view',
                 'products.view',
                 'reports.view',
                 'merchants.view',
@@ -70,6 +73,7 @@ class RolesSeeder extends Seeder
                 'expenses.view',
                 'expenses.create',
                 'customers.view',
+                'vendors.view',
                 'products.view',
             ],
 
@@ -88,6 +92,7 @@ class RolesSeeder extends Seeder
                 'products.create',
                 'products.update',
                 'customers.create',
+                'vendors.create',
                 'orders.create',
             ],
         ];

@@ -17,6 +17,8 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\View;
 use Illuminate\Support\Facades\DB;
+use App\Models\Vendor;
+use App\Filament\Resources\Vendors\Schemas\VendorForm;
 
 class PurchaseForm
 {
@@ -32,6 +34,7 @@ class PurchaseForm
                      * PURCHASE INFORMATION
                      * =========================== */
                     Section::make('Purchase Information')
+                        ->extraAttributes(['class' => 'blue-section'])
                         ->schema([
                             TextInput::make('purchase_no')
                                 ->label('Purchase Number')
@@ -54,6 +57,50 @@ class PurchaseForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.purchase_date');
                                     $livewire->resetErrorBag('data.purchase_date');
+                                }),
+
+                            Select::make('vendor_id')
+                                ->label('Vendor')
+                                ->relationship(
+                                    'vendor',
+                                    'name',
+                                    fn ($query) => $query->where('merchant_id', self::merchantId())
+                                )
+                                ->searchable()
+                                ->preload()
+                                ->required()
+                                ->suffixAction(
+                                    \Filament\Actions\Action::make('createVendor')
+                                        ->icon('heroicon-o-plus')
+                                        ->tooltip('Create Vendor')
+                                        ->modalHeading('Create Vendor')
+                                        ->modalSubmitActionLabel('Create')
+                                        ->modalWidth('lg')
+                                        ->model(Vendor::class)
+                                        ->form(VendorForm::components())
+                                        ->action(fn (array $data, callable $set) =>
+                                        $set('vendor_id', Vendor::create($data)->id)
+                                        )
+                                )
+                                ->live()
+                                ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (
+                                    $livewire->resetValidation('data.vendor_id') ||
+                                    $livewire->resetErrorBag('data.vendor_id')
+                                )),
+
+                            Select::make('payment_type')
+                                ->label('Payment Type')
+                                ->options([
+                                    'cash' => 'Cash',
+                                    'credit' => 'Credit',
+                                ])
+                                ->default('cash')
+                                ->required()
+                                ->native(false)
+                                ->live()
+                                ->afterStateUpdated(function ($state, $livewire) {
+                                    $livewire->resetValidation('data.payment_type');
+                                    $livewire->resetErrorBag('data.payment_type');
                                 }),
 
                             Hidden::make('merchant_id')
@@ -89,6 +136,7 @@ class PurchaseForm
              * PURCHASE ITEMS
              * =========================== */
             Section::make('Purchase Items')
+                ->extraAttributes(['class' => 'line-items-section'])
                 ->columnSpanFull()
                 ->headerActions([
                     \Filament\Actions\Action::make('usePercentMode')
@@ -646,7 +694,8 @@ class PurchaseForm
                         ->defaultItems(1)
                         ->minItems(1)
                         ->collapsible()
-                        ->itemLabel(fn (array $state): string => $state['product_id'] ? 'Item' : 'New Item')
+                        ->itemLabel('Item')
+                        ->itemNumbers()
                         ->addActionLabel('Add Item')
                         ->reorderable(false)
                         ->deletable(true)
@@ -708,6 +757,7 @@ class PurchaseForm
              * SUMMARY
              * =========================== */
             Section::make('Summary')
+                ->extraAttributes(['class' => 'blue-section'])
                 ->columns(4)
                 ->columnSpanFull()
                 ->schema([
@@ -749,6 +799,7 @@ class PurchaseForm
              * NOTES
              * =========================== */
             Section::make('Notes')
+                ->extraAttributes(['class' => 'blue-section'])
                 ->columnSpanFull()
                 ->schema([
                     Textarea::make('notes')

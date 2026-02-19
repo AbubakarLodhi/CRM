@@ -82,7 +82,7 @@ class BranchesTable
                     ->boolean()
                     ->trueIcon('heroicon-o-check-circle')
                     ->falseIcon('heroicon-o-x-circle')
-                    ->trueColor('success')
+                    ->trueColor('primary')
                     ->falseColor('danger')
                     ->sortable(),
 

@@ -29,7 +29,8 @@ class NotificationTemplatesTable
                 TextColumn::make('subject')
                     ->searchable(),
                 IconColumn::make('is_active')
-                    ->boolean(),
+                    ->boolean()
+                    ->color(fn ($state) => $state ? 'primary' : 'danger'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

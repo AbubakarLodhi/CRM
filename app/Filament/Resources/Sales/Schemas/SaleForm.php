@@ -35,6 +35,7 @@ class SaleForm
                 ->schema([
 
                     Section::make('Sale Information')
+                        ->extraAttributes(['class' => 'blue-section'])
                         ->schema([
                             TextInput::make('sale_no')
                                 ->label('Sale Number')
@@ -139,6 +140,7 @@ class SaleForm
              * SALE ITEMS
              * =========================== */
             Section::make('Sale Items')
+                ->extraAttributes(['class' => 'line-items-section'])
                 ->columnSpanFull()
                 ->headerActions([
                     Action::make('usePercentMode')
@@ -669,7 +671,8 @@ class SaleForm
                         ->defaultItems(1)
                         ->minItems(1)
                         ->collapsible()
-                        ->itemLabel(fn (array $state): string => $state['product_id'] ? 'Item' : 'New Item')
+                        ->itemLabel('Item')
+                        ->itemNumbers()
                         ->addActionLabel('Add Item')
                         ->reorderable(false)
                         ->deletable(true)
@@ -731,6 +734,7 @@ class SaleForm
              * SUMMARY
              * =========================== */
             Section::make('Summary')
+                ->extraAttributes(['class' => 'blue-section'])
                 ->columns(4)
                 ->columnSpanFull()
                 ->schema([
@@ -776,6 +780,7 @@ class SaleForm
              * NOTES
              * =========================== */
             Section::make('Notes')
+                ->extraAttributes(['class' => 'blue-section'])
                 ->columnSpanFull()
                 ->schema([
                     Textarea::make('notes')
