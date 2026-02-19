@@ -2,76 +2,68 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Sale extends Model
+class SaleReturn extends Model
 {
     use HasUuids;
 
-    /** @var bool $incrementing */
+    protected $keyType = 'string';
     public $incrementing = false;
 
-    /** @var string[] $fillable */
     protected $fillable = [
-        'merchant_id', 'customer_id', 'sale_no', 'sale_date', 'subtotal',
-        'total_amount', 'notes', 'created_by','payment_type',
+        'merchant_id',
+        'sale_id',
+        'customer_id',
+        'return_no',
+        'return_date',
+        'subtotal',
+        'total_discount',
+        'total_tax',
+        'total_amount',
+        'reason',
+        'created_by',
     ];
 
-    /** @var string $keyType */
-    protected $keyType = 'string';
-
-    /** @var string[] $casts */
     protected $casts = [
-        'sale_date' => 'date',
+        'return_date' => 'date',
         'subtotal' => 'decimal:2',
+        'total_discount' => 'decimal:2',
+        'total_tax' => 'decimal:2',
         'total_amount' => 'decimal:2',
-        'payment_type' => 'string',
     ];
 
     /**
-     * @return BelongsTo
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
+    }
+
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
     }
 
-
-
-
-    /**
-     * @return BelongsTo
-     */
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    /**
-     * @return BelongsTo
-     */
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
     /**
-     * @return HasMany
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
     public function items(): HasMany
     {
-        return $this->hasMany(SaleItem::class);
+        return $this->hasMany(SaleReturnItem::class);
     }
-
-    /**
-     * @return HasMany
-     */
-    public function returns(): HasMany
-    {
-        return $this->hasMany(SaleReturn::class);
-    }
-
 }

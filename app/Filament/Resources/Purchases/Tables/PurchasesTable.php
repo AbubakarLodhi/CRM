@@ -13,6 +13,14 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -147,6 +155,14 @@ class PurchasesTable
                     ->money('PKR')
                     ->weight('bold')
                     ->sortable(),
+
+                BadgeColumn::make('return_status')
+                    ->label('Return')
+                    ->colors(['success'])
+                    ->getStateUsing(fn (Purchase $record) =>
+                        $record->returns()->exists() ? 'Returned' : '-'
+                    )
+                    ->toggleable(),
 
                 TextColumn::make('createdBy.name')
                     ->label('Created By')
@@ -286,6 +302,19 @@ class PurchasesTable
                     ])),
                     //->openUrlInNewTab(),
 
+                Action::make('return_purchase')
+                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->label(' ')
+                    ->color('danger')
+                    ->tooltip('Return Purchase')
+                    ->modalHeading('Return Purchase')
+                    ->modalWidth('7xl')
+                    ->form(fn (Purchase $record) => self::returnForm($record))
+                    ->action(function (Purchase $record, array $data) {
+                        \App\Services\PurchaseReturnService::createReturn($record, $data);
+                    })
+                    ->visible(fn (Purchase $record) => ! $record->returns()->exists()),
+
                 EditAction::make()
                     ->color('warning')
                     ->label(' ')
@@ -316,5 +345,184 @@ class PurchasesTable
             ])
 
             ->defaultSort('purchase_date', 'desc');
+    }
+
+    public static function returnForm(Purchase $purchase): array
+    {
+        $purchase->loadMissing('items.product', 'items.variants.variant');
+
+        $summary = self::prefillReturnSummary($purchase);
+
+        return [
+            DatePicker::make('return_date')
+                ->default(now())
+                ->required(),
+
+            Textarea::make('reason'),
+
+            Repeater::make('items')
+                ->default(
+                    $purchase->items->map(function ($item) {
+
+                        $variant = $item->variants->first();
+                        $variantModel = $variant?->variant;
+
+                        $variantLabel = $variantModel
+                            ? (
+                                $variantModel->name
+                                ?? $variantModel->sku
+                                ?? $variantModel->option_values
+                                ?? substr($variantModel->id, 0, 8)
+                            )
+                            : '-';
+
+                        return [
+                            'purchase_item_id' => $item->id,
+                            'product_name' => $item->product?->name ?? 'Product',
+                            'variant_name' => $variantLabel,
+                            'max_quantity' => $item->quantity,
+                            'quantity' => $item->quantity,
+                            'unit_price' => $item->unit_price,
+                            'discount' => $item->discount ?? 0,
+                            'tax' => $item->tax ?? 0,
+                        ];
+                    })->toArray()
+                )
+                ->afterStateHydrated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
+                ->afterStateUpdated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
+                ->schema([
+                    Hidden::make('purchase_item_id'),
+                    Hidden::make('max_quantity'),
+                    Hidden::make('discount'),
+                    Hidden::make('tax'),
+
+                    Placeholder::make('product_name')
+                        ->label('Product'),
+
+                    Placeholder::make('variant_name')
+                        ->label('Variant'),
+
+                    TextInput::make('quantity')
+                        ->numeric()
+                        ->minValue(0)
+                        ->maxValue(fn ($get) => $get('max_quantity'))
+                        ->required()
+                        ->rules([
+                            fn ($get) => function ($attribute, $value, $fail) use ($get) {
+                                $max = $get('max_quantity');
+                                if ($value > $max) {
+                                    $fail("Return quantity cannot be greater than purchased quantity ({$max}).");
+                                }
+                            },
+                        ]),
+
+                    TextInput::make('unit_price')
+                        ->disabled(),
+                ]),
+
+            Section::make('Summary')
+                ->columns(4)
+                ->columnSpanFull()
+                ->schema([
+                    Placeholder::make('subtotal_display')
+                        ->label('Subtotal')
+                        ->live()
+                        ->extraAttributes(['data-summary' => 'subtotal'])
+                        ->content(fn (callable $get) =>
+                        'PKR ' . number_format((float) ($get('subtotal') ?? 0), 2)
+                        ),
+
+                    Placeholder::make('total_discount_display')
+                        ->label('Discount')
+                        ->live()
+                        ->extraAttributes(['data-summary' => 'discount'])
+                        ->content(fn (callable $get) =>
+                        'PKR ' . number_format((float) ($get('total_discount') ?? 0), 2)
+                        ),
+
+                    Placeholder::make('total_tax_display')
+                        ->label('Tax')
+                        ->live()
+                        ->extraAttributes(['data-summary' => 'tax'])
+                        ->content(fn (callable $get) =>
+                        'PKR ' . number_format((float) ($get('total_tax') ?? 0), 2)
+                        ),
+
+                    Placeholder::make('total_amount_display')
+                        ->label('Total Amount')
+                        ->live()
+                        ->extraAttributes(['data-summary' => 'total'])
+                        ->content(fn (callable $get) =>
+                        'PKR ' . number_format((float) ($get('total_amount') ?? 0), 2)
+                        ),
+
+                    Hidden::make('subtotal')->default($summary['subtotal'])->dehydrated(),
+                    Hidden::make('total_discount')->default($summary['total_discount'])->dehydrated(),
+                    Hidden::make('total_tax')->default($summary['total_tax'])->dehydrated(),
+                    Hidden::make('total_amount')->default($summary['total_amount'])->dehydrated(),
+                ]),
+        ];
+    }
+
+    private static function recalcReturnTotals(callable $set, callable $get): void
+    {
+        $items = $get('items') ?? [];
+
+        $subtotal = 0.0;
+        $totalDiscount = 0.0;
+        $totalTax = 0.0;
+
+        foreach ($items as $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $unit = (float) ($item['unit_price'] ?? 0);
+            $lineSubtotal = $qty * $unit;
+
+            $discountRate = (float) ($item['discount'] ?? 0);
+            $taxRate = (float) ($item['tax'] ?? 0);
+
+            $discountAmount = $lineSubtotal * ($discountRate / 100);
+            $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+            $taxAmount = $taxableAmount * ($taxRate / 100);
+
+            $subtotal += $lineSubtotal;
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxAmount;
+        }
+
+        $set('subtotal', round($subtotal, 2));
+        $set('total_discount', round($totalDiscount, 2));
+        $set('total_tax', round($totalTax, 2));
+        $set('total_amount', round($subtotal - $totalDiscount + $totalTax, 2));
+    }
+
+    private static function prefillReturnSummary(Purchase $purchase): array
+    {
+        $subtotal = 0.0;
+        $totalDiscount = 0.0;
+        $totalTax = 0.0;
+
+        foreach ($purchase->items as $item) {
+            $qty = (float) ($item->quantity ?? 0);
+            $unit = (float) ($item->unit_price ?? 0);
+            $lineSubtotal = $qty * $unit;
+
+            $discountRate = (float) ($item->discount ?? 0);
+            $taxRate = (float) ($item->tax ?? 0);
+
+            $discountAmount = $lineSubtotal * ($discountRate / 100);
+            $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+            $taxAmount = $taxableAmount * ($taxRate / 100);
+
+            $subtotal += $lineSubtotal;
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxAmount;
+        }
+
+        return [
+            'subtotal' => round($subtotal, 2),
+            'total_discount' => round($totalDiscount, 2),
+            'total_tax' => round($totalTax, 2),
+            'total_amount' => round($subtotal - $totalDiscount + $totalTax, 2),
+        ];
     }
 }

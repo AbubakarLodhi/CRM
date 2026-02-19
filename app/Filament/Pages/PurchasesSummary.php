@@ -294,16 +294,36 @@ class PurchasesSummary extends Page implements HasTable
             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
 
-        $avgPurchase = $totalPurchases > 0 ? $totalAmount / $totalPurchases : 0;
+        $returnTotals = DB::table('purchase_returns')
+            ->whereIn('purchase_id', $purchaseIds)
+            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
+            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
+            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
+            ->first();
+
+        $returnedQuantity = DB::table('purchase_return_item_variants as prv')
+            ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
+            ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+            ->whereIn('pr.purchase_id', $purchaseIds)
+            ->sum('prv.quantity');
+
+        $netAmount = $totalAmount - (float) ($returnTotals->total_amount ?? 0);
+        $netDiscount = $totalDiscount - (float) ($returnTotals->total_discount ?? 0);
+        $netTax = $totalTax - (float) ($returnTotals->total_tax ?? 0);
+        $netSubtotal = $totalSubtotal - (float) ($returnTotals->subtotal ?? 0);
+        $netQuantity = $totalItemQuantity - (float) $returnedQuantity;
+
+        $avgPurchase = $totalPurchases > 0 ? $netAmount / $totalPurchases : 0;
 
         return [
             'total_purchases'      => (int) $totalPurchases,
             'total_items_count'    => (int) $totalItemLines,
-            'total_items_quantity' => (float) $totalItemQuantity,
-            'total_amount'         => (float) $totalAmount,
-            'total_discount'       => (float) $totalDiscount,
-            'total_tax'            => (float) $totalTax,
-            'total_subtotal'       => (float) $totalSubtotal,
+            'total_items_quantity' => (float) $netQuantity,
+            'total_amount'         => (float) $netAmount,
+            'total_discount'       => (float) $netDiscount,
+            'total_tax'            => (float) $netTax,
+            'total_subtotal'       => (float) $netSubtotal,
             'avg_purchase'         => round($avgPurchase, 2),
         ];
     }
@@ -347,6 +367,27 @@ class PurchasesSummary extends Page implements HasTable
                         'total'    => (float) (clone $baseQuery)->sum('total_amount'),
                     ];
 
+                    $returnTotals = DB::table('purchase_returns')
+                        ->whereIn('purchase_id', $purchaseIds)
+                        ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
+                        ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
+                        ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
+                        ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
+                        ->first();
+
+                    $returnedQuantity = DB::table('purchase_return_item_variants as prv')
+                        ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
+                        ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
+                        ->whereIn('pr.purchase_id', $purchaseIds)
+                        ->sum('prv.quantity');
+
+                    $totals['items_count'] = (int) $totals['items_count'];
+                    $totals['subtotal'] = (float) $totals['subtotal'] - (float) ($returnTotals->subtotal ?? 0);
+                    $totals['discount'] = (float) $totals['discount'] - (float) ($returnTotals->total_discount ?? 0);
+                    $totals['tax'] = (float) $totals['tax'] - (float) ($returnTotals->total_tax ?? 0);
+                    $totals['total'] = (float) $totals['total'] - (float) ($returnTotals->total_amount ?? 0);
+                    $totals['quantity'] = (float) ($totals['quantity'] ?? 0) - (float) $returnedQuantity;
+
                     return Excel::download(
                         new PurchasesSummaryExport($exportQuery, $totals),
                         'purchases-summary-' . now()->format('Y-m-d_H-i-s') . '.xlsx'
@@ -356,5 +397,3 @@ class PurchasesSummary extends Page implements HasTable
     }
 
 }
-
-

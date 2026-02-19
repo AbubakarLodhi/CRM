@@ -54,6 +54,8 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     ->options([
                         'Purchase' => 'Purchase',
                         'Sale'     => 'Sale',
+                        'Sale Return' => 'Sale Return',
+                        'Purchase Return' => 'Purchase Return',
                     ])
                     ->placeholder('All')
                     ->reactive(),
@@ -86,7 +88,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
                 TextColumn::make('type')
                     ->badge()
-                    ->color(fn ($state) => $state === 'Purchase' ? 'success' : 'danger'),
+                    ->color(fn ($state) => in_array($state, ['Purchase', 'Sale Return'], true) ? 'success' : 'danger'),
 
                 TextColumn::make('reference')
                     ->label('Reference No.')
@@ -128,7 +130,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     ->toggleable()
                     ->badge()
                     ->getStateUsing(fn ($record) =>
-                    $record['type'] === 'Purchase' ? 'In' : 'Out'
+                    ($record['direction'] ?? null) === 'in' ? 'In' : 'Out'
                     )
                     ->color(fn ($state) =>
                     $state === 'In' ? 'success' : 'danger'
@@ -253,8 +255,130 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
 
 
+        $returnRows = \App\Models\SaleReturn::query()
+            ->with([
+                'items.variants.variant.product',
+                'items.product',
+                'items.business.users',
+                'items.branch.users',
+            ])
+            ->when($merchantId, fn ($q) =>
+            $q->where('merchant_id', $merchantId)
+            )
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereHas('items.business.users', fn ($u) =>
+            $u->where('users.id', $user->id)
+            )
+                ->whereHas('items.branch.users', fn ($u) =>
+                $u->where('users.id', $user->id)
+                )
+            )
+            ->get()
+            ->flatMap(function ($return) {
+                return $return->items->flatMap(function ($item) use ($return) {
+                    if ($item->variants->isEmpty()) {
+                        $product = $item->product;
+
+                        return [[
+                            'id'            => 'sale-return-item-' . $item->id,
+                            'date'          => $return->return_date,
+                            'type'          => 'Sale Return',
+                            'reference'     => $return->return_no,
+                            'product_name'  => $product?->name ?? '-',
+                            'variant_name'  => '-',
+                            'product_sku'   => '-',
+                            'quantity'      => $item->quantity,
+                            'unit_price'    => $item->unit_price,
+                            'total'         => $item->line_total,
+                            'direction'     => 'in',
+                        ]];
+                    }
+
+                    return $item->variants->map(function ($variantRow) use ($return, $item) {
+                        $variant = $variantRow->variant;
+                        $product = $variant?->product ?? $item->product;
+
+                        return [
+                            'id'            => 'sale-return-var-' . $variantRow->id,
+                            'date'          => $return->return_date,
+                            'type'          => 'Sale Return',
+                            'reference'     => $return->return_no,
+                            'product_name'  => $product?->name ?? '-',
+                            'variant_name'  => $variant?->name ?? '-',
+                            'product_sku'   => $variant?->sku ?? '-',
+                            'quantity'      => $variantRow->quantity,
+                            'unit_price'    => $variantRow->unit_price,
+                            'total'         => $variantRow->line_total,
+                            'direction'     => 'in',
+                        ];
+                    });
+                });
+            });
+
+        $purchaseReturnRows = \App\Models\PurchaseReturn::query()
+            ->with([
+                'items.variants.variant.product',
+                'items.product',
+                'items.business.users',
+                'items.branch.users',
+            ])
+            ->when($merchantId, fn ($q) =>
+            $q->where('merchant_id', $merchantId)
+            )
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereHas('items.business.users', fn ($u) =>
+            $u->where('users.id', $user->id)
+            )
+                ->whereHas('items.branch.users', fn ($u) =>
+                $u->where('users.id', $user->id)
+                )
+            )
+            ->get()
+            ->flatMap(function ($return) {
+                return $return->items->flatMap(function ($item) use ($return) {
+                    if ($item->variants->isEmpty()) {
+                        $product = $item->product;
+
+                        return [[
+                            'id'            => 'purchase-return-item-' . $item->id,
+                            'date'          => $return->return_date,
+                            'type'          => 'Purchase Return',
+                            'reference'     => $return->return_no,
+                            'product_name'  => $product?->name ?? '-',
+                            'variant_name'  => '-',
+                            'product_sku'   => '-',
+                            'quantity'      => $item->quantity,
+                            'unit_price'    => $item->unit_price,
+                            'total'         => $item->line_total,
+                            'direction'     => 'out',
+                        ]];
+                    }
+
+                    return $item->variants->map(function ($variantRow) use ($return, $item) {
+                        $variant = $variantRow->variant;
+                        $product = $variant?->product ?? $item->product;
+
+                        return [
+                            'id'            => 'purchase-return-var-' . $variantRow->id,
+                            'date'          => $return->return_date,
+                            'type'          => 'Purchase Return',
+                            'reference'     => $return->return_no,
+                            'product_name'  => $product?->name ?? '-',
+                            'variant_name'  => $variant?->name ?? '-',
+                            'product_sku'   => $variant?->sku ?? '-',
+                            'quantity'      => $variantRow->quantity,
+                            'unit_price'    => $variantRow->unit_price,
+                            'total'         => $variantRow->line_total,
+                            'direction'     => 'out',
+                        ];
+                    });
+                });
+            });
+
         $records = $purchaseRows
             ->concat($saleRows)
+            ->concat($returnRows)
+            ->concat($purchaseReturnRows)
             ->sortByDesc('date')
             ->values();
 

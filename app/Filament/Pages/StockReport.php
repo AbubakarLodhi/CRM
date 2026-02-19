@@ -54,6 +54,25 @@ class StockReport extends Page implements HasTable
         ";
     }
 
+    protected function purchaseReturnedExpression(string $userId): string
+    {
+        return "
+            COALESCE(
+                (
+                    SELECT SUM(prv.quantity)
+                    FROM purchase_return_item_variants prv
+                    JOIN purchase_return_items pri ON pri.id = prv.purchase_return_item_id
+                    WHERE prv.product_variant_id = product_variants.id
+                      AND pri.branch_id IN (
+                          SELECT branch_id
+                          FROM branch_users
+                          WHERE user_id = '{$userId}'
+                      )
+                ),
+            0)
+        ";
+    }
+
     protected function soldExpression(string $userId): string
     {
         return "
@@ -73,9 +92,28 @@ class StockReport extends Page implements HasTable
         ";
     }
 
+    protected function returnedExpression(string $userId): string
+    {
+        return "
+            COALESCE(
+                (
+                    SELECT SUM(srv.quantity)
+                    FROM sale_return_item_variants srv
+                    JOIN sale_return_items sri ON sri.id = srv.sale_return_item_id
+                    WHERE srv.product_variant_id = product_variants.id
+                      AND sri.branch_id IN (
+                          SELECT branch_id
+                          FROM branch_users
+                          WHERE user_id = '{$userId}'
+                      )
+                ),
+            0)
+        ";
+    }
+
     protected function stockExpression(string $userId): string
     {
-        return '(' . $this->purchasedExpression($userId) . ' - ' . $this->soldExpression($userId) . ')';
+        return '(' . $this->purchasedExpression($userId) . ' - ' . $this->purchaseReturnedExpression($userId) . ' - ' . $this->soldExpression($userId) . ' + ' . $this->returnedExpression($userId) . ')';
     }
 
     /* ============================================================
@@ -108,22 +146,34 @@ class StockReport extends Page implements HasTable
                     ->select('product_variants.*')
                     ->selectRaw(
                         $user instanceof \App\Models\User
-                            ? $this->purchasedExpression($user->id) . ' as total_purchased'
+                            ? $this->purchasedExpression($user->id) . ' - ' . $this->purchaseReturnedExpression($user->id) . ' as total_purchased'
                             : '
                                 COALESCE(
                                     (SELECT SUM(piv.quantity)
                                      FROM purchase_item_variants piv
                                      WHERE piv.product_variant_id = product_variants.id),
+                                0)
+                                -
+                                COALESCE(
+                                    (SELECT SUM(prv.quantity)
+                                     FROM purchase_return_item_variants prv
+                                     WHERE prv.product_variant_id = product_variants.id),
                                 0) as total_purchased'
                     )
                     ->selectRaw(
                         $user instanceof \App\Models\User
-                            ? $this->soldExpression($user->id) . ' as total_sold'
+                            ? $this->soldExpression($user->id) . ' - ' . $this->returnedExpression($user->id) . ' as total_sold'
                             : '
                                 COALESCE(
                                     (SELECT SUM(siv.quantity)
                                      FROM sale_item_variants siv
                                      WHERE siv.product_variant_id = product_variants.id),
+                                0)
+                                -
+                                COALESCE(
+                                    (SELECT SUM(srv.quantity)
+                                     FROM sale_return_item_variants srv
+                                     WHERE srv.product_variant_id = product_variants.id),
                                 0) as total_sold'
                     )
                     ->selectRaw(
@@ -138,9 +188,21 @@ class StockReport extends Page implements HasTable
                                     0)
                                     -
                                     COALESCE(
+                                        (SELECT SUM(prv.quantity)
+                                         FROM purchase_return_item_variants prv
+                                         WHERE prv.product_variant_id = product_variants.id),
+                                    0)
+                                    -
+                                    COALESCE(
                                         (SELECT SUM(siv.quantity)
                                          FROM sale_item_variants siv
                                          WHERE siv.product_variant_id = product_variants.id),
+                                    0)
+                                    +
+                                    COALESCE(
+                                        (SELECT SUM(srv.quantity)
+                                         FROM sale_return_item_variants srv
+                                         WHERE srv.product_variant_id = product_variants.id),
                                     0)
                                 ) as current_stock'
                     )
@@ -283,6 +345,16 @@ class StockReport extends Page implements HasTable
             )
             ->sum('piv.quantity');
 
+        $totalPurchaseReturnedQty = DB::table('purchase_return_item_variants as prv')
+            ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
+            ->whereIn('prv.product_variant_id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('pri.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum('prv.quantity');
+
+        $netPurchasedQty = $totalPurchasedQty - $totalPurchaseReturnedQty;
+
 
         /* SOLD */
         $totalSoldQty = DB::table('sale_item_variants as siv')
@@ -293,7 +365,17 @@ class StockReport extends Page implements HasTable
             )
             ->sum('siv.quantity');
 
-        $availableStock = $totalPurchasedQty - $totalSoldQty;
+        $totalReturnedQty = DB::table('sale_return_item_variants as srv')
+            ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
+            ->whereIn('srv.product_variant_id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('sri.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum('srv.quantity');
+
+        $netSoldQty = $totalSoldQty - $totalReturnedQty;
+
+        $availableStock = $netPurchasedQty - $netSoldQty;
 
         /* REVENUE */
         $totalRevenue = DB::table('sale_item_variants as siv')
@@ -305,6 +387,16 @@ class StockReport extends Page implements HasTable
             )
             ->sum(DB::raw('siv.quantity * pv.selling_price'));
 
+        $returnedRevenue = DB::table('sale_return_item_variants as srv')
+            ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
+            ->join('product_variants as pv', 'pv.id', '=', 'srv.product_variant_id')
+            ->whereIn('pv.id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('sri.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum(DB::raw('srv.quantity * pv.selling_price'));
+
+        $netRevenue = $totalRevenue - $returnedRevenue;
 
         /* BUYING COST */
         $totalBuyingCost = DB::table('purchase_item_variants as piv')
@@ -316,14 +408,25 @@ class StockReport extends Page implements HasTable
             )
             ->sum(DB::raw('piv.quantity * pv.purchase_price'));
 
+        $returnedBuyingCost = DB::table('purchase_return_item_variants as prv')
+            ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
+            ->join('product_variants as pv', 'pv.id', '=', 'prv.product_variant_id')
+            ->whereIn('pv.id', $variantIds)
+            ->when($user instanceof \App\Models\User, fn ($q) =>
+            $q->whereIn('pri.branch_id', $user->branches()->pluck('branches.id'))
+            )
+            ->sum(DB::raw('prv.quantity * pv.purchase_price'));
+
+        $netBuyingCost = $totalBuyingCost - $returnedBuyingCost;
+
         return [
             'total_products'      => (int) $totalProducts,
-            'total_purchased_qty' => (float) $totalPurchasedQty,
-            'total_sold_qty'      => (float) $totalSoldQty,
+            'total_purchased_qty' => (float) $netPurchasedQty,
+            'total_sold_qty'      => (float) $netSoldQty,
             'available_stock'     => (float) $availableStock,
-            'total_revenue'       => (float) $totalRevenue,
-            'avg_selling_price'   => $totalSoldQty > 0 ? round($totalRevenue / $totalSoldQty, 2) : 0,
-            'avg_buying_price'    => $totalPurchasedQty > 0 ? round($totalBuyingCost / $totalPurchasedQty, 2) : 0,
+            'total_revenue'       => (float) $netRevenue,
+            'avg_selling_price'   => $netSoldQty > 0 ? round($netRevenue / $netSoldQty, 2) : 0,
+            'avg_buying_price'    => $netPurchasedQty > 0 ? round($netBuyingCost / $netPurchasedQty, 2) : 0,
         ];
     }
 }

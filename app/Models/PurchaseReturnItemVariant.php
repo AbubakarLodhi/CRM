@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class PurchaseReturnItemVariant extends Model
+{
+    use HasUuids;
+
+    protected $keyType = 'string';
+    public $incrementing = false;
+
+    protected $fillable = [
+        'purchase_return_item_id',
+        'product_variant_id',
+        'quantity',
+        'unit_price',
+        'line_total',
+    ];
+
+    public function purchaseReturnItem(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseReturnItem::class);
+    }
+
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+    }
+}

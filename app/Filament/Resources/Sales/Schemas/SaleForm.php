@@ -91,6 +91,21 @@ class SaleForm
                                     $livewire->resetErrorBag('data.customer_id')
                                 )),
 
+                            Select::make('payment_type')
+                                ->label('Payment Type')
+                                ->options([
+                                    'cash'   => 'Cash',
+                                    'credit' => 'Credit',
+                                ])
+                                ->default('cash')
+                                ->required()
+                                ->native(false)
+                                ->live()
+                                ->afterStateUpdated(function ($state, $livewire) {
+                                    $livewire->resetValidation('data.payment_type');
+                                    $livewire->resetErrorBag('data.payment_type');
+                                }),
+
                             Hidden::make('merchant_id')
                                 ->default(fn () => self::merchantId())
                                 ->required(),

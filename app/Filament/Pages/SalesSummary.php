@@ -154,6 +154,14 @@ class SalesSummary extends Page implements HasTable
                     ->money('PKR')
                     ->weight('bold')
                     ->sortable(),
+
+                TextColumn::make('payment_type')
+                    ->label('Payment')
+                    ->badge()
+                    ->color(fn ($state) => $state === 'credit' ? 'warning' : 'success')
+                    ->formatStateUsing(fn ($state) => ucfirst($state))
+                    ->sortable(),
+
             ])
             ->filters([
                 Filter::make('sale_date_range')
@@ -175,6 +183,14 @@ class SalesSummary extends Page implements HasTable
                                 fn (Builder $query, $date) => $query->whereDate('sale_date', '<=', $date)
                             );
                     }),
+
+                SelectFilter::make('payment_type')
+                    ->label('Payment Type')
+                    ->options([
+                        'cash'   => 'Cash',
+                        'credit' => 'Credit',
+                    ]),
+
                 SelectFilter::make('customer_id')
                     ->label('Customer')
                     ->relationship('customer', 'name'),
@@ -277,17 +293,38 @@ class SalesSummary extends Page implements HasTable
             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
 
-        $avgSale = $totalSales > 0 ? $totalAmount / $totalSales : 0;
+        $returnTotals = DB::table('sale_returns')
+            ->whereIn('sale_id', $saleIds)
+            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
+            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
+            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
+            ->first();
+
+        $returnedQuantity = DB::table('sale_return_item_variants as srv')
+            ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
+            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
+            ->whereIn('sr.sale_id', $saleIds)
+            ->sum('srv.quantity');
+
+        $netAmount = $totalAmount - (float) ($returnTotals->total_amount ?? 0);
+        $netDiscount = $totalDiscount - (float) ($returnTotals->total_discount ?? 0);
+        $netTax = $totalTax - (float) ($returnTotals->total_tax ?? 0);
+        $netSubtotal = $totalSubtotal - (float) ($returnTotals->subtotal ?? 0);
+
+        $netQuantity = $totalQuantitySold - (float) $returnedQuantity;
+
+        $avgSale = $totalSales > 0 ? $netAmount / $totalSales : 0;
 
         // 🚨 HEADERS EXACTLY AS REQUIRED
         return [
             'total_sales'        => (int) $totalSales,
             'total_items_count'  => (int) $totalItemLines, // ✅ NOW MATCHES TABLE
-            'total_quantity'     => (float) $totalQuantitySold,
-            'total_amount'       => (float) $totalAmount,
-            'total_discount'     => (float) $totalDiscount,
-            'total_tax'          => (float) $totalTax,
-            'total_subtotal'     => (float) $totalSubtotal,
+            'total_quantity'     => (float) $netQuantity,
+            'total_amount'       => (float) $netAmount,
+            'total_discount'     => (float) $netDiscount,
+            'total_tax'          => (float) $netTax,
+            'total_subtotal'     => (float) $netSubtotal,
             'avg_sale'           => round($avgSale, 2),
         ];
     }
@@ -335,6 +372,26 @@ class SalesSummary extends Page implements HasTable
                             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)')),
                         'total'    => (float) (clone $baseQuery)->sum('total_amount'),
                     ];
+
+                    $returnTotals = DB::table('sale_returns')
+                        ->whereIn('sale_id', $saleIds)
+                        ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
+                        ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
+                        ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
+                        ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
+                        ->first();
+
+                    $returnedQuantity = DB::table('sale_return_item_variants as srv')
+                        ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
+                        ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
+                        ->whereIn('sr.sale_id', $saleIds)
+                        ->sum('srv.quantity');
+
+                    $totals['quantity'] = (float) $totals['quantity'] - (float) $returnedQuantity;
+                    $totals['subtotal'] = (float) $totals['subtotal'] - (float) ($returnTotals->subtotal ?? 0);
+                    $totals['discount'] = (float) $totals['discount'] - (float) ($returnTotals->total_discount ?? 0);
+                    $totals['tax'] = (float) $totals['tax'] - (float) ($returnTotals->total_tax ?? 0);
+                    $totals['total'] = (float) $totals['total'] - (float) ($returnTotals->total_amount ?? 0);
 
                     return Excel::download(
                         new SalesSummaryExport($exportQuery, $totals),
