@@ -116,8 +116,8 @@
 }
 
 .discount-mode-toggle.is-active {
-    background: #2563eb;
-    border-color: #2563eb;
+    background: var(--fi-color-primary-600, #2563eb);
+    border-color: var(--fi-color-primary-600, #2563eb);
     color: #fff;
 }
 
@@ -126,7 +126,7 @@
  |---------------------------------------------
  */
 .line-items-section .fi-fo-repeater-item-header {
-    background: #0b2f6b;
+    background: var(--fi-color-primary-700, #0b2f6b);
     color: #ffffff;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
@@ -138,7 +138,7 @@
 }
 
 .line-items-section .fi-fo-repeater-item {
-    border: 1px solid #0b2f6b;
+    border: 1px solid var(--fi-color-primary-700, #0b2f6b);
 }
 
 .line-items-section .fi-fo-repeater-item:not(:last-child) {
@@ -159,7 +159,7 @@
 .blue-section .fi-fo-section-header-heading,
 .blue-section .fi-section-header-heading,
 .blue-section .fi-fo-section-heading {
-    background: #0b2f6b;
+    background: var(--fi-color-primary-700, #0b2f6b);
     color: #ffffff;
     border-radius: 8px;
     padding: 8px 12px;
@@ -199,4 +199,65 @@
     .report-stats-grid {
         grid-template-columns: repeat(4, minmax(240px, 1fr));
     }
+}
+
+/* --------------------------------------------
+ | Stats dashboard dark mode overrides
+ |---------------------------------------------
+ */
+.dark .stats-dashboard .stats-card {
+    background-color: #0b0f14 !important;
+    box-shadow: none;
+}
+
+.dark .stats-dashboard .stats-panel,
+.dark .stats-dashboard .stats-panel-blue,
+.dark .stats-dashboard .stats-panel-emerald,
+.dark .stats-dashboard .stats-panel-orange,
+.dark .stats-dashboard .stats-panel-sky,
+.dark .stats-dashboard .stats-panel-rose,
+.dark .stats-dashboard .stats-panel-amber {
+    background-color: #0b0f14 !important;
+    background-image: none !important;
+    border-color: rgba(148, 163, 184, 0.14);
+}
+
+.dark .stats-dashboard .stats-dark-card {
+    background-color: #111318 !important;
+}
+
+.dark .stats-dashboard .stats-success-card {
+    background-color: #064e3b !important;
+}
+
+.dark .stats-dashboard .bg-white {
+    background-color: #0b0f14 !important;
+}
+
+.dark .stats-dashboard .bg-slate-50,
+.dark .stats-dashboard .bg-slate-100 {
+    background-color: #111318 !important;
+}
+
+.dark .stats-dashboard .border-slate-200 {
+    border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.dark .stats-dashboard .bg-slate-200 {
+    background-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.dark .stats-dashboard .text-slate-900,
+.dark .stats-dashboard .text-slate-700,
+.dark .stats-dashboard .text-slate-600 {
+    color: #e2e8f0 !important;
+}
+
+.dark .stats-dashboard .text-slate-500,
+.dark .stats-dashboard .text-slate-400 {
+    color: #94a3b8 !important;
+}
+
+.dark .stats-dashboard svg text {
+    fill: #cbd5f5;
 }

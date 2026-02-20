@@ -9,8 +9,8 @@
         $invoiceNo   = $isSale ? $record->sale_no       : $record->purchase_no;
         $invoiceDate = $isSale ? $record->sale_date     : $record->purchase_date;
 
-        // Customer for Sale | Supplier for Purchase
-        $party = $isSale ? $record->customer : $record->supplier;
+        // Customer for Sale | Vendor for Purchase
+        $party = $isSale ? $record->customer : $record->vendor;
         $totalDiscount = 0;
         $totalTax = 0;
         $totalDiscountPercent = 0;
@@ -35,115 +35,150 @@
     <title>Invoice {{ $invoiceNo }}</title>
 
     <style>
+        :root {
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --accent: #111827;
+            --bg: #f3f4f6;
+        }
+
         body {
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont;
-            background: #f8fafc;
+            font-family: "Georgia", "Times New Roman", serif;
+            background: var(--bg);
             margin: 0;
-            padding: 30px;
-            color: #0f172a;
+            padding: 30px 0;
+            color: var(--ink);
         }
 
         .invoice {
             max-width: 900px;
-            margin: auto;
+            margin: 0 auto;
             background: #fff;
-            padding: 40px;
-            border-radius: 12px;
+            padding: 48px 54px 60px;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12);
+            box-sizing: border-box;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
+            gap: 24px;
             align-items: start;
-            margin-bottom: 30px;
         }
 
-        .header-actions {
+        .brand {
             display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .close-btn {
-            border: none;
-            background: #e2e8f0;
-            color: #0f172a;
-            width: 32px;
-            height: 32px;
-            border-radius: 999px;
-            cursor: pointer;
-            font-size: 18px;
-            line-height: 32px;
-            text-align: center;
-        }
-
-        .close-btn:hover {
-            background: #cbd5f5;
-        }
-
-        .print-btn {
-            border: none;
-            background: #6366f1;
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 999px;
-            cursor: pointer;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 45%;
             font-size: 13px;
-            line-height: 20px;
-        }
-
-        .print-btn:hover {
-            background: #4f46e5;
+            color: var(--muted);
+            line-height: 1.5;
         }
 
         .brand img {
-            height: 42px;
+            height: 44px;
+            width: auto;
+        }
+
+        .invoice-title {
+            text-align: right;
+            max-width: 45%;
+        }
+
+        .invoice-title h1 {
+            margin: 0 0 8px;
+            font-size: 26px;
+            letter-spacing: 2px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .invoice-title .subtitle {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+
+        .party-row {
+            margin-top: 26px;
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            font-size: 12.5px;
+            color: var(--muted);
+        }
+
+        .party-row strong {
+            color: var(--accent);
         }
 
         .invoice-meta {
-            text-align: right;
-            font-size: 14px;
+            margin-top: 18px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 28px;
+            font-size: 12.5px;
+            color: var(--muted);
         }
 
-        .card {
-            background: #f1f5f9;
-            padding: 20px;
-            border-radius: 10px;
+        .invoice-meta div {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 30px;
-            font-size: 14px;
+            gap: 12px;
+        }
+
+        .invoice-meta span.label {
+            color: var(--muted);
+        }
+
+        .divider {
+            margin: 26px 0 14px;
+            border-top: 1px solid var(--line);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 25px;
+            margin-top: 8px;
         }
 
         thead th {
             text-align: left;
-            font-size: 13px;
-            color: #6366f1;
-            border-bottom: 2px solid #6366f1;
-            padding-bottom: 10px;
+            font-size: 12px;
+            color: #fff;
+            background: #111827;
+            padding: 10px 8px;
+            font-weight: 600;
         }
 
         tbody td {
-            padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 14px;
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--line);
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .item-meta {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
         }
 
         .summary {
-            width: 300px;
+            width: 320px;
             margin-left: auto;
             margin-top: auto;
-            font-size: 14px;
+            font-size: 12.5px;
+            color: var(--muted);
+            background: #fff;
+            padding: 0;
+            border-radius: 0;
             break-inside: avoid;
             page-break-inside: avoid;
         }
@@ -151,21 +186,62 @@
         .summary div {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
+            padding: 6px 0;
         }
 
-        .total {
-            background: #6366f1;
-            color: #fff;
-            padding: 12px;
-            border-radius: 8px;
+        .summary .grand {
+            margin-top: 6px;
+            background: #111827;
+            padding: 10px 12px;
+            border-radius: 6px;
             font-weight: 600;
+            color: #fff;
         }
+
 
         .notes {
-            margin-top: 40px;
-            font-size: 13px;
-            color: #475569;
+            margin-top: 32px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .contact-us {
+            margin-top: 18px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .contact-us strong {
+            color: var(--accent);
+        }
+
+        .footer-gap {
+            flex: 1 1 auto;
+        }
+
+        .actions {
+            position: fixed;
+            right: 24px;
+            top: 24px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .btn {
+            border: none;
+            background: #111827;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 18px;
+        }
+
+        .btn.secondary {
+            background: #e5e7eb;
+            color: #111827;
         }
 
         @media print {
@@ -173,50 +249,40 @@
                 size: A4;
                 margin: 12mm;
             }
-            html, body {
-                height: 100%;
-            }
             body {
                 background: #fff;
                 padding: 0;
                 margin: 0;
             }
-
             .invoice {
                 box-shadow: none;
                 border-radius: 0;
+                padding: 12mm;
                 min-height: 100vh;
                 height: 100vh;
-                padding: 12mm;
-                box-sizing: border-box;
             }
-
-            .close-btn,
-            .print-btn {
+            .actions {
                 display: none;
-            }
-
-            .summary {
-                position: static;
-                margin-top: auto;
-            }
-
-            .invoice,
-            .card,
-            table,
-            .notes,
-            .summary {
-                break-inside: avoid;
-                page-break-inside: avoid;
             }
         }
     </style>
 </head>
 <body>
 
+<div class="actions">
+    <button class="btn" type="button" onclick="window.print()">Print</button>
+    <button
+        class="btn secondary"
+        type="button"
+        aria-label="Close"
+        onclick="if (window.opener) { window.close(); } else { window.history.back(); }"
+    >
+        Close
+    </button>
+</div>
+
 <div class="invoice">
 
-    {{-- HEADER --}}
     <div class="header">
         <div class="brand">
             @if($record->merchant?->logo)
@@ -224,84 +290,61 @@
             @else
                 <strong>{{ $record->merchant?->name }}</strong>
             @endif
+
+            <div>
+                {{ $record->merchant?->name }}<br>
+                @if($record->merchant?->address)
+                    {{ $record->merchant->address }}<br>
+                @endif
+                @if($record->merchant?->city || $record->merchant?->country)
+                    {{ $record->merchant->city }} {{ $record->merchant->country }}<br>
+                @endif
+                @if($record->merchant?->phone)
+                    {{ $record->merchant->phone }}<br>
+                @endif
+                @if($record->merchant?->email)
+                    {{ $record->merchant->email }}<br>
+                @endif
+                @if($record->merchant?->vat_number)
+                    VAT: {{ $record->merchant->vat_number }}
+                @endif
+            </div>
         </div>
 
-        <div class="invoice-meta">
-            <div><strong>Date:</strong> {{ $invoiceDate?->format('F d, Y') }}</div>
-            <div><strong>Invoice #</strong> {{ $invoiceNo }}</div>
-        </div>
-
-        <div class="header-actions">
-            <button
-                class="print-btn"
-                type="button"
-                onclick="window.print()"
-            >
-                Print
-            </button>
-
-            <button
-                class="close-btn"
-                type="button"
-                aria-label="Close"
-                onclick="if (window.opener) { window.close(); } else { window.history.back(); }"
-            >
-                ×
-            </button>
+        <div class="invoice-title">
+            <h1>INVOICE</h1>
+            <div class="subtitle">Invoice# {{ $invoiceNo }}</div>
         </div>
     </div>
 
-    {{-- COMPANY INFO --}}
-    <div class="card">
-
-        {{-- MERCHANT --}}
+    <div class="party-row">
         <div>
-            <strong>{{ $record->merchant?->name }}</strong><br>
-
-            @if($record->merchant?->email)
-                Email: {{ $record->merchant->email }}<br>
-            @endif
-
-            @if($record->merchant?->phone)
-                Phone: {{ $record->merchant->phone }}<br>
-            @endif
-
-            @if($record->merchant?->vat_number)
-                VAT: {{ $record->merchant->vat_number }}<br>
-            @endif
-
-            @if($record->merchant?->address)
-                {{ $record->merchant->address }}<br>
-            @endif
-
-            @if($record->merchant?->city || $record->merchant?->country)
-                {{ $record->merchant->city }} {{ $record->merchant->country }}
-            @endif
-        </div>
-
-        {{-- CUSTOMER / SUPPLIER --}}
-        <div>
-            <strong>{{ $party?->name }}</strong><br>
-
+            <strong>{{ $isSale ? 'Bill To' : 'Bill From' }}</strong><br>
+            {{ $party?->name }}<br>
             @if($party?->email)
-                Email: {{ $party->email }}<br>
+                {{ $party->email }}<br>
             @endif
-
             @if($party?->phone)
-                Phone: {{ $party->phone }}<br>
+                {{ $party->phone }}<br>
             @endif
-
             {{ $party?->address ?? '—' }}
         </div>
-
+        <div>
+            <div class="invoice-meta">
+                <div><span class="label">Invoice Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
+                <div><span class="label">Invoice #</span><span>{{ $invoiceNo }}</span></div>
+                <div><span class="label">Due Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
+            </div>
+        </div>
     </div>
 
-    {{-- ITEMS --}}
+    <div class="divider"></div>
+
     <table>
         <thead>
         <tr>
             <th>#</th>
-            <th>Product details</th>
+            <th>Item & Description</th>
             <th>Price</th>
             <th>Qty</th>
             <th>Subtotal</th>
@@ -316,9 +359,8 @@
                 <td>{{ $i + 1 }}</td>
                 <td>
                     {{ $item->product?->name }}
-
                     @if($item->variants->first())
-                        <div style="font-size:12px;color:#64748b">
+                        <div class="item-meta">
                             {{ $item->variants->first()->variant?->name }}
                         </div>
                     @endif
@@ -345,7 +387,31 @@
         </tbody>
     </table>
 
-    {{-- NOTES --}}
+    <div class="footer-gap"></div>
+
+    <div class="summary" style="margin-bottom: 24px;">
+        <div>
+            <span>Sub Total</span>
+            <span>Rs{{ number_format($record->subtotal, 2) }}</span>
+        </div>
+
+        <div>
+            <span>Total Discount</span>
+            <span>Rs{{ number_format($totalDiscount, 2) }}</span>
+        </div>
+
+        <div>
+            <span>Total Tax</span>
+            <span>Rs{{ number_format($totalTax, 2) }}</span>
+        </div>
+
+        <div class="grand">
+            <span>Grand Total</span>
+            <span>Rs{{ number_format($record->total_amount, 2) }}</span>
+        </div>
+
+    </div>
+
     @if($record->notes)
         <div class="notes">
             <strong>Notes</strong><br>
@@ -353,28 +419,20 @@
         </div>
     @endif
 
-    {{-- SUMMARY (MOVED TO END FOR PRINT) --}}
-    <div class="summary" style="margin-bottom: 24px;">
-        <div>
-            <span>Net total</span>
-            <span>Rs{{ number_format($record->subtotal, 2) }}</span>
+    @if($record->merchant?->email || $record->merchant?->phone || $record->merchant?->whatsapp_number)
+        <div class="contact-us">
+            <strong>Contact Us</strong><br>
+            @if($record->merchant?->email)
+                Email: {{ $record->merchant->email }}<br>
+            @endif
+            @if($record->merchant?->phone)
+                Phone: {{ $record->merchant->phone }}<br>
+            @endif
+            @if($record->merchant?->whatsapp_number)
+                WhatsApp: {{ $record->merchant->whatsapp_number }}
+            @endif
         </div>
-
-        <div>
-            <span>Discount</span>
-            <span>Rs{{ number_format($totalDiscount, 2) }}</span>
-        </div>
-
-        <div>
-            <span>Tax</span>
-            <span>Rs{{ number_format($totalTax, 2) }}</span>
-        </div>
-
-        <div class="total">
-            <span>Total</span>
-            <span>Rs{{ number_format($record->total_amount, 2) }}</span>
-        </div>
-    </div>
+    @endif
 
 </div>
 

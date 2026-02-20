@@ -5,10 +5,13 @@ namespace App\Filament\Resources\Sales\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Sales\SaleResource;
+use App\Mail\SaleCreatedMailable;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class CreateSale extends CreateRecord
 {
@@ -148,6 +151,50 @@ class CreateSale extends CreateRecord
 
             return $sale;
         });
+    }
+
+    protected function afterCreate(): void
+    {
+        $sale = $this->record;
+        $customerEmail = $sale->customer?->email;
+
+        if (! $customerEmail) {
+            Log::info('SaleCreated email skipped: customer email missing.', [
+                'sale_id' => $sale->id,
+                'merchant_id' => $sale->merchant_id,
+                'customer_id' => $sale->customer_id,
+            ]);
+            return;
+        }
+
+        $mailable = new SaleCreatedMailable($sale);
+
+        if (! $mailable->hasTemplate()) {
+            Log::info('SaleCreated email skipped: no active template found.', [
+                'sale_id' => $sale->id,
+                'merchant_id' => $sale->merchant_id,
+                'customer_id' => $sale->customer_id,
+            ]);
+            return;
+        }
+
+        Log::info('SaleCreated email sending.', [
+            'sale_id' => $sale->id,
+            'merchant_id' => $sale->merchant_id,
+            'customer_id' => $sale->customer_id,
+            'to' => $customerEmail,
+            'template_id' => $mailable->template?->id,
+        ]);
+
+        Mail::to($customerEmail)->queue($mailable);
+
+        Log::info('SaleCreated email sent.', [
+            'sale_id' => $sale->id,
+            'merchant_id' => $sale->merchant_id,
+            'customer_id' => $sale->customer_id,
+            'to' => $customerEmail,
+            'template_id' => $mailable->template?->id,
+        ]);
     }
 
     private static function normalizeItems(array $items): array

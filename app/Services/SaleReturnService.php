@@ -138,4 +138,18 @@ class SaleReturnService
             }
         });
     }
+
+    public static function deleteReturn(SaleReturn $return): void
+    {
+        DB::transaction(function () use ($return) {
+            $return->loadMissing('items.variants');
+
+            foreach ($return->items as $item) {
+                $item->variants()->delete();
+                $item->delete();
+            }
+
+            $return->delete();
+        });
+    }
 }

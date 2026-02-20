@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\SaleReturns\Tables;
 
+use App\Services\SaleReturnService;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -62,11 +65,29 @@ class SaleReturnsTable
                 //
             ])
             ->recordActions([
-                //EditAction::make(),
+                DeleteAction::make()
+                    ->requiresConfirmation()
+                    ->action(function ($record): void {
+                        SaleReturnService::deleteReturn($record);
+                        Notification::make()
+                            ->success()
+                            ->title('Sale return deleted')
+                            ->send();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    //DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->action(function (Collection $records): void {
+                            foreach ($records as $record) {
+                                SaleReturnService::deleteReturn($record);
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title('Sale returns deleted')
+                                ->send();
+                        }),
                 ]),
             ]);
     }

@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\PurchaseReturns\Tables;
 
+use App\Services\PurchaseReturnService;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -58,11 +61,29 @@ class PurchaseReturnsTable
                 //
             ])
             ->recordActions([
-               // EditAction::make(),
+                DeleteAction::make()
+                    ->requiresConfirmation()
+                    ->action(function ($record): void {
+                        PurchaseReturnService::deleteReturn($record);
+                        Notification::make()
+                            ->success()
+                            ->title('Purchase return deleted')
+                            ->send();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                   // DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->action(function (Collection $records): void {
+                            foreach ($records as $record) {
+                                PurchaseReturnService::deleteReturn($record);
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title('Purchase returns deleted')
+                                ->send();
+                        }),
                 ]),
             ]);
     }

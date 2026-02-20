@@ -135,4 +135,18 @@ class PurchaseReturnService
             }
         });
     }
+
+    public static function deleteReturn(PurchaseReturn $return): void
+    {
+        DB::transaction(function () use ($return) {
+            $return->loadMissing('items.variants');
+
+            foreach ($return->items as $item) {
+                $item->variants()->delete();
+                $item->delete();
+            }
+
+            $return->delete();
+        });
+    }
 }

@@ -23,5 +23,5 @@ class NotificationTemplate extends Model
         'meta' => 'array',
         'is_active' => 'boolean',
     ];
-}
 
+}

@@ -327,6 +327,10 @@ class PurchasesTable
                     ->form(fn (Purchase $record) => self::returnForm($record))
                     ->action(function (Purchase $record, array $data) {
                         \App\Services\PurchaseReturnService::createReturn($record, $data);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Purchase returned')
+                            ->send();
                     })
                     ->visible(fn (Purchase $record) => ! $record->returns()->exists()),
 
@@ -403,6 +407,9 @@ class PurchasesTable
                         ];
                     })->toArray()
                 )
+                ->addable(false)
+                ->deletable(false)
+                ->reorderable(false)
                 ->afterStateHydrated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
                 ->afterStateUpdated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
                 ->schema([
@@ -422,6 +429,8 @@ class PurchasesTable
                         ->minValue(0)
                         ->maxValue(fn ($get) => $get('max_quantity'))
                         ->required()
+                        ->disabled()
+                        ->dehydrated()
                         ->rules([
                             fn ($get) => function ($attribute, $value, $fail) use ($get) {
                                 $max = $get('max_quantity');

@@ -7,6 +7,7 @@ use App\Models\Sale;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Widgets\Widget;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ReportsStatsWidget extends Widget
@@ -23,6 +24,8 @@ class ReportsStatsWidget extends Widget
             'sales' => $this->getSalesStats(),
             'purchases' => $this->getPurchaseStats(),
             'stock' => $this->getStockStats(),
+            'returns' => $this->getReturnStats(),
+            'trend' => $this->getTrendData(),
         ];
     }
 
@@ -362,6 +365,170 @@ class ReportsStatsWidget extends Widget
             'total_revenue'       => (float) $netRevenue,
             'avg_selling_price'   => $netSoldQty > 0 ? round($netRevenue / $netSoldQty, 2) : 0,
             'avg_buying_price'    => $netPurchasedQty > 0 ? round($netBuyingCost / $netPurchasedQty, 2) : 0,
+        ];
+    }
+
+    protected function getReturnStats(): array
+    {
+        $user = Filament::auth()->user();
+
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
+        if (! $merchantId) {
+            return [
+                'sales' => [
+                    'total_returns' => 0,
+                    'total_amount' => 0,
+                    'total_quantity' => 0,
+                ],
+                'purchases' => [
+                    'total_returns' => 0,
+                    'total_amount' => 0,
+                    'total_quantity' => 0,
+                ],
+            ];
+        }
+
+        $salesQuery = Sale::query()->where('merchant_id', $merchantId);
+        $purchaseQuery = Purchase::query()->where('merchant_id', $merchantId);
+
+        if ($user instanceof \App\Models\User) {
+            $salesQuery
+                ->whereHas('items.business.users', fn ($q) =>
+                    $q->where('users.id', $user->id)
+                )
+                ->whereHas('items.branch.users', fn ($q) =>
+                    $q->where('users.id', $user->id)
+                );
+
+            $purchaseQuery->whereHas('items.branch.users', fn ($q) =>
+                $q->where('users.id', $user->id)
+            );
+        }
+
+        $saleIds = (clone $salesQuery)->pluck('sales.id');
+        $purchaseIds = (clone $purchaseQuery)->pluck('purchases.id');
+
+        $saleReturnIds = $saleIds->isEmpty()
+            ? collect()
+            : DB::table('sale_returns')->whereIn('sale_id', $saleIds)->pluck('id');
+
+        $purchaseReturnIds = $purchaseIds->isEmpty()
+            ? collect()
+            : DB::table('purchase_returns')->whereIn('purchase_id', $purchaseIds)->pluck('id');
+
+        $saleReturnsTotalAmount = $saleReturnIds->isEmpty()
+            ? 0
+            : (float) DB::table('sale_returns')
+                ->whereIn('id', $saleReturnIds)
+                ->sum('total_amount');
+
+        $saleReturnsQuantity = $saleReturnIds->isEmpty()
+            ? 0
+            : (float) DB::table('sale_return_item_variants as srv')
+                ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
+                ->whereIn('sri.sale_return_id', $saleReturnIds)
+                ->sum('srv.quantity');
+
+        $purchaseReturnsTotalAmount = $purchaseReturnIds->isEmpty()
+            ? 0
+            : (float) DB::table('purchase_returns')
+                ->whereIn('id', $purchaseReturnIds)
+                ->sum('total_amount');
+
+        $purchaseReturnsQuantity = $purchaseReturnIds->isEmpty()
+            ? 0
+            : (float) DB::table('purchase_return_item_variants as prv')
+                ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
+                ->whereIn('pri.purchase_return_id', $purchaseReturnIds)
+                ->sum('prv.quantity');
+
+        return [
+            'sales' => [
+                'total_returns' => (int) $saleReturnIds->count(),
+                'total_amount' => $saleReturnsTotalAmount,
+                'total_quantity' => $saleReturnsQuantity,
+            ],
+            'purchases' => [
+                'total_returns' => (int) $purchaseReturnIds->count(),
+                'total_amount' => $purchaseReturnsTotalAmount,
+                'total_quantity' => $purchaseReturnsQuantity,
+            ],
+        ];
+    }
+
+    protected function getTrendData(): array
+    {
+        $user = Filament::auth()->user();
+
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
+        $months = collect(range(5, 0))
+            ->map(fn ($offset) => Carbon::now()->startOfMonth()->subMonths($offset));
+
+        $labels = $months->map(fn (Carbon $date) => $date->format('M'))->values();
+        $salesSeries = $months->map(fn () => 0)->values();
+        $purchaseSeries = $months->map(fn () => 0)->values();
+
+        if (! $merchantId) {
+            return [
+                'labels' => $labels->all(),
+                'sales' => $salesSeries->all(),
+                'purchases' => $purchaseSeries->all(),
+            ];
+        }
+
+        $salesQuery = Sale::query()->where('merchant_id', $merchantId);
+        $purchaseQuery = Purchase::query()->where('merchant_id', $merchantId);
+
+        if ($user instanceof \App\Models\User) {
+            $salesQuery
+                ->whereHas('items.business.users', fn ($q) =>
+                    $q->where('users.id', $user->id)
+                )
+                ->whereHas('items.branch.users', fn ($q) =>
+                    $q->where('users.id', $user->id)
+                );
+
+            $purchaseQuery->whereHas('items.branch.users', fn ($q) =>
+                $q->where('users.id', $user->id)
+            );
+        }
+
+        $saleIds = (clone $salesQuery)->pluck('sales.id');
+        $purchaseIds = (clone $purchaseQuery)->pluck('purchases.id');
+
+        foreach ($months as $index => $month) {
+            $start = $month->copy()->startOfMonth();
+            $end = $month->copy()->endOfMonth();
+
+            $salesSeries[$index] = $saleIds->isEmpty()
+                ? 0
+                : (int) DB::table('sales')
+                    ->whereIn('id', $saleIds)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count();
+
+            $purchaseSeries[$index] = $purchaseIds->isEmpty()
+                ? 0
+                : (int) DB::table('purchases')
+                    ->whereIn('id', $purchaseIds)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->count();
+        }
+
+        return [
+            'labels' => $labels->all(),
+            'sales' => $salesSeries->all(),
+            'purchases' => $purchaseSeries->all(),
         ];
     }
 }

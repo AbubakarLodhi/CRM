@@ -176,6 +176,10 @@ class SalesTable
                     ->form(fn (Sale $record) => self::returnForm($record))
                     ->action(function (Sale $record, array $data) {
                         \App\Services\SaleReturnService::createReturn($record, $data);
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Sale returned')
+                            ->send();
                     })
                     ->visible(fn (Sale $record) => ! $record->returns()->exists()),
 
@@ -253,6 +257,9 @@ class SalesTable
                         ];
                     })->toArray()
                 )
+                ->addable(false)
+                ->deletable(false)
+                ->reorderable(false)
                 ->afterStateHydrated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
                 ->afterStateUpdated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
                 ->schema([
@@ -276,6 +283,8 @@ class SalesTable
                         ->minValue(0)
                         ->maxValue(fn ($get) => $get('max_quantity'))
                         ->required()
+                        ->disabled()
+                        ->dehydrated()
                         ->rules([
                             fn ($get) => function ($attribute, $value, $fail) use ($get) {
                                 $max = $get('max_quantity');
