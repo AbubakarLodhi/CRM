@@ -54,6 +54,19 @@ class EditBranch extends EditRecord
         return [
             DeleteAction::make()
                 ->color('danger')
+                ->before(function (DeleteAction $action): void {
+                    if (! $this->record->purchaseItems()->exists()) {
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Branch cannot be deleted')
+                        ->body('This branch has purchase records. Remove or reassign those purchases first.')
+                        ->danger()
+                        ->send();
+
+                    $action->halt();
+                })
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('branches.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }

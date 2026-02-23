@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Sales\Tables;
 
 use App\Filament\Resources\Sales\SaleResource;
+use App\Models\Branch;
+use App\Models\Business;
 use App\Models\Sale;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -21,8 +23,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class SalesTable
 {
@@ -52,6 +56,52 @@ class SalesTable
                     ->sortable()
                     ->limit(30)
                     ->searchable()
+                    ->toggleable(),
+
+                TextColumn::make('businesses')
+                    ->label('Business')
+                    ->badge()
+                    ->color('primary')
+                    ->getStateUsing(function (Sale $record) {
+                        $names = $record->items()
+                            ->join('businesses', 'businesses.id', '=', 'sale_items.business_id')
+                            ->select('businesses.name')
+                            ->distinct()
+                            ->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hidden  = $names->count() - $visible->count();
+
+                        if ($hidden > 0) {
+                            $visible->push('+' . $hidden);
+                        }
+
+                        return $visible->toArray();
+                    })
+                    ->sortable(false)
+                    ->toggleable(),
+
+                TextColumn::make('branches')
+                    ->label('Branch')
+                    ->badge()
+                    ->color('success')
+                    ->getStateUsing(function (Sale $record) {
+                        $names = $record->items()
+                            ->join('branches', 'branches.id', '=', 'sale_items.branch_id')
+                            ->select('branches.name')
+                            ->distinct()
+                            ->pluck('name');
+
+                        $visible = $names->take(2);
+                        $hidden  = $names->count() - $visible->count();
+
+                        if ($hidden > 0) {
+                            $visible->push('+' . $hidden);
+                        }
+
+                        return $visible->toArray();
+                    })
+                    ->sortable(false)
                     ->toggleable(),
 
 
@@ -135,6 +185,112 @@ class SalesTable
                     ->label('Customer')
                     ->searchable()
                     ->preload(),
+
+                SelectFilter::make('business_id')
+                    ->label('Business')
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = Business::query()
+                            ->where('merchant_id', $merchantId);
+
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                            $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
+
+                        $query->whereHas('items', fn ($q) =>
+                        $q->where('sale_items.business_id', $data['value'])
+                        );
+                    }),
+
+                SelectFilter::make('branch_id')
+                    ->label('Branch')
+                    ->searchable()
+                    ->options(function ($livewire) {
+
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
+
+                        $query = Branch::query()
+                            ->where('merchant_id', $merchantId);
+
+                        if ($businessId) {
+                            $query->where('business_id', $businessId);
+                        }
+
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                            $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['value'])) {
+                            return;
+                        }
+
+                        $query->whereHas('items', fn ($q) =>
+                        $q->where('sale_items.branch_id', $data['value'])
+                        );
+                    }),
+
+                Filter::make('sale_date_range')
+                    ->label('Sale Date')
+                    ->schema([
+                        DatePicker::make('from_date')
+                            ->label('From Date'),
+                        DatePicker::make('to_date')
+                            ->label('To Date'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['from_date'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->whereDate('sale_date', '>=', $date),
+                            )
+                            ->when(
+                                $data['to_date'] ?? null,
+                                fn (Builder $query, $date): Builder => $query->whereDate('sale_date', '<=', $date),
+                            );
+                    }),
 
             ])
             ->recordUrl(fn (Sale $record) =>

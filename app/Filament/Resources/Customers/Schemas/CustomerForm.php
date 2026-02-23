@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Models\Customer;
+use App\Models\Country;
 use App\Models\Merchant;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -31,8 +32,10 @@ class CustomerForm
             TextInput::make('phone')
                 ->label('Phone')
                 ->tel()
-                ->numeric()
-                ->minValue(0)
+                ->default('+92')
+                ->placeholder('+923001234567')
+                ->helperText('Enter number with country code, e.g. +923001234567')
+                ->regex('/^\+92\d{10}$/')
                 ->maxLength(15)
                 ->required(),
 
@@ -55,21 +58,13 @@ class CustomerForm
                 }),
 
 
-            TextInput::make('postal_code')
-                ->label('Postal Code')
-                ->placeholder('e.g. 54000')
-                ->regex('/^\d{1,12}$/')
-                ->minLength(5)
-                ->maxLength(12)
-                ->required()
-                ->live()
-                ->afterStateUpdated(function ($state, callable $set, $livewire) {
-                    $livewire->resetValidation('data.postal_code');
-                    $livewire->resetErrorBag('data.postal_code');
-                }),
+            Hidden::make('postal_code')
+                ->default('54000')
+                ->dehydrateStateUsing(fn ($state) => $state ?: '54000'),
             Select::make('country_id')
                 ->label('Country')
                 ->relationship('country', 'name')
+                ->default(fn () => Country::query()->where('code', 'PK')->value('id'))
                 ->searchable()
                 ->preload()
                 ->required()

@@ -29,6 +29,7 @@
         $purchasePoints = $makePoints($purchaseSeries);
         $periodSalesTotal = array_sum($salesSeries);
         $periodPurchasesTotal = array_sum($purchaseSeries);
+        $leaders = $leaders ?? ['customers' => [], 'vendors' => [], 'variants' => []];
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
             'sales' => array_map(fn ($value) => $barMax > 0 ? (int) round(($value / $barMax) * 100) : 0, $salesSeries),
@@ -136,6 +137,93 @@
                             <span>Available Stock</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['available_stock'], 2) }}</span>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
+            <div class="flex items-center justify-between">
+                <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Top Performers</p>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Top 3</span>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm ring-1 ring-blue-100 dark:from-slate-950 dark:to-slate-950 dark:ring-blue-900/40">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Customers by Sales</p>
+                        <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-900/40 dark:text-blue-200">Sales</span>
+                    </div>
+                    <div class="mt-4 space-y-3">
+                        @forelse (($leaders['customers'] ?? []) as $index => $row)
+                            <div class="rounded-xl bg-white p-3 ring-1 ring-slate-100 dark:bg-slate-800/80 dark:ring-slate-700/40">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex items-start gap-3">
+                                        <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">{{ $index + 1 }}</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $row['name'] }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">{{ number_format($row['count']) }} sales</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ number_format($row['amount'], 2) }}</p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500 dark:text-slate-400">No customer sales data available.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm ring-1 ring-emerald-100 dark:from-slate-950 dark:to-slate-950 dark:ring-emerald-900/40">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Vendors by Purchases</p>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-200">Purchases</span>
+                    </div>
+                    <div class="mt-4 space-y-3">
+                        @forelse (($leaders['vendors'] ?? []) as $index => $row)
+                            <div class="rounded-xl bg-white p-3 ring-1 ring-slate-100 dark:bg-slate-800/80 dark:ring-slate-700/40">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex items-start gap-3">
+                                        <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">{{ $index + 1 }}</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $row['name'] }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">{{ number_format($row['count']) }} purchases</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ number_format($row['amount'], 2) }}</p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500 dark:text-slate-400">No vendor purchase data available.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-amber-50 to-white p-5 shadow-sm ring-1 ring-amber-100 dark:from-slate-950 dark:to-slate-950 dark:ring-amber-900/40">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Top Variants Sold</p>
+                        <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-900/40 dark:text-amber-200">Products</span>
+                    </div>
+                    <div class="mt-4 space-y-3">
+                        @forelse (($leaders['variants'] ?? []) as $index => $row)
+                            <div class="rounded-xl bg-white p-3 ring-1 ring-slate-100 dark:bg-slate-800/80 dark:ring-slate-700/40">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex items-start gap-3">
+                                        <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs font-bold text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">{{ $index + 1 }}</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $row['name'] }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">{{ $row['product'] }} • SKU: {{ $row['sku'] }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ number_format($row['qty'], 2) }}</p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400">qty sold</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500 dark:text-slate-400">No product variant sales data available.</p>
+                        @endforelse
                     </div>
                 </div>
             </div>
@@ -306,103 +394,5 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div class="rounded-2xl bg-gradient-to-br from-slate-50 to-white p-6 shadow-sm ring-1 ring-gray-950/5 lg:col-span-2 stats-panel dark:bg-slate-900 dark:ring-slate-700/40">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Inventory Snapshot</p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Current levels and pricing</p>
-                    </div>
-                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">All time</span>
-                </div>
-                <div class="mt-6 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/40">
-                    <div class="grid grid-cols-2 gap-px bg-slate-200 text-sm text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                        <div class="bg-white p-4 dark:bg-slate-900">
-                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Total Products</p>
-                            <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['total_products']) }}</p>
-                        </div>
-                        <div class="bg-white p-4 dark:bg-slate-900">
-                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Available Stock</p>
-                            <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['available_stock'], 2) }}</p>
-                        </div>
-                        <div class="bg-white p-4 dark:bg-slate-900">
-                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Purchased Qty</p>
-                            <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['total_purchased_qty'], 2) }}</p>
-                        </div>
-                        <div class="bg-white p-4 dark:bg-slate-900">
-                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Sold Qty</p>
-                            <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['total_sold_qty'], 2) }}</p>
-                        </div>
-                        <div class="bg-white p-4 dark:bg-slate-900">
-                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Avg Selling Price</p>
-                            <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['avg_selling_price'], 2) }}</p>
-                        </div>
-                        <div class="bg-white p-4 dark:bg-slate-900">
-                            <p class="text-xs font-semibold text-slate-600 dark:text-slate-300">Avg Buying Price</p>
-                            <p class="mt-2 text-lg font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['avg_buying_price'], 2) }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Monthly Volume</p>
-                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Count</span>
-                    </div>
-                    <div class="mt-4 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700/40">
-                        <div class="grid grid-cols-3 gap-px bg-slate-200 text-xs font-semibold text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
-                            <div class="bg-slate-50 p-3 dark:bg-slate-900">Month</div>
-                            <div class="bg-slate-50 p-3 text-blue-700 dark:bg-slate-900 dark:text-blue-200">Sales</div>
-                            <div class="bg-slate-50 p-3 text-emerald-700 dark:bg-slate-900 dark:text-emerald-200">Purchases</div>
-                        </div>
-                        @foreach ($labels as $index => $label)
-                            <div class="grid grid-cols-3 gap-px bg-slate-200 text-sm text-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
-                                <div class="bg-white p-3 font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-100">{{ $label }}</div>
-                                <div class="bg-white p-3 text-slate-900 dark:bg-slate-900 dark:text-slate-100">{{ number_format($salesSeries[$index] ?? 0) }}</div>
-                                <div class="bg-white p-3 text-slate-900 dark:bg-slate-900 dark:text-slate-100">{{ number_format($purchaseSeries[$index] ?? 0) }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                    <div class="rounded-2xl bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm ring-1 ring-rose-100 dark:bg-slate-900 dark:ring-rose-900/50">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Sale Returns</p>
-                            <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 dark:bg-rose-900/40 dark:text-rose-200">Sales</span>
-                        </div>
-                        <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($returns['sales']['total_amount'], 2) }}</p>
-                        <div class="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                            <div class="flex items-center justify-between">
-                                <span>Total Returns</span>
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($returns['sales']['total_returns']) }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span>Returned Qty</span>
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($returns['sales']['total_quantity'], 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="rounded-2xl bg-gradient-to-br from-amber-50 to-white p-6 shadow-sm ring-1 ring-amber-100 dark:bg-slate-900 dark:ring-amber-900/50">
-                        <div class="flex items-center justify-between">
-                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Purchase Returns</p>
-                            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 dark:bg-amber-900/40 dark:text-amber-200">Purchases</span>
-                        </div>
-                        <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($returns['purchases']['total_amount'], 2) }}</p>
-                        <div class="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                            <div class="flex items-center justify-between">
-                                <span>Total Returns</span>
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($returns['purchases']['total_returns']) }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span>Returned Qty</span>
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($returns['purchases']['total_quantity'], 2) }}</span>
-                            </div>
-                        </div>
-                    </div>
-            </div>
-        </div>
     </div>
 </x-filament-widgets::widget>

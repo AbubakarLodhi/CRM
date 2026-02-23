@@ -120,4 +120,9 @@ class Branch extends Model
         return $this->belongsToMany(City::class, 'branch_city');
     }
 
+    public function purchaseItems(): HasMany
+    {
+        return $this->hasMany(PurchaseItem::class);
+    }
+
 }

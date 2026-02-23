@@ -98,7 +98,7 @@
 .discount-mode-toggle {
     border: 1px solid #e2e8f0;
     background: #f8fafc;
-    color: #334155;
+    color: #334155 !important;
     padding: 6px 12px;
     font-size: 12px;
     line-height: 1;
@@ -118,7 +118,7 @@
 .discount-mode-toggle.is-active {
     background: var(--fi-color-primary-600, #2563eb);
     border-color: var(--fi-color-primary-600, #2563eb);
-    color: #fff;
+    color: #fff !important;
 }
 
 /* --------------------------------------------
@@ -260,4 +260,49 @@
 
 .dark .stats-dashboard svg text {
     fill: #cbd5f5;
+}
+
+/* --------------------------------------------
+ | Dashboard filters card
+ |---------------------------------------------
+ */
+.dashboard-filters-section {
+    border-radius: 14px;
+    border: 1px solid #dbeafe;
+    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 45%, #ecfeff 100%);
+    box-shadow: 0 8px 24px -20px rgba(30, 58, 138, 0.55);
+}
+
+.dashboard-filters-section .fi-section-header,
+.dashboard-filters-section .fi-fo-section-header {
+    background: transparent;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.dashboard-filters-section .fi-section-content,
+.dashboard-filters-section .fi-fo-section-content {
+    padding-top: 0.85rem;
+}
+
+.dashboard-filters-section .fi-input-wrp,
+.dashboard-filters-section .fi-select-input,
+.dashboard-filters-section .fi-input {
+    background-color: #ffffff;
+}
+
+.dark .dashboard-filters-section {
+    border-color: rgba(56, 189, 248, 0.28);
+    background: linear-gradient(135deg, #020817 0%, #0f172a 45%, #082f49 100%);
+    box-shadow: 0 8px 30px -20px rgba(14, 165, 233, 0.4);
+}
+
+.dark .dashboard-filters-section .fi-section-header,
+.dark .dashboard-filters-section .fi-fo-section-header {
+    border-bottom-color: rgba(148, 163, 184, 0.28);
+}
+
+.dark .dashboard-filters-section .fi-input-wrp,
+.dark .dashboard-filters-section .fi-select-input,
+.dark .dashboard-filters-section .fi-input {
+    background-color: #0b1220;
 }

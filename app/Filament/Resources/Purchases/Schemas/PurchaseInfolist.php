@@ -27,14 +27,35 @@ class PurchaseInfolist
                         TextEntry::make('merchant.name')
                             ->label('Merchant'),
 
-                        TextEntry::make('business.name')
-                            ->label('Business'),
+                        TextEntry::make('businesses')
+                            ->label('Business')
+                            ->getStateUsing(function ($record) {
+                                $names = $record->items()
+                                    ->join('businesses', 'businesses.id', '=', 'purchase_items.business_id')
+                                    ->select('businesses.name')
+                                    ->distinct()
+                                    ->pluck('name')
+                                    ->filter();
 
-                        TextEntry::make('branch.name')
-                            ->label('Branch'),
+                                return $names->isNotEmpty() ? $names->implode(', ') : '-';
+                            }),
 
-                        TextEntry::make('createdBy.name')
-                            ->label('Created By'),
+                        TextEntry::make('branches')
+                            ->label('Branch')
+                            ->getStateUsing(function ($record) {
+                                $names = $record->items()
+                                    ->join('branches', 'branches.id', '=', 'purchase_items.branch_id')
+                                    ->select('branches.name')
+                                    ->distinct()
+                                    ->pluck('name')
+                                    ->filter();
+
+                                return $names->isNotEmpty() ? $names->implode(', ') : '-';
+                            }),
+
+//                        TextEntry::make('createdBy.name')
+//                            ->label('Created By')
+//                            ->getStateUsing(fn ($record) => $record->createdBy?->name ?: '-'),
 
                         TextEntry::make('created_at')
                             ->label('Created At')
