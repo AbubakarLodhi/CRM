@@ -272,6 +272,13 @@ class SalesTable
                         );
                     }),
 
+                SelectFilter::make('payment_type')
+                    ->label('Payment Type')
+                    ->options([
+                        'cash' => 'Cash',
+                        'credit' => 'Credit',
+                    ]),
+
                 Filter::make('sale_date_range')
                     ->label('Sale Date')
                     ->schema([

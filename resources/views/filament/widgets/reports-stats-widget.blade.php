@@ -30,6 +30,7 @@
         $periodSalesTotal = array_sum($salesSeries);
         $periodPurchasesTotal = array_sum($purchaseSeries);
         $leaders = $leaders ?? ['customers' => [], 'vendors' => [], 'variants' => []];
+        $credit = $credit ?? ['receivable_total' => 0, 'payable_total' => 0, 'top_customers' => [], 'top_vendors' => []];
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
             'sales' => array_map(fn ($value) => $barMax > 0 ? (int) round(($value / $barMax) * 100) : 0, $salesSeries),
@@ -223,6 +224,67 @@
                             </div>
                         @empty
                             <p class="text-sm text-slate-500 dark:text-slate-400">No product variant sales data available.</p>
+                        @endforelse
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
+            <div class="flex items-center justify-between">
+                <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Credit Overview</p>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">Outstanding</span>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-4">
+                <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm ring-1 ring-blue-100 stats-panel stats-panel-blue dark:from-slate-950 dark:to-slate-950 dark:ring-blue-900/40 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Receivable from Customers</p>
+                        <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-900/40 dark:text-blue-200">Sales Credit</span>
+                    </div>
+                    <p class="mt-4 text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($credit['receivable_total'], 2) }}</p>
+                    <div class="mt-4 space-y-3">
+                        @forelse (($credit['top_customers'] ?? []) as $index => $row)
+                            <div class="rounded-xl bg-white p-3 ring-1 ring-slate-100 dark:bg-slate-800/80 dark:ring-slate-700/40">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex items-start gap-3">
+                                        <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">{{ $index + 1 }}</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $row['name'] }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">{{ number_format($row['count']) }} credit sales</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ number_format($row['amount'], 2) }}</p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500 dark:text-slate-400">No customer credit data available.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm ring-1 ring-emerald-100 stats-panel stats-panel-emerald dark:from-slate-950 dark:to-slate-950 dark:ring-emerald-900/40 lg:col-span-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Payable to Vendors</p>
+                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-200">Purchase Credit</span>
+                    </div>
+                    <p class="mt-4 text-3xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($credit['payable_total'], 2) }}</p>
+                    <div class="mt-4 space-y-3">
+                        @forelse (($credit['top_vendors'] ?? []) as $index => $row)
+                            <div class="rounded-xl bg-white p-3 ring-1 ring-slate-100 dark:bg-slate-800/80 dark:ring-slate-700/40">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="flex items-start gap-3">
+                                        <span class="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">{{ $index + 1 }}</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ $row['name'] }}</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">{{ number_format($row['count']) }} credit purchases</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ number_format($row['amount'], 2) }}</p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-slate-500 dark:text-slate-400">No vendor credit data available.</p>
                         @endforelse
                     </div>
                 </div>

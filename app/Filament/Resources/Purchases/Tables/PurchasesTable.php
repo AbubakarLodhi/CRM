@@ -316,6 +316,13 @@ class PurchasesTable
                         $query->where('vendor_id', $data['value']);
                     }),
 
+                SelectFilter::make('payment_type')
+                    ->label('Payment Type')
+                    ->options([
+                        'cash' => 'Cash',
+                        'credit' => 'Credit',
+                    ]),
+
                 Filter::make('purchase_date_range')
                     ->label('Purchase Date')
                     ->schema([

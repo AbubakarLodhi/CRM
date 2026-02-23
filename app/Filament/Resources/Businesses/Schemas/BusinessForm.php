@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Businesses\Schemas;
 
+use App\Models\City;
+use App\Models\Country;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
@@ -55,6 +57,7 @@ class BusinessForm
                     ->label('Countries')
                     ->relationship('countries', 'name')
                     ->multiple()
+                    ->default(fn () => [Country::query()->where('code', 'PK')->value('id')])
                     ->searchable()
                     ->preload()
                     ->required()
@@ -81,6 +84,27 @@ class BusinessForm
                         $query->whereIn('country_id', $get('countries') ?? [])
                     )
                     ->multiple()
+                    ->createOptionForm([
+                    Select::make('country_id')
+                        ->label('Country')
+                        ->options(fn () => Country::query()->orderBy('name')->pluck('name', 'id')->toArray())
+                        ->default(fn (callable $get) => ($get('../../countries') ?? [])[0] ?? Country::query()->where('code', 'PK')->value('id'))
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                        TextInput::make('name')
+                            ->label('City Name')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->createOptionUsing(function (array $data): string {
+                        return City::query()->firstOrCreate(
+                            [
+                                'country_id' => $data['country_id'],
+                                'name' => trim((string) $data['name']),
+                            ]
+                        )->getKey();
+                    })
                     ->searchable()
                     ->preload()
                     ->live()

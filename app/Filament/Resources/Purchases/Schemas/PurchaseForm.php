@@ -508,7 +508,7 @@ class PurchaseForm
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.unit_price');
                                     $livewire->resetErrorBag('data.items.*.unit_price');
@@ -550,7 +550,7 @@ class PurchaseForm
                                 ])
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('discount', 0);
@@ -588,7 +588,7 @@ class PurchaseForm
                                     'max' => 'Discount amount cannot be greater than the line subtotal.',
                                 ])
                                 ->step(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.discount_amount');
                                     $livewire->resetErrorBag('data.items.*.discount_amount');
@@ -620,7 +620,7 @@ class PurchaseForm
                                 ->default(16)
                                 ->step(0.01)
                                 ->suffix('%')
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('tax', 0);
@@ -658,7 +658,7 @@ class PurchaseForm
                                     'max' => 'Tax amount cannot be greater than the line subtotal.',
                                 ])
                                 ->step(0.01)
-                                ->reactive()
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.tax_amount');
                                     $livewire->resetErrorBag('data.items.*.tax_amount');

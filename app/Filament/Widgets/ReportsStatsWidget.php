@@ -31,6 +31,7 @@ class ReportsStatsWidget extends Widget
             'returns' => $this->getReturnStats(),
             'trend' => $this->getTrendData(),
             'leaders' => $this->getLeaderboardStats(),
+            'credit' => $this->getCreditStats(),
         ];
     }
 
@@ -672,6 +673,127 @@ class ReportsStatsWidget extends Widget
             'labels' => $labels->all(),
             'sales' => $salesSeries->all(),
             'purchases' => $purchaseSeries->all(),
+        ];
+    }
+
+    protected function getCreditStats(): array
+    {
+        [$user, $merchantId] = $this->authContext();
+
+        if (! $merchantId) {
+            return [
+                'receivable_total' => 0,
+                'payable_total' => 0,
+                'top_customers' => [],
+                'top_vendors' => [],
+            ];
+        }
+
+        $creditSalesQuery = $this->salesBaseQuery($user, $merchantId)
+            ->whereRaw('LOWER(payment_type) = ?', ['credit']);
+
+        $creditPurchasesQuery = $this->purchaseBaseQuery($user, $merchantId)
+            ->whereRaw('LOWER(payment_type) = ?', ['credit']);
+
+        $creditSaleIds = (clone $creditSalesQuery)->pluck('sales.id');
+        $creditPurchaseIds = (clone $creditPurchasesQuery)->pluck('purchases.id');
+
+        $creditSalesTotal = (float) (clone $creditSalesQuery)->sum('total_amount');
+        $creditPurchasesTotal = (float) (clone $creditPurchasesQuery)->sum('total_amount');
+
+        $creditSalesReturns = $creditSaleIds->isEmpty()
+            ? 0
+            : (float) DB::table('sale_returns')
+                ->whereIn('sale_id', $creditSaleIds)
+                ->sum('total_amount');
+
+        $creditPurchaseReturns = $creditPurchaseIds->isEmpty()
+            ? 0
+            : (float) DB::table('purchase_returns')
+                ->whereIn('purchase_id', $creditPurchaseIds)
+                ->sum('total_amount');
+
+        $customerCredits = $creditSaleIds->isEmpty()
+            ? collect()
+            : DB::table('sales')
+                ->join('customers', 'customers.id', '=', 'sales.customer_id')
+                ->whereIn('sales.id', $creditSaleIds)
+                ->selectRaw('customers.id as customer_id, customers.name as customer_name')
+                ->selectRaw('COUNT(sales.id) as credit_sales')
+                ->selectRaw('COALESCE(SUM(sales.total_amount), 0) as credit_amount')
+                ->groupBy('customers.id', 'customers.name')
+                ->get();
+
+        $customerReturns = $creditSaleIds->isEmpty()
+            ? collect()
+            : DB::table('sale_returns')
+                ->join('sales', 'sales.id', '=', 'sale_returns.sale_id')
+                ->whereIn('sale_returns.sale_id', $creditSaleIds)
+                ->groupBy('sales.customer_id')
+                ->selectRaw('sales.customer_id as customer_id')
+                ->selectRaw('COALESCE(SUM(sale_returns.total_amount), 0) as returned_amount')
+                ->pluck('returned_amount', 'customer_id');
+
+        $topCustomers = $customerCredits
+            ->map(function ($row) use ($customerReturns) {
+                $returned = (float) ($customerReturns[$row->customer_id] ?? 0);
+                $net = max(0, (float) $row->credit_amount - $returned);
+
+                return [
+                    'id' => $row->customer_id,
+                    'name' => $row->customer_name ?? 'N/A',
+                    'count' => (int) $row->credit_sales,
+                    'amount' => $net,
+                ];
+            })
+            ->sortByDesc('amount')
+            ->take(2)
+            ->values()
+            ->all();
+
+        $vendorCredits = $creditPurchaseIds->isEmpty()
+            ? collect()
+            : DB::table('purchases')
+                ->join('vendors', 'vendors.id', '=', 'purchases.vendor_id')
+                ->whereIn('purchases.id', $creditPurchaseIds)
+                ->selectRaw('vendors.id as vendor_id, vendors.name as vendor_name')
+                ->selectRaw('COUNT(purchases.id) as credit_purchases')
+                ->selectRaw('COALESCE(SUM(purchases.total_amount), 0) as credit_amount')
+                ->groupBy('vendors.id', 'vendors.name')
+                ->get();
+
+        $vendorReturns = $creditPurchaseIds->isEmpty()
+            ? collect()
+            : DB::table('purchase_returns')
+                ->join('purchases', 'purchases.id', '=', 'purchase_returns.purchase_id')
+                ->whereIn('purchase_returns.purchase_id', $creditPurchaseIds)
+                ->groupBy('purchases.vendor_id')
+                ->selectRaw('purchases.vendor_id as vendor_id')
+                ->selectRaw('COALESCE(SUM(purchase_returns.total_amount), 0) as returned_amount')
+                ->pluck('returned_amount', 'vendor_id');
+
+        $topVendors = $vendorCredits
+            ->map(function ($row) use ($vendorReturns) {
+                $returned = (float) ($vendorReturns[$row->vendor_id] ?? 0);
+                $net = max(0, (float) $row->credit_amount - $returned);
+
+                return [
+                    'id' => $row->vendor_id,
+                    'name' => $row->vendor_name ?? 'N/A',
+                    'count' => (int) $row->credit_purchases,
+                    'amount' => $net,
+                ];
+            })
+            ->sortByDesc('amount')
+            ->take(2)
+            ->values()
+            ->all();
+
+        return [
+            'receivable_total' => max(0, $creditSalesTotal - $creditSalesReturns),
+            'payable_total' => max(0, $creditPurchasesTotal - $creditPurchaseReturns),
+            'top_customers' => $topCustomers,
+            'top_vendors' => $topVendors,
         ];
     }
 }

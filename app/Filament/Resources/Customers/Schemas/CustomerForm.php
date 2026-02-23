@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Models\Customer;
 use App\Models\Country;
+use App\Models\City;
 use App\Models\Merchant;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -83,6 +84,27 @@ class CustomerForm
                     fn ($query, callable $get) =>
                     $query->where('country_id', $get('country_id'))
                 )
+                ->createOptionForm([
+                    Select::make('country_id')
+                        ->label('Country')
+                        ->relationship('country', 'name')
+                        ->default(fn (callable $get) => $get('../../country_id') ?: Country::query()->where('code', 'PK')->value('id'))
+                        ->required()
+                        ->searchable()
+                        ->preload(),
+                    TextInput::make('name')
+                        ->label('City Name')
+                        ->required()
+                        ->maxLength(255),
+                ])
+                ->createOptionUsing(function (array $data): string {
+                    return City::query()->firstOrCreate(
+                        [
+                            'country_id' => $data['country_id'],
+                            'name' => trim((string) $data['name']),
+                        ]
+                    )->getKey();
+                })
                 ->searchable()
                 ->preload()
                 ->required()
