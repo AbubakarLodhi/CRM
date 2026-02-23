@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use OwenIt\Auditing\Contracts\Auditable;
 use App\Enums\AttachmentMetaType;
 use Filament\Models\Contracts\HasAvatar;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -19,8 +20,9 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordContract
+class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordContract, Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids, HasRoles,Notifiable,CanResetPassword;
 
     /** @var string */

@@ -28,6 +28,7 @@ class SaleCreatedMailable extends Mailable implements ShouldQueue
         $this->sale->loadMissing([
             'customer',
             'merchant.logo', // IMPORTANT
+            'merchant.settings',
             'items.product',
         ]);
 

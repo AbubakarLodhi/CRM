@@ -62,7 +62,37 @@ class CreateMerchantSetting extends CreateRecord
             $data['merchant_id'] = auth('merchant')->id();
         }
 
+        $data['invoice_header_groups'] = $this->normalizeInvoiceGroups($data['invoice_header_groups'] ?? []);
+        $data['invoice_footer_groups'] = $this->normalizeInvoiceGroups($data['invoice_footer_groups'] ?? []);
+
         return $data;
+    }
+
+    private function normalizeInvoiceGroups(array $groups): array
+    {
+        $groups = array_values(array_filter($groups, fn ($group) => is_array($group)));
+
+        if (empty($groups)) {
+            return [];
+        }
+
+        $activeIndex = null;
+
+        foreach ($groups as $index => $group) {
+            if (($group['is_active'] ?? false) === true && $activeIndex === null) {
+                $activeIndex = $index;
+            }
+        }
+
+        if ($activeIndex === null) {
+            $activeIndex = 0;
+        }
+
+        foreach ($groups as $index => $group) {
+            $groups[$index]['is_active'] = $index === $activeIndex;
+        }
+
+        return $groups;
     }
 
     protected function afterCreate(): void

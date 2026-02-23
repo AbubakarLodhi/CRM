@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Payroll extends Model
+class Payroll extends Model implements Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids;
 
     public $incrementing = false;

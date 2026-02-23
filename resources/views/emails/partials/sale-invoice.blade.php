@@ -1,5 +1,5 @@
 @php
-    $sale = $sale->loadMissing(['items.product', 'items.variants.variant', 'customer', 'merchant']);
+    $sale = $sale->loadMissing(['items.product', 'items.variants.variant', 'customer', 'merchant', 'merchant.settings']);
 
     $totalDiscount = 0;
     $totalTax = 0;
@@ -16,9 +16,76 @@
         $totalDiscount += $discountAmount;
         $totalTax += $taxAmount;
     }
+
+    $settings = $sale->merchant?->settings;
+    $normalizeGroups = function (?array $groups): array {
+        $groups = is_array($groups) ? $groups : [];
+
+        return collect($groups)
+            ->map(function ($group) {
+                $groupName = trim((string) ($group['group_name'] ?? ''));
+                $fields = collect($group['fields'] ?? [])
+                    ->map(function ($field) {
+                        $label = trim((string) ($field['label'] ?? ''));
+                        $value = trim((string) ($field['value'] ?? ''));
+
+                        if ($label === '' || $value === '') {
+                            return null;
+                        }
+
+                        return compact('label', 'value');
+                    })
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                if ($groupName === '' || empty($fields)) {
+                    return null;
+                }
+
+                return [
+                    'group_name' => $groupName,
+                    'fields' => $fields,
+                    'is_active' => (bool) ($group['is_active'] ?? false),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    };
+
+    $selectActiveGroup = function (array $groups): array {
+        if (empty($groups)) {
+            return [];
+        }
+
+        $active = collect($groups)->first(fn ($group) => (bool) ($group['is_active'] ?? false));
+
+        if (! $active) {
+            $active = $groups[0];
+        }
+
+        return [$active];
+    };
+
+    $headerGroups = $selectActiveGroup($normalizeGroups($settings?->invoice_header_groups));
+    $footerGroups = $selectActiveGroup($normalizeGroups($settings?->invoice_footer_groups));
 @endphp
 
 <div style="font-family:Arial, sans-serif; color:#0f172a;">
+    @if(! empty($headerGroups))
+        <div style="margin-bottom: 14px; font-size: 12px; color: #475569;">
+            @foreach($headerGroups as $group)
+                <div style="margin-bottom: 8px;">
+                    <strong style="color:#0f172a;">{{ $group['group_name'] }}</strong><br>
+                    @foreach($group['fields'] as $field)
+                        {{ $field['label'] }}: {{ $field['value'] }}<br>
+                    @endforeach
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     <table style="width:100%; border-collapse:collapse; font-size:12px;">
         <thead>
         <tr style="border-bottom:1px solid #e2e8f0; text-align:left;">
@@ -126,4 +193,17 @@
             </td>
         </tr>
     </table>
+
+    @if(! empty($footerGroups))
+        <div style="margin-top: 16px; font-size: 12px; color: #475569;">
+            @foreach($footerGroups as $group)
+                <div style="margin-bottom: 8px;">
+                    <strong style="color:#0f172a;">{{ $group['group_name'] }}</strong><br>
+                    @foreach($group['fields'] as $field)
+                        {{ $field['label'] }}: {{ $field['value'] }}<br>
+                    @endforeach
+                </div>
+            @endforeach
+        </div>
+    @endif
 </div>

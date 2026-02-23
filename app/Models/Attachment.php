@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Attachment extends Model
+class Attachment extends Model implements Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids, SoftDeletes;
 
     /** @var string[] $fillable */

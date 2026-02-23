@@ -5,7 +5,9 @@ namespace App\Filament\Resources\MerchantSettings\Schemas;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
@@ -88,6 +90,92 @@ class MerchantSettingForm
                         ->minValue(0)
                         ->step(0.01)
                         ->dehydrated(false),
+                ]),
+
+            Section::make('Invoice Dynamic Header Fields')
+                ->columnSpanFull()
+                ->schema([
+                    Repeater::make('invoice_header_groups')
+                        ->label('Header Groups')
+                        ->collapsible()
+                        ->collapsed()
+                        ->itemLabel(fn (array $state): ?string => $state['group_name'] ?? null)
+                        ->addActionLabel('Add Header Group')
+                        ->schema([
+                            TextInput::make('group_name')
+                                ->label('Group Name')
+                                ->placeholder('Company Meta')
+                                ->required()
+                                ->maxLength(120),
+                            Toggle::make('is_active')
+                                ->label('Use this group on invoice')
+                                ->default(false),
+
+                            Repeater::make('fields')
+                                ->label('Fields')
+                                ->columns(2)
+                                ->defaultItems(1)
+                                ->addActionLabel('Add Field')
+                                ->schema([
+                                    TextInput::make('label')
+                                        ->label('Field Name')
+                                        ->placeholder('NTN')
+                                        ->required()
+                                        ->maxLength(120),
+                                    TextInput::make('value')
+                                        ->label('Field Value')
+                                        ->placeholder('12345-6')
+                                        ->required()
+                                        ->maxLength(255),
+                                ])
+                                ->required()
+                                ->minItems(1),
+                        ])
+                        ->default([])
+                        ->columns(1),
+                ]),
+
+            Section::make('Invoice Dynamic Footer Fields')
+                ->columnSpanFull()
+                ->schema([
+                    Repeater::make('invoice_footer_groups')
+                        ->label('Footer Groups')
+                        ->collapsible()
+                        ->collapsed()
+                        ->itemLabel(fn (array $state): ?string => $state['group_name'] ?? null)
+                        ->addActionLabel('Add Footer Group')
+                        ->schema([
+                            TextInput::make('group_name')
+                                ->label('Group Name')
+                                ->placeholder('Bank Details')
+                                ->required()
+                                ->maxLength(120),
+                            Toggle::make('is_active')
+                                ->label('Use this group on invoice')
+                                ->default(false),
+
+                            Repeater::make('fields')
+                                ->label('Fields')
+                                ->columns(2)
+                                ->defaultItems(1)
+                                ->addActionLabel('Add Field')
+                                ->schema([
+                                    TextInput::make('label')
+                                        ->label('Field Name')
+                                        ->placeholder('IBAN')
+                                        ->required()
+                                        ->maxLength(120),
+                                    TextInput::make('value')
+                                        ->label('Field Value')
+                                        ->placeholder('PK36SCBL...')
+                                        ->required()
+                                        ->maxLength(255),
+                                ])
+                                ->required()
+                                ->minItems(1),
+                        ])
+                        ->default([])
+                        ->columns(1),
                 ]),
 
             /* ================= MERCHANT ================= */

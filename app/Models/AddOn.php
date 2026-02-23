@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class AddOn extends Model
+class AddOn extends Model implements Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids;
 
     /** @var string[] $fillable */

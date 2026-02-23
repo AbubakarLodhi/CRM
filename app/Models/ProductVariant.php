@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
+use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class ProductVariant extends Model
+class ProductVariant extends Model implements Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids;
 
     protected $table = 'product_variants';

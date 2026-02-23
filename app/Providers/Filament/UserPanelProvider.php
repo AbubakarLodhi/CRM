@@ -29,6 +29,7 @@ class UserPanelProvider extends PanelProvider
             ->id('user')
             ->path('staff')
             ->authGuard('staff')
+            ->authPasswordBroker('staffs')
             ->login()
             ->passwordReset()
             ->colors([

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use OwenIt\Auditing\Contracts\Auditable;
 use App\Enums\AttachmentMetaType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -10,8 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
-class Category extends Model
+class Category extends Model implements Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids;
 
     /** @var string[] $fillable */

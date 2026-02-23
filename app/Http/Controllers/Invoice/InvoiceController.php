@@ -14,6 +14,7 @@ class InvoiceController
         $record = match ($type) {
             'sale' => Sale::with([
                 'merchant.logo',
+                'merchant.settings',
                 'customer',
                 'items.product',
                 'items.variants.variant',
@@ -21,6 +22,7 @@ class InvoiceController
 
             'purchase' => Purchase::with([
                 'merchant.logo',
+                'merchant.settings',
                 'items.product',
                 'items.variants.variant',
             ])->find($id),

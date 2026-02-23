@@ -28,6 +28,7 @@ class BrandsForm
                            }),
                 FileUpload::make('brand_logo')
                     ->label('Brand Logo')
+                    ->key(fn ($livewire): string => 'brand_logo_' . ($livewire->brandLogoInputKey ?? 0))
                     ->image()
                     ->disk('public')
                     ->directory('brands/logos')

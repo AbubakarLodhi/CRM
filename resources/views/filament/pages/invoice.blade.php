@@ -30,6 +30,60 @@
             $totalDiscountPercent += $discountRate;
             $totalTaxPercent += $taxRate;
         }
+
+        $merchantSettings = $record->merchant?->settings;
+        $normalizeGroups = function (?array $groups): array {
+            $groups = is_array($groups) ? $groups : [];
+
+            return collect($groups)
+                ->map(function ($group) {
+                    $groupName = trim((string) ($group['group_name'] ?? ''));
+                    $fields = collect($group['fields'] ?? [])
+                        ->map(function ($field) {
+                            $label = trim((string) ($field['label'] ?? ''));
+                            $value = trim((string) ($field['value'] ?? ''));
+
+                            if ($label === '' || $value === '') {
+                                return null;
+                            }
+
+                            return compact('label', 'value');
+                        })
+                        ->filter()
+                        ->values()
+                        ->all();
+
+                    if ($groupName === '' || empty($fields)) {
+                        return null;
+                    }
+
+                    return [
+                        'group_name' => $groupName,
+                        'fields' => $fields,
+                        'is_active' => (bool) ($group['is_active'] ?? false),
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+        };
+
+        $selectActiveGroup = function (array $groups): array {
+            if (empty($groups)) {
+                return [];
+            }
+
+            $active = collect($groups)->first(fn ($group) => (bool) ($group['is_active'] ?? false));
+
+            if (! $active) {
+                $active = $groups[0];
+            }
+
+            return [$active];
+        };
+
+        $headerGroups = $selectActiveGroup($normalizeGroups($merchantSettings?->invoice_header_groups));
+        $footerGroups = $selectActiveGroup($normalizeGroups($merchantSettings?->invoice_footer_groups));
     @endphp
 
     <title>Invoice {{ $invoiceNo }}</title>
@@ -309,6 +363,15 @@
                     VAT: {{ $record->merchant->vat_number }}
                 @endif
             </div>
+
+            @foreach($headerGroups as $group)
+                <div>
+                    <strong>{{ $group['group_name'] }}</strong><br>
+                    @foreach($group['fields'] as $field)
+                        {{ $field['label'] }}: {{ $field['value'] }}<br>
+                    @endforeach
+                </div>
+            @endforeach
         </div>
 
         <div class="invoice-title">
@@ -431,6 +494,20 @@
             @if($record->merchant?->whatsapp_number)
                 WhatsApp: {{ $record->merchant->whatsapp_number }}
             @endif
+        </div>
+    @endif
+
+    @if(! empty($footerGroups))
+        <div class="contact-us">
+            @foreach($footerGroups as $group)
+                <strong>{{ $group['group_name'] }}</strong><br>
+                @foreach($group['fields'] as $field)
+                    {{ $field['label'] }}: {{ $field['value'] }}<br>
+                @endforeach
+                @if(! $loop->last)
+                    <br>
+                @endif
+            @endforeach
         </div>
     @endif
 

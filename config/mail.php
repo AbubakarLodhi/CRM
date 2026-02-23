@@ -39,7 +39,11 @@ return [
 
         'smtp' => [
             'transport' => 'smtp',
-            'scheme' => env('MAIL_SCHEME'),
+            // Laravel 12 expects smtp/smtps scheme (not tls/ssl encryption strings).
+            'scheme' => env('MAIL_SCHEME') ?: match (strtolower((string) env('MAIL_ENCRYPTION', ''))) {
+                'ssl' => 'smtps',
+                default => null, // tls / empty => plain smtp with STARTTLS negotiation
+            },
             'url' => env('MAIL_URL'),
             'host' => env('MAIL_HOST', '127.0.0.1'),
             'port' => env('MAIL_PORT', 2525),

@@ -385,10 +385,14 @@ class SaleForm
                                         )
                                         ->toArray();
                                 })
-                                ->afterStateUpdated(function (callable $set, $livewire) {
+                                ->afterStateUpdated(function (callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.branch_id');
                                     $livewire->resetErrorBag('data.items.*.branch_id');
                                     $set('product_variant_id', null);
+                                    $set('unit_price', 0);
+                                    $set('line_subtotal', 0);
+                                    $set('line_total', 0);
+                                    self::recalcTotals($set, $get);
                                 }),
 
         /* -------- VARIANT -------- */

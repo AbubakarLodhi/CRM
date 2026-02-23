@@ -15,6 +15,7 @@ class CreateBrands extends CreateRecord
     protected static string $resource = BrandsResource::class;
 
     protected array $categoryIds = [];
+    public int $brandLogoInputKey = 0;
 
     protected function getRedirectUrl(): string
     {
@@ -26,6 +27,12 @@ class CreateBrands extends CreateRecord
         return [
             'brand_logo' => null,
         ];
+    }
+
+    public function createAnother(): void
+    {
+        parent::createAnother();
+        $this->brandLogoInputKey++;
     }
 
     protected function mutateFormDataBeforeCreate(array $data): array
@@ -120,5 +127,5 @@ class CreateBrands extends CreateRecord
             'photo_url'   => $path,
         ]);
     }
-}
 
+}

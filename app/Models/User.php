@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -15,8 +16,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements CanResetPasswordContract
+class User extends Authenticatable implements CanResetPasswordContract, Auditable
 {
+    use \OwenIt\Auditing\Auditable;
     use HasUuids, HasRoles,Notifiable,CanResetPassword;
     /** @var string */
     protected $keyType = 'string';

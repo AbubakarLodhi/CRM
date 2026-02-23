@@ -48,6 +48,7 @@ class NotificationTemplateForm
                         ->visible(fn ($get) => $get('channel') === 'email'),
 
                     Toggle::make('is_active')
+                        ->label('Default')
                         ->default(true),
                 ]),
 

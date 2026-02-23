@@ -4,4 +4,5 @@ return [
     App\Providers\AppServiceProvider::class,
     App\Providers\Filament\MerchantPanelProvider::class,
     App\Providers\Filament\UserPanelProvider::class,
+    OwenIt\Auditing\AuditingServiceProvider::class,
 ];
