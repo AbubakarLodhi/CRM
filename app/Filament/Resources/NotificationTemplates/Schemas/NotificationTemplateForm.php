@@ -77,10 +77,13 @@ class NotificationTemplateForm
                                         ->language(Language::Html)
                                         ->required()
                                         ->live(debounce: 500)
-                                        ->afterStateUpdated(
-                                            fn ($set) =>
-                                            $set('preview_key', (string) str()->uuid())
-                                        )
+                                        ->afterStateUpdated(function ($set, $livewire): void {
+                                            $set('preview_key', (string) str()->uuid());
+
+                                            if (method_exists($livewire, 'resetValidation')) {
+                                                $livewire->resetValidation('data.content');
+                                            }
+                                        })
                                         ->helperText('Use Blade variables like {{ $customer_name }}')
                                         ->extraAttributes([
                                             'style' => 'min-height: 520px;',
@@ -96,10 +99,13 @@ class NotificationTemplateForm
                                         ->language(Language::Json)
                                         ->default('{}')
                                         ->live(debounce: 500)
-                                        ->afterStateUpdated(
-                                            fn ($set) =>
-                                            $set('preview_key', (string) str()->uuid())
-                                        )
+                                        ->afterStateUpdated(function ($set, $livewire): void {
+                                            $set('preview_key', (string) str()->uuid());
+
+                                            if (method_exists($livewire, 'resetValidation')) {
+                                                $livewire->resetValidation('data.meta.test_payload');
+                                            }
+                                        })
                                         ->helperText('JSON used only for preview')
                                         ->extraAttributes([
                                             'style' => 'min-height: 520px;',

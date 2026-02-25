@@ -160,6 +160,7 @@ class UserForm
                             ->searchable()
                             ->preload()
                             ->required()
+                            ->live()
                             ->options(function () {
                                 $user = Filament::auth()->user();
 
@@ -198,6 +199,10 @@ class UserForm
                             ->getOptionLabelUsing(
                                 fn ($value) => Branch::find($value)?->name
                             )
+                            ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                                $livewire->resetValidation('data.branches');
+                                $livewire->resetErrorBag('data.branches');
+                            })
                             ->afterStateHydrated(function (callable $set, ?User $record) {
                                 if ($record) {
                                     $set(

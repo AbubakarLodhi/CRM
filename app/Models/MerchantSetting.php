@@ -18,12 +18,7 @@ class MerchantSetting extends Model implements Auditable
     /** @var string[] $fillable */
     protected $fillable = [
         'merchant_id', 'primary_color', 'secondary_color', 'warning_color', 'danger_color', 'success_color',
-        'default_color', 'invoice_header_groups', 'invoice_footer_groups',
-    ];
-
-    protected $casts = [
-        'invoice_header_groups' => 'array',
-        'invoice_footer_groups' => 'array',
+        'default_color',
     ];
 
     /** @var string $keyType */

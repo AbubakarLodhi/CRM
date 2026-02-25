@@ -11,7 +11,6 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
-use Filament\Notifications\Notification;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -19,7 +18,6 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 
 class BranchesTable
 {
@@ -163,41 +161,11 @@ class BranchesTable
                     ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
-                    ->before(function (DeleteAction $action, Branch $record): void {
-                        if (! $record->purchaseItems()->exists()) {
-                            return;
-                        }
-
-                        Notification::make()
-                            ->title('Branch cannot be deleted')
-                            ->body('This branch has purchase records. Remove or reassign those purchases first.')
-                            ->danger()
-                            ->send();
-
-                        $action->halt();
-                    })
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('branches.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
-                        ->before(function (DeleteBulkAction $action, Collection $records): void {
-                            $blockedCount = $records
-                                ->filter(fn (Branch $record) => $record->purchaseItems()->exists())
-                                ->count();
-
-                            if ($blockedCount === 0) {
-                                return;
-                            }
-
-                            Notification::make()
-                                ->title('Some branches cannot be deleted')
-                                ->body("{$blockedCount} selected branch(es) have purchase records. Remove or reassign those purchases first.")
-                                ->danger()
-                                ->send();
-
-                            $action->halt();
-                        })
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('branches.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ])

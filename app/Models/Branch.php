@@ -5,6 +5,7 @@ namespace App\Models;
 use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,7 @@ class Branch extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
     use HasUuids;
+    use SoftDeletes;
 
     /** @var string */
     const STATUS_PENDING = 'pending';
@@ -49,6 +51,10 @@ class Branch extends Model implements Auditable
     protected static function booted()
     {
         static::deleting(function (Branch $branch) {
+            if (! $branch->isForceDeleting()) {
+                return;
+            }
+
             $branch->users()->detach();
             $branch->products()->detach();
         });

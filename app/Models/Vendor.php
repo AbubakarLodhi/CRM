@@ -5,12 +5,14 @@ namespace App\Models;
 use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Vendor extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
     use HasUuids;
+    use SoftDeletes;
 
     public $incrementing = false;
 

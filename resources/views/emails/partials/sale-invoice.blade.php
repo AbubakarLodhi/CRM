@@ -46,7 +46,6 @@
                 return [
                     'group_name' => $groupName,
                     'fields' => $fields,
-                    'is_active' => (bool) ($group['is_active'] ?? false),
                 ];
             })
             ->filter()
@@ -54,22 +53,8 @@
             ->all();
     };
 
-    $selectActiveGroup = function (array $groups): array {
-        if (empty($groups)) {
-            return [];
-        }
-
-        $active = collect($groups)->first(fn ($group) => (bool) ($group['is_active'] ?? false));
-
-        if (! $active) {
-            $active = $groups[0];
-        }
-
-        return [$active];
-    };
-
-    $headerGroups = $selectActiveGroup($normalizeGroups($settings?->invoice_header_groups));
-    $footerGroups = $selectActiveGroup($normalizeGroups($settings?->invoice_footer_groups));
+    $headerGroups = $normalizeGroups($settings?->invoice_header_groups);
+    $footerGroups = $normalizeGroups($settings?->invoice_footer_groups);
 @endphp
 
 <div style="font-family:Arial, sans-serif; color:#0f172a;">

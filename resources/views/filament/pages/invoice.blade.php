@@ -31,59 +31,10 @@
             $totalTaxPercent += $taxRate;
         }
 
-        $merchantSettings = $record->merchant?->settings;
-        $normalizeGroups = function (?array $groups): array {
-            $groups = is_array($groups) ? $groups : [];
-
-            return collect($groups)
-                ->map(function ($group) {
-                    $groupName = trim((string) ($group['group_name'] ?? ''));
-                    $fields = collect($group['fields'] ?? [])
-                        ->map(function ($field) {
-                            $label = trim((string) ($field['label'] ?? ''));
-                            $value = trim((string) ($field['value'] ?? ''));
-
-                            if ($label === '' || $value === '') {
-                                return null;
-                            }
-
-                            return compact('label', 'value');
-                        })
-                        ->filter()
-                        ->values()
-                        ->all();
-
-                    if ($groupName === '' || empty($fields)) {
-                        return null;
-                    }
-
-                    return [
-                        'group_name' => $groupName,
-                        'fields' => $fields,
-                        'is_active' => (bool) ($group['is_active'] ?? false),
-                    ];
-                })
-                ->filter()
-                ->values()
-                ->all();
-        };
-
-        $selectActiveGroup = function (array $groups): array {
-            if (empty($groups)) {
-                return [];
-            }
-
-            $active = collect($groups)->first(fn ($group) => (bool) ($group['is_active'] ?? false));
-
-            if (! $active) {
-                $active = $groups[0];
-            }
-
-            return [$active];
-        };
-
-        $headerGroups = $selectActiveGroup($normalizeGroups($merchantSettings?->invoice_header_groups));
-        $footerGroups = $selectActiveGroup($normalizeGroups($merchantSettings?->invoice_footer_groups));
+        $headerGroups = $headerGroups ?? [];
+        $footerGroups = $footerGroups ?? [];
+        $showDefaultHeader = $showDefaultHeader ?? true;
+        $showDefaultFooter = $showDefaultFooter ?? true;
     @endphp
 
     <title>Invoice {{ $invoiceNo }}</title>
@@ -345,24 +296,26 @@
                 <strong>{{ $record->merchant?->name }}</strong>
             @endif
 
-            <div>
-                {{ $record->merchant?->name }}<br>
-                @if($record->merchant?->address)
-                    {{ $record->merchant->address }}<br>
-                @endif
-                @if($record->merchant?->city || $record->merchant?->country)
-                    {{ $record->merchant->city }} {{ $record->merchant->country }}<br>
-                @endif
-                @if($record->merchant?->phone)
-                    {{ $record->merchant->phone }}<br>
-                @endif
-                @if($record->merchant?->email)
-                    {{ $record->merchant->email }}<br>
-                @endif
-                @if($record->merchant?->vat_number)
-                    VAT: {{ $record->merchant->vat_number }}
-                @endif
-            </div>
+            @if($showDefaultHeader)
+                <div>
+                    {{ $record->merchant?->name }}<br>
+                    @if($record->merchant?->address)
+                        {{ $record->merchant->address }}<br>
+                    @endif
+                    @if($record->merchant?->city || $record->merchant?->country)
+                        {{ $record->merchant->city }} {{ $record->merchant->country }}<br>
+                    @endif
+                    @if($record->merchant?->phone)
+                        {{ $record->merchant->phone }}<br>
+                    @endif
+                    @if($record->merchant?->email)
+                        {{ $record->merchant->email }}<br>
+                    @endif
+                    @if($record->merchant?->vat_number)
+                        VAT: {{ $record->merchant->vat_number }}
+                    @endif
+                </div>
+            @endif
 
             @foreach($headerGroups as $group)
                 <div>
@@ -482,7 +435,7 @@
         </div>
     @endif
 
-    @if($record->merchant?->email || $record->merchant?->phone || $record->merchant?->whatsapp_number)
+    @if($showDefaultFooter && ($record->merchant?->email || $record->merchant?->phone || $record->merchant?->whatsapp_number))
         <div class="contact-us">
             <strong>Contact Us</strong><br>
             @if($record->merchant?->email)

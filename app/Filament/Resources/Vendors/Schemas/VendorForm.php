@@ -32,7 +32,12 @@ class VendorForm
                 ->helperText('Enter number with country code, e.g. +923001234567')
                 ->regex('/^\+92\d{10}$/')
                 ->maxLength(15)
-                ->required(),
+                ->required()
+                ->live(onBlur: true)
+                ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                    $livewire->resetValidation('data.phone');
+                    $livewire->resetErrorBag('data.phone');
+                }),
 
             Textarea::make('address')
                 ->label('Address')
