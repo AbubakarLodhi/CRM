@@ -39,6 +39,16 @@
         $selectedFooterGroup = $selectedFooterGroup ?? '__default';
         $showDefaultHeader = $showDefaultHeader ?? true;
         $showDefaultFooter = $showDefaultFooter ?? true;
+
+        $configuredHeaderLogo = null;
+        foreach ($headerGroups as $group) {
+            foreach (($group['fields'] ?? []) as $field) {
+                if (($field['value_type'] ?? null) === 'business_logo' && filled($field['value'] ?? null)) {
+                    $configuredHeaderLogo = (string) $field['value'];
+                    break 2;
+                }
+            }
+        }
     @endphp
 
     <title>Invoice {{ $invoiceNo }}</title>
@@ -137,9 +147,10 @@
         }
 
         .invoice-meta div {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
+            display: grid;
+            grid-template-columns: 96px minmax(0, 1fr);
+            align-items: baseline;
+            gap: 10px;
         }
 
         .invoice-meta span.label {
@@ -230,12 +241,22 @@
 
         .actions {
             position: fixed;
-            right: 24px;
             top: 24px;
+            left: 24px;
+            right: 24px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            z-index: 10;
+            align-items: flex-start;
+            pointer-events: none;
+        }
+
+        .action-buttons {
             display: flex;
             gap: 10px;
-            z-index: 10;
             align-items: center;
+            pointer-events: auto;
         }
 
         .btn {
@@ -255,29 +276,54 @@
         }
 
         .invoice-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(180px, 1fr));
+            gap: 10px 12px;
             background: rgba(255, 255, 255, 0.95);
             border: 1px solid #e5e7eb;
             border-radius: 12px;
-            padding: 8px 10px;
+            padding: 10px 12px;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+            pointer-events: auto;
         }
 
-        .invoice-controls label {
+        .invoice-control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .invoice-control label {
             font-size: 11px;
             color: #6b7280;
-            margin-right: 4px;
+            font-weight: 600;
+            line-height: 1.2;
         }
 
-        .invoice-controls select {
+        .invoice-control select {
             border: 1px solid #d1d5db;
             border-radius: 8px;
             background: #fff;
             color: #111827;
             font-size: 12px;
-            padding: 4px 8px;
+            padding: 6px 10px;
+            width: 100%;
+            min-height: 34px;
+        }
+
+        @media (max-width: 900px) {
+            .actions {
+                position: static;
+                margin: 12px;
+                justify-content: flex-end;
+                flex-wrap: wrap;
+            }
+
+            .invoice-controls {
+                grid-template-columns: 1fr;
+                width: min(100%, 420px);
+            }
         }
 
         @media print {
@@ -311,41 +357,49 @@
         action="{{ route('invoices.show', ['type' => $type, 'id' => $record->id]) }}"
         class="invoice-controls"
     >
-        <label for="header_group">Header</label>
-        <select id="header_group" name="header_group" onchange="this.form.submit()">
-            @foreach($headerGroupOptions as $groupId => $groupLabel)
-                <option value="{{ $groupId }}" @selected((string) $selectedHeaderGroup === (string) $groupId)>
-                    {{ $groupLabel }}
-                </option>
-            @endforeach
-        </select>
+        <div class="invoice-control">
+            <label for="header_group">Header</label>
+            <select id="header_group" name="header_group" onchange="this.form.submit()">
+                @foreach($headerGroupOptions as $groupId => $groupLabel)
+                    <option value="{{ $groupId }}" @selected((string) $selectedHeaderGroup === (string) $groupId)>
+                        {{ $groupLabel }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-        <label for="footer_group">Footer</label>
-        <select id="footer_group" name="footer_group" onchange="this.form.submit()">
-            @foreach($footerGroupOptions as $groupId => $groupLabel)
-                <option value="{{ $groupId }}" @selected((string) $selectedFooterGroup === (string) $groupId)>
-                    {{ $groupLabel }}
-                </option>
-            @endforeach
-        </select>
+        <div class="invoice-control">
+            <label for="footer_group">Footer</label>
+            <select id="footer_group" name="footer_group" onchange="this.form.submit()">
+                @foreach($footerGroupOptions as $groupId => $groupLabel)
+                    <option value="{{ $groupId }}" @selected((string) $selectedFooterGroup === (string) $groupId)>
+                        {{ $groupLabel }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
     </form>
 
-    <button class="btn" type="button" onclick="window.print()">Print</button>
-    <button
-        class="btn secondary"
-        type="button"
-        aria-label="Close"
-        onclick="if (window.opener) { window.close(); } else { window.history.back(); }"
-    >
-        Close
-    </button>
+    <div class="action-buttons">
+        <button class="btn" type="button" onclick="window.print()">Print</button>
+        <button
+            class="btn secondary"
+            type="button"
+            aria-label="Close"
+            onclick="if (window.opener) { window.close(); } else { window.history.back(); }"
+        >
+            Close
+        </button>
+    </div>
 </div>
 
 <div class="invoice">
 
     <div class="header">
         <div class="brand">
-            @if($record->merchant?->logo)
+            @if($configuredHeaderLogo)
+                <img src="{{ asset('storage/'.$configuredHeaderLogo) }}">
+            @elseif($record->merchant?->logo)
                 <img src="{{ asset('storage/'.$record->merchant->logo->photo_url) }}">
             @else
                 <strong>{{ $record->merchant?->name }}</strong>
@@ -376,6 +430,7 @@
                 <div>
                     <strong>{{ $group['group_name'] }}</strong><br>
                     @foreach($group['fields'] as $field)
+                        @continue(($field['value_type'] ?? null) === 'business_logo')
                         {{ $field['label'] }}: {{ $field['value'] }}<br>
                     @endforeach
                 </div>
@@ -405,6 +460,8 @@
                 <div><span class="label">Invoice Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
                 <div><span class="label">Invoice #</span><span>{{ $invoiceNo }}</span></div>
                 <div><span class="label">Due Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
+                <div aria-hidden="true"></div>
+                <div><span class="label">Created By</span><span>{{ $record->createdBy?->name ?: ($record->merchant?->name ?: '—') }}</span></div>
             </div>
         </div>
     </div>
@@ -510,6 +567,7 @@
             @foreach($footerGroups as $group)
                 <strong>{{ $group['group_name'] }}</strong><br>
                 @foreach($group['fields'] as $field)
+                    @continue(($field['value_type'] ?? null) === 'business_logo')
                     {{ $field['label'] }}: {{ $field['value'] }}<br>
                 @endforeach
                 @if(! $loop->last)

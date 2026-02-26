@@ -290,6 +290,39 @@
     background-color: #ffffff;
 }
 
+.dashboard-filters-section .fi-fo-select .fi-input-wrp,
+.dashboard-filters-section .fi-fo-date-time-picker .fi-input-wrp {
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+.dashboard-filters-section .fi-fo-select .fi-input-wrp:focus-within,
+.dashboard-filters-section .fi-fo-date-time-picker .fi-input-wrp:focus-within {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
+.dashboard-filters-section .fi-fo-select .fi-select-input {
+    border: 0;
+    background: transparent;
+}
+
+.dashboard-filters-section .fi-fo-select .ts-wrapper .ts-control {
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    min-height: 2.5rem;
+    box-shadow: none;
+    background-color: #ffffff;
+}
+
+.dashboard-filters-section .fi-fo-select .ts-wrapper.focus .ts-control,
+.dashboard-filters-section .fi-fo-select .ts-wrapper.focus-visible .ts-control {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+}
+
 .dark .dashboard-filters-section {
     border-color: rgba(56, 189, 248, 0.28);
     background: linear-gradient(135deg, #020817 0%, #0f172a 45%, #082f49 100%);
@@ -304,5 +337,16 @@
 .dark .dashboard-filters-section .fi-input-wrp,
 .dark .dashboard-filters-section .fi-select-input,
 .dark .dashboard-filters-section .fi-input {
+    background-color: #0b1220;
+}
+
+.dark .dashboard-filters-section .fi-fo-select .fi-input-wrp,
+.dark .dashboard-filters-section .fi-fo-date-time-picker .fi-input-wrp {
+    border-color: rgba(148, 163, 184, 0.35);
+    background-color: #0b1220;
+}
+
+.dark .dashboard-filters-section .fi-fo-select .ts-wrapper .ts-control {
+    border-color: rgba(148, 163, 184, 0.35);
     background-color: #0b1220;
 }

@@ -23,6 +23,7 @@ class InvoiceDynamicFieldForm
         return [
             'merchant' => 'merchants',
             'business' => 'businesses',
+            'business_logo' => 'businesses',
             'branch' => 'branches',
             'customer' => 'customers',
             'vendor' => 'vendors',
@@ -118,6 +119,7 @@ class InvoiceDynamicFieldForm
                                     'static' => 'Static Text',
                                     'merchant' => 'Merchant',
                                     'business' => 'Business',
+                                    'business_logo' => 'Business Logo',
                                     'branch' => 'Branch',
                                     'customer' => 'Customer (Sales)',
                                     'vendor' => 'Vendor (Purchases)',
@@ -140,8 +142,8 @@ class InvoiceDynamicFieldForm
                                 ->options(fn ($get): array => self::valueKeyOptions((string) $get('value_type')))
                                 ->searchable()
                                 ->preload()
-                                ->visible(fn ($get): bool => $get('value_type') !== 'static')
-                                ->required(fn ($get): bool => $get('value_type') !== 'static')
+                                ->visible(fn ($get): bool => ! in_array($get('value_type'), ['static', 'business_logo'], true))
+                                ->required(fn ($get): bool => ! in_array($get('value_type'), ['static', 'business_logo'], true))
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, $livewire): void {
                                     if (method_exists($livewire, 'resetValidation')) {

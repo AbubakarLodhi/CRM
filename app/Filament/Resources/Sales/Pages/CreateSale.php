@@ -36,14 +36,17 @@ class CreateSale extends CreateRecord
             /** -------------------------
              * MERCHANT / CREATED BY
              * ------------------------- */
-            $user = Filament::auth()->user();
+            $panel = Filament::getCurrentPanel();
+            $guard = $panel?->getAuthGuard();
+            $user  = $guard ? auth($guard)->user() : Filament::auth()->user();
 
-            if ($user instanceof \App\Models\Merchant) {
+            if ($guard === 'staff' && $user instanceof \App\Models\User) {
+                $data['merchant_id'] = $user->merchant_id;
+                $data['created_by']  = $user->id;
+            } elseif ($user instanceof \App\Models\Merchant) {
                 $data['merchant_id'] = $user->id;
                 $data['created_by']  = null;
-            }
-
-            if ($user instanceof \App\Models\User) {
+            } elseif ($user instanceof \App\Models\User) {
                 $data['merchant_id'] = $user->merchant_id;
                 $data['created_by']  = $user->id;
             }

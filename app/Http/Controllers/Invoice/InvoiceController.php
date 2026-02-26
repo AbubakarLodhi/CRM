@@ -18,7 +18,7 @@ class InvoiceController
                 'customer',
                 'items.product',
                 'items.variants.variant',
-                'items.business',
+                'items.business.logo',
                 'items.branch',
             ])->find($id),
 
@@ -27,7 +27,7 @@ class InvoiceController
                 'vendor',
                 'items.product',
                 'items.variants.variant',
-                'items.business',
+                'items.business.logo',
                 'items.branch',
             ])->find($id),
 

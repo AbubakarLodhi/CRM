@@ -53,9 +53,9 @@ class PurchaseInfolist
                                 return $names->isNotEmpty() ? $names->implode(', ') : '-';
                             }),
 
-//                        TextEntry::make('createdBy.name')
-//                            ->label('Created By')
-//                            ->getStateUsing(fn ($record) => $record->createdBy?->name ?: '-'),
+                        TextEntry::make('created_by_display')
+                            ->label('Created By')
+                            ->getStateUsing(fn ($record) => $record->createdBy?->name ?: ($record->merchant?->name ?: '-')),
 
                         TextEntry::make('created_at')
                             ->label('Created At')

@@ -37,6 +37,7 @@ class InvoiceDynamicFieldResolver
         $value = match ($field->value_type) {
             'merchant' => self::getEntityValue($record->merchant, $field->value_key),
             'business' => self::getEntityValue($record->items->first()?->business, $field->value_key),
+            'business_logo' => data_get($record->items->first()?->business?->logo, 'photo_url'),
             'branch' => self::getEntityValue($record->items->first()?->branch, $field->value_key),
             'customer' => $record instanceof Sale ? self::getEntityValue($record->customer, $field->value_key) : null,
             'vendor' => $record instanceof Purchase ? self::getEntityValue($record->vendor, $field->value_key) : null,
@@ -54,7 +55,7 @@ class InvoiceDynamicFieldResolver
 
     /**
      * @param  Sale|Purchase  $record
-     * @return array{header: array<int, array{group_name: string, fields: array<int, array{label: string, value: string}>>>, footer: array<int, array{group_name: string, fields: array<int, array{label: string, value: string}>>}}
+     * @return array{header: array<int, array{group_name: string, fields: array<int, array{label: string, value: string, value_type: string}>>>, footer: array<int, array{group_name: string, fields: array<int, array{label: string, value: string, value_type: string}>>}}
      */
     public static function resolveGroups(Sale|Purchase $record, string $headerGroupId, string $footerGroupId): array
     {
@@ -104,7 +105,7 @@ class InvoiceDynamicFieldResolver
     /**
      * @param  array<int, InvoiceDynamicField>  $fields
      * @param  Sale|Purchase  $record
-     * @return array<int, array{label: string, value: string}>
+     * @return array<int, array{label: string, value: string, value_type: string}>
      */
     protected static function resolveGroupFields(array $fields, Sale|Purchase $record): array
     {
@@ -124,6 +125,7 @@ class InvoiceDynamicFieldResolver
             $rows[] = [
                 'label' => $field->label,
                 'value' => $value,
+                'value_type' => (string) $field->value_type,
             ];
         }
 
