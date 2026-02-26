@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Sales\Tables;
 use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Branch;
 use App\Models\Business;
-use App\Models\InvoiceDynamicGroup;
 use App\Models\Sale;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -324,31 +323,10 @@ class SalesTable
                     ->color('gray')
                     ->label(' ')
                     ->tooltip('Invoice')
-                    ->modalHeading('Invoice Groups')
-                    ->modalSubmitActionLabel('Open Invoice')
-                    ->form(fn (Sale $record): array => [
-                        Select::make('header_group')
-                            ->label('Header Group')
-                            ->options(self::invoiceGroupOptions($record->merchant_id, 'header'))
-                            ->default('__default')
-                            ->searchable()
-                            ->required(),
-
-                        Select::make('footer_group')
-                            ->label('Footer Group')
-                            ->options(self::invoiceGroupOptions($record->merchant_id, 'footer'))
-                            ->default('__default')
-                            ->searchable()
-                            ->required(),
-                    ])
-                    ->action(function (Sale $record, array $data) {
-                        return redirect()->route('invoices.show', [
-                            'type' => 'sale',
-                            'id' => $record->id,
-                            'header_group' => (string) ($data['header_group'] ?? '__default'),
-                            'footer_group' => (string) ($data['footer_group'] ?? '__default'),
-                        ]);
-                    }),
+                    ->url(fn (Sale $record): string => route('invoices.show', [
+                        'type' => 'sale',
+                        'id' => $record->id,
+                    ])),
 
 
                 Action::make('return_sale')
@@ -526,31 +504,6 @@ class SalesTable
                     Hidden::make('total_amount')->default($summary['total_amount'])->dehydrated(),
                 ]),
         ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected static function invoiceGroupOptions(string $merchantId, string $section): array
-    {
-        $groups = InvoiceDynamicGroup::query()
-            ->where('merchant_id', $merchantId)
-            ->where('is_active', true)
-            ->where('section', $section)
-            ->orderBy('name')
-            ->pluck('name', 'id');
-
-        $defaultLabel = $section === 'header'
-            ? 'Default (Current Header)'
-            : 'Default (Current Footer)';
-
-        $options = ['__default' => $defaultLabel];
-
-        foreach ($groups as $groupId => $groupName) {
-            $options[(string) $groupId] = trim((string) $groupName) ?: 'Details';
-        }
-
-        return $options;
     }
 
     private static function recalcReturnTotals(callable $set, callable $get): void

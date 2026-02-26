@@ -31,6 +31,7 @@
         $periodPurchasesTotal = array_sum($purchaseSeries);
         $leaders = $leaders ?? ['customers' => [], 'vendors' => [], 'variants' => []];
         $credit = $credit ?? ['receivable_total' => 0, 'payable_total' => 0, 'top_customers' => [], 'top_vendors' => []];
+        $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
             'sales' => array_map(fn ($value) => $barMax > 0 ? (int) round(($value / $barMax) * 100) : 0, $salesSeries),
@@ -52,7 +53,7 @@
                 <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Overview</p>
                 <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">All time</span>
             </div>
-            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-4">
+            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
                 <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm ring-1 ring-blue-100 stats-panel stats-panel-blue dark:bg-slate-900 dark:ring-blue-900/50">
                     <div class="flex items-center justify-between">
                         <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Sales Summary</p>
@@ -137,6 +138,28 @@
                         <div class="flex items-center justify-between">
                             <span>Available Stock</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['available_stock'], 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm ring-1 ring-indigo-100 stats-panel dark:bg-slate-900 dark:ring-indigo-900/50">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Total Funds</p>
+                        <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-200">Cash Pool</span>
+                    </div>
+                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($funds['current_total_funds'], 2) }}</p>
+                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                        <div class="flex items-center justify-between">
+                            <span>Opening Funds</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['opening_total_funds'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Sales Cash In</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['sales_cash_inflow'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Purchases Cash Out</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['purchases_cash_outflow'], 2) }}</span>
                         </div>
                     </div>
                 </div>

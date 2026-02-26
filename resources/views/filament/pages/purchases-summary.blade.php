@@ -143,6 +143,33 @@
             </div>
         </div>
 
+        <div class="mb-6">
+            <h2 class="mb-3 text-lg font-semibold">Funds Impact</h2>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <x-filament::card>
+                    <div class="text-sm text-gray-500">Opening Total Funds</div>
+                    <div class="text-2xl font-bold text-primary-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['opening_total_funds'], 2) }}
+                    </div>
+                </x-filament::card>
+
+                <x-filament::card>
+                    <div class="text-sm text-gray-500">Purchases Cash Effect</div>
+                    <div class="text-2xl font-bold text-danger-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['purchases_cash_effect'], 2) }}
+                    </div>
+                </x-filament::card>
+
+                <x-filament::card>
+                    <div class="text-sm text-gray-500">Estimated Total Funds</div>
+                    <div class="text-2xl font-bold text-warning-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($stats['current_total_funds'], 2) }}
+                    </div>
+                </x-filament::card>
+            </div>
+        </div>
+
         {{-- ========================= --}}
         {{-- PURCHASE TABLE --}}
         {{-- ========================= --}}

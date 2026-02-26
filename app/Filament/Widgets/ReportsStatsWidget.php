@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\Merchant;
 use App\Models\Purchase;
 use App\Models\Sale;
 use BackedEnum;
@@ -27,6 +28,7 @@ class ReportsStatsWidget extends Widget
         return [
             'sales' => $this->getSalesStats(),
             'purchases' => $this->getPurchaseStats(),
+            'funds' => $this->getFundStats(),
             'stock' => $this->getStockStats(),
             'returns' => $this->getReturnStats(),
             'trend' => $this->getTrendData(),
@@ -794,6 +796,61 @@ class ReportsStatsWidget extends Widget
             'payable_total' => max(0, $creditPurchasesTotal - $creditPurchaseReturns),
             'top_customers' => $topCustomers,
             'top_vendors' => $topVendors,
+        ];
+    }
+
+    protected function getFundStats(): array
+    {
+        [$user, $merchantId] = $this->authContext();
+
+        if (! $merchantId) {
+            return [
+                'opening_total_funds' => 0,
+                'sales_cash_inflow' => 0,
+                'purchases_cash_outflow' => 0,
+                'net_cash_movement' => 0,
+                'current_total_funds' => 0,
+            ];
+        }
+
+        $merchant = Merchant::query()->find($merchantId);
+
+        $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
+
+        $cashSalesQuery = $this->salesBaseQuery($user, $merchantId)
+            ->whereRaw('LOWER(payment_type) = ?', ['cash']);
+
+        $cashPurchasesQuery = $this->purchaseBaseQuery($user, $merchantId)
+            ->whereRaw('LOWER(payment_type) = ?', ['cash']);
+
+        $cashSaleIds = (clone $cashSalesQuery)->pluck('sales.id');
+        $cashPurchaseIds = (clone $cashPurchasesQuery)->pluck('purchases.id');
+
+        $cashSalesAmount = (float) (clone $cashSalesQuery)->sum('total_amount');
+        $cashPurchasesAmount = (float) (clone $cashPurchasesQuery)->sum('total_amount');
+
+        $cashSaleReturns = $cashSaleIds->isEmpty()
+            ? 0
+            : (float) DB::table('sale_returns')
+                ->whereIn('sale_id', $cashSaleIds)
+                ->sum('total_amount');
+
+        $cashPurchaseReturns = $cashPurchaseIds->isEmpty()
+            ? 0
+            : (float) DB::table('purchase_returns')
+                ->whereIn('purchase_id', $cashPurchaseIds)
+                ->sum('total_amount');
+
+        $salesCashInflow = $cashSalesAmount - $cashSaleReturns;
+        $purchasesCashOutflow = $cashPurchasesAmount - $cashPurchaseReturns;
+        $netCashMovement = $salesCashInflow - $purchasesCashOutflow;
+
+        return [
+            'opening_total_funds' => $openingTotalFunds,
+            'sales_cash_inflow' => $salesCashInflow,
+            'purchases_cash_outflow' => $purchasesCashOutflow,
+            'net_cash_movement' => $netCashMovement,
+            'current_total_funds' => $openingTotalFunds + $netCashMovement,
         ];
     }
 }

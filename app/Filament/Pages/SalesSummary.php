@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Exports\SalesSummaryExport;
+use App\Models\Merchant;
 use App\Models\Sale;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -278,6 +279,12 @@ class SalesSummary extends Page implements HasTable
     public function getSalesStats(): array
     {
         $filteredQuery = $this->getFilteredTableQueryWithoutPagination();
+        $user = Filament::auth()->user();
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
 
         // Sale IDs in scope
         $saleIds = (clone $filteredQuery)->pluck('sales.id');
@@ -339,6 +346,25 @@ class SalesSummary extends Page implements HasTable
 
         $avgSale = $totalSales > 0 ? $netAmount / $totalSales : 0;
 
+        $openingTotalFunds = 0.0;
+
+        if ($merchantId) {
+            $merchant = Merchant::query()->find($merchantId);
+            $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
+        }
+
+        $cashSalesQuery = (clone $filteredQuery)->whereRaw('LOWER(payment_type) = ?', ['cash']);
+        $cashSaleIds = (clone $cashSalesQuery)->pluck('sales.id');
+        $cashSalesAmount = (float) (clone $cashSalesQuery)->sum('total_amount');
+        $cashSaleReturns = $cashSaleIds->isEmpty()
+            ? 0
+            : (float) DB::table('sale_returns')
+                ->whereIn('sale_id', $cashSaleIds)
+                ->sum('total_amount');
+
+        $salesCashEffect = $cashSalesAmount - $cashSaleReturns;
+        $currentTotalFunds = $openingTotalFunds + $salesCashEffect;
+
         // 🚨 HEADERS EXACTLY AS REQUIRED
         return [
             'total_sales'        => (int) $totalSales,
@@ -349,6 +375,9 @@ class SalesSummary extends Page implements HasTable
             'total_tax'          => (float) $netTax,
             'total_subtotal'     => (float) $netSubtotal,
             'avg_sale'           => round($avgSale, 2),
+            'opening_total_funds' => (float) $openingTotalFunds,
+            'sales_cash_effect' => (float) $salesCashEffect,
+            'current_total_funds' => (float) $currentTotalFunds,
         ];
     }
 

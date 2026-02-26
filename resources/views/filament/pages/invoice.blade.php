@@ -33,6 +33,10 @@
 
         $headerGroups = $headerGroups ?? [];
         $footerGroups = $footerGroups ?? [];
+        $headerGroupOptions = $headerGroupOptions ?? ['__default' => 'Default (Current Header)'];
+        $footerGroupOptions = $footerGroupOptions ?? ['__default' => 'Default (Current Footer)'];
+        $selectedHeaderGroup = $selectedHeaderGroup ?? '__default';
+        $selectedFooterGroup = $selectedFooterGroup ?? '__default';
         $showDefaultHeader = $showDefaultHeader ?? true;
         $showDefaultFooter = $showDefaultFooter ?? true;
     @endphp
@@ -229,8 +233,9 @@
             right: 24px;
             top: 24px;
             display: flex;
-            gap: 8px;
+            gap: 10px;
             z-index: 10;
+            align-items: center;
         }
 
         .btn {
@@ -247,6 +252,32 @@
         .btn.secondary {
             background: #e5e7eb;
             color: #111827;
+        }
+
+        .invoice-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 8px 10px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .invoice-controls label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-right: 4px;
+        }
+
+        .invoice-controls select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #fff;
+            color: #111827;
+            font-size: 12px;
+            padding: 4px 8px;
         }
 
         @media print {
@@ -275,6 +306,30 @@
 <body>
 
 <div class="actions">
+    <form
+        method="GET"
+        action="{{ route('invoices.show', ['type' => $type, 'id' => $record->id]) }}"
+        class="invoice-controls"
+    >
+        <label for="header_group">Header</label>
+        <select id="header_group" name="header_group" onchange="this.form.submit()">
+            @foreach($headerGroupOptions as $groupId => $groupLabel)
+                <option value="{{ $groupId }}" @selected((string) $selectedHeaderGroup === (string) $groupId)>
+                    {{ $groupLabel }}
+                </option>
+            @endforeach
+        </select>
+
+        <label for="footer_group">Footer</label>
+        <select id="footer_group" name="footer_group" onchange="this.form.submit()">
+            @foreach($footerGroupOptions as $groupId => $groupLabel)
+                <option value="{{ $groupId }}" @selected((string) $selectedFooterGroup === (string) $groupId)>
+                    {{ $groupLabel }}
+                </option>
+            @endforeach
+        </select>
+    </form>
+
     <button class="btn" type="button" onclick="window.print()">Print</button>
     <button
         class="btn secondary"

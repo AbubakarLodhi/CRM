@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Filament\Exports\PurchasesSummaryExport;
+use App\Models\Merchant;
 use App\Models\PermissionModule;
 use App\Models\Purchase;
 use BackedEnum;
@@ -271,6 +272,12 @@ class PurchasesSummary extends Page implements HasTable
     public function getPurchaseStats(): array
     {
         $filteredQuery = $this->getFilteredTableQueryWithoutPagination();
+        $user = Filament::auth()->user();
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
         $purchaseIds   = (clone $filteredQuery)->pluck('purchases.id');
 
         $totalPurchases = $purchaseIds->count();
@@ -316,6 +323,25 @@ class PurchasesSummary extends Page implements HasTable
 
         $avgPurchase = $totalPurchases > 0 ? $netAmount / $totalPurchases : 0;
 
+        $openingTotalFunds = 0.0;
+
+        if ($merchantId) {
+            $merchant = Merchant::query()->find($merchantId);
+            $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
+        }
+
+        $cashPurchasesQuery = (clone $filteredQuery)->whereRaw('LOWER(payment_type) = ?', ['cash']);
+        $cashPurchaseIds = (clone $cashPurchasesQuery)->pluck('purchases.id');
+        $cashPurchasesAmount = (float) (clone $cashPurchasesQuery)->sum('total_amount');
+        $cashPurchaseReturns = $cashPurchaseIds->isEmpty()
+            ? 0
+            : (float) DB::table('purchase_returns')
+                ->whereIn('purchase_id', $cashPurchaseIds)
+                ->sum('total_amount');
+
+        $purchasesCashEffect = $cashPurchasesAmount - $cashPurchaseReturns;
+        $currentTotalFunds = $openingTotalFunds - $purchasesCashEffect;
+
         return [
             'total_purchases'      => (int) $totalPurchases,
             'total_items_count'    => (int) $totalItemLines,
@@ -325,6 +351,9 @@ class PurchasesSummary extends Page implements HasTable
             'total_tax'            => (float) $netTax,
             'total_subtotal'       => (float) $netSubtotal,
             'avg_purchase'         => round($avgPurchase, 2),
+            'opening_total_funds' => (float) $openingTotalFunds,
+            'purchases_cash_effect' => (float) $purchasesCashEffect,
+            'current_total_funds' => (float) $currentTotalFunds,
         ];
     }
     protected function getHeaderActions(): array
