@@ -208,28 +208,14 @@ class ReportsStatsWidget extends Widget
                 ->groupBy('pv.id', 'pv.name', 'pv.sku', 'p.name')
                 ->get();
 
-        $returnedQtyByVariant = $saleIds->isEmpty()
-            ? collect()
-            : DB::table('sale_return_item_variants as srv')
-                ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-                ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-                ->whereIn('sr.sale_id', $saleIds)
-                ->groupBy('srv.product_variant_id')
-                ->selectRaw('srv.product_variant_id as variant_id')
-                ->selectRaw('COALESCE(SUM(srv.quantity), 0) as returned_qty')
-                ->pluck('returned_qty', 'variant_id');
-
         $topVariants = $soldVariants
-            ->map(function ($row) use ($returnedQtyByVariant) {
-                $returnedQty = (float) ($returnedQtyByVariant[$row->variant_id] ?? 0);
-                $netSoldQty = max(0, (float) $row->sold_qty - $returnedQty);
-
+            ->map(function ($row) {
                 return [
                     'id' => $row->variant_id,
                     'name' => $row->variant_name,
                     'product' => $row->product_name,
                     'sku' => $row->sku,
-                    'qty' => $netSoldQty,
+                    'qty' => (float) $row->sold_qty,
                     'amount' => (float) $row->sold_amount,
                 ];
             })
@@ -280,25 +266,11 @@ class ReportsStatsWidget extends Widget
             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $query)->sum('subtotal');
 
-        $returnTotals = DB::table('sale_returns')
-            ->whereIn('sale_id', $saleIds)
-            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
-            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
-            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
-            ->first();
-
-        $returnedQuantity = DB::table('sale_return_item_variants as srv')
-            ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-            ->whereIn('sr.sale_id', $saleIds)
-            ->sum('srv.quantity');
-
-        $netAmount = $totalAmount - (float) ($returnTotals->total_amount ?? 0);
-        $netDiscount = $totalDiscount - (float) ($returnTotals->total_discount ?? 0);
-        $netTax = $totalTax - (float) ($returnTotals->total_tax ?? 0);
-        $netSubtotal = $totalSubtotal - (float) ($returnTotals->subtotal ?? 0);
-        $netQuantity = $totalQuantitySold - (float) $returnedQuantity;
+        $netAmount = $totalAmount;
+        $netDiscount = $totalDiscount;
+        $netTax = $totalTax;
+        $netSubtotal = $totalSubtotal;
+        $netQuantity = $totalQuantitySold;
 
         $avgSale = $totalSales > 0 ? $netAmount / $totalSales : 0;
 
@@ -365,25 +337,11 @@ class ReportsStatsWidget extends Widget
             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $query)->sum('subtotal');
 
-        $returnTotals = DB::table('purchase_returns')
-            ->whereIn('purchase_id', $purchaseIds)
-            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
-            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
-            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
-            ->first();
-
-        $returnedQuantity = DB::table('purchase_return_item_variants as prv')
-            ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
-            ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-            ->whereIn('pr.purchase_id', $purchaseIds)
-            ->sum('prv.quantity');
-
-        $netAmount = $totalAmount - (float) ($returnTotals->total_amount ?? 0);
-        $netDiscount = $totalDiscount - (float) ($returnTotals->total_discount ?? 0);
-        $netTax = $totalTax - (float) ($returnTotals->total_tax ?? 0);
-        $netSubtotal = $totalSubtotal - (float) ($returnTotals->subtotal ?? 0);
-        $netQuantity = $totalItemQuantity - (float) $returnedQuantity;
+        $netAmount = $totalAmount;
+        $netDiscount = $totalDiscount;
+        $netTax = $totalTax;
+        $netSubtotal = $totalSubtotal;
+        $netQuantity = $totalItemQuantity;
 
         $avgPurchase = $totalPurchases > 0 ? $netAmount / $totalPurchases : 0;
 
@@ -470,16 +428,7 @@ class ReportsStatsWidget extends Widget
                 ->whereIn('piv.product_variant_id', $variantIds)
                 ->sum('piv.quantity');
 
-        $totalPurchaseReturnedQty = $purchaseIds->isEmpty()
-            ? 0
-            : DB::table('purchase_return_item_variants as prv')
-                ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
-                ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-                ->whereIn('pr.purchase_id', $purchaseIds)
-                ->whereIn('prv.product_variant_id', $variantIds)
-                ->sum('prv.quantity');
-
-        $netPurchasedQty = $totalPurchasedQty - $totalPurchaseReturnedQty;
+        $netPurchasedQty = $totalPurchasedQty;
 
         $totalSoldQty = $saleIds->isEmpty()
             ? 0
@@ -489,16 +438,7 @@ class ReportsStatsWidget extends Widget
                 ->whereIn('siv.product_variant_id', $variantIds)
                 ->sum('siv.quantity');
 
-        $totalReturnedQty = $saleIds->isEmpty()
-            ? 0
-            : DB::table('sale_return_item_variants as srv')
-                ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-                ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-                ->whereIn('sr.sale_id', $saleIds)
-                ->whereIn('srv.product_variant_id', $variantIds)
-                ->sum('srv.quantity');
-
-        $netSoldQty = $totalSoldQty - $totalReturnedQty;
+        $netSoldQty = $totalSoldQty;
 
         $availableStock = $netPurchasedQty - $netSoldQty;
 
@@ -511,17 +451,7 @@ class ReportsStatsWidget extends Widget
                 ->whereIn('pv.id', $variantIds)
                 ->sum(DB::raw('siv.quantity * pv.selling_price'));
 
-        $returnedRevenue = $saleIds->isEmpty()
-            ? 0
-            : DB::table('sale_return_item_variants as srv')
-                ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-                ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-                ->join('product_variants as pv', 'pv.id', '=', 'srv.product_variant_id')
-                ->whereIn('sr.sale_id', $saleIds)
-                ->whereIn('pv.id', $variantIds)
-                ->sum(DB::raw('srv.quantity * pv.selling_price'));
-
-        $netRevenue = $totalRevenue - $returnedRevenue;
+        $netRevenue = $totalRevenue;
         $totalBuyingCost = $purchaseIds->isEmpty()
             ? 0
             : DB::table('purchase_item_variants as piv')
@@ -531,17 +461,7 @@ class ReportsStatsWidget extends Widget
                 ->whereIn('pv.id', $variantIds)
                 ->sum(DB::raw('piv.quantity * pv.purchase_price'));
 
-        $returnedBuyingCost = $purchaseIds->isEmpty()
-            ? 0
-            : DB::table('purchase_return_item_variants as prv')
-                ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
-                ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-                ->join('product_variants as pv', 'pv.id', '=', 'prv.product_variant_id')
-                ->whereIn('pr.purchase_id', $purchaseIds)
-                ->whereIn('pv.id', $variantIds)
-                ->sum(DB::raw('prv.quantity * pv.purchase_price'));
-
-        $netBuyingCost = $totalBuyingCost - $returnedBuyingCost;
+        $netBuyingCost = $totalBuyingCost;
 
         return [
             'total_products'      => (int) $totalProducts,
@@ -703,18 +623,6 @@ class ReportsStatsWidget extends Widget
         $creditSalesTotal = (float) (clone $creditSalesQuery)->sum('total_amount');
         $creditPurchasesTotal = (float) (clone $creditPurchasesQuery)->sum('total_amount');
 
-        $creditSalesReturns = $creditSaleIds->isEmpty()
-            ? 0
-            : (float) DB::table('sale_returns')
-                ->whereIn('sale_id', $creditSaleIds)
-                ->sum('total_amount');
-
-        $creditPurchaseReturns = $creditPurchaseIds->isEmpty()
-            ? 0
-            : (float) DB::table('purchase_returns')
-                ->whereIn('purchase_id', $creditPurchaseIds)
-                ->sum('total_amount');
-
         $customerCredits = $creditSaleIds->isEmpty()
             ? collect()
             : DB::table('sales')
@@ -726,26 +634,13 @@ class ReportsStatsWidget extends Widget
                 ->groupBy('customers.id', 'customers.name')
                 ->get();
 
-        $customerReturns = $creditSaleIds->isEmpty()
-            ? collect()
-            : DB::table('sale_returns')
-                ->join('sales', 'sales.id', '=', 'sale_returns.sale_id')
-                ->whereIn('sale_returns.sale_id', $creditSaleIds)
-                ->groupBy('sales.customer_id')
-                ->selectRaw('sales.customer_id as customer_id')
-                ->selectRaw('COALESCE(SUM(sale_returns.total_amount), 0) as returned_amount')
-                ->pluck('returned_amount', 'customer_id');
-
         $topCustomers = $customerCredits
-            ->map(function ($row) use ($customerReturns) {
-                $returned = (float) ($customerReturns[$row->customer_id] ?? 0);
-                $net = max(0, (float) $row->credit_amount - $returned);
-
+            ->map(function ($row) {
                 return [
                     'id' => $row->customer_id,
                     'name' => $row->customer_name ?? 'N/A',
                     'count' => (int) $row->credit_sales,
-                    'amount' => $net,
+                    'amount' => max(0, (float) $row->credit_amount),
                 ];
             })
             ->sortByDesc('amount')
@@ -764,26 +659,13 @@ class ReportsStatsWidget extends Widget
                 ->groupBy('vendors.id', 'vendors.name')
                 ->get();
 
-        $vendorReturns = $creditPurchaseIds->isEmpty()
-            ? collect()
-            : DB::table('purchase_returns')
-                ->join('purchases', 'purchases.id', '=', 'purchase_returns.purchase_id')
-                ->whereIn('purchase_returns.purchase_id', $creditPurchaseIds)
-                ->groupBy('purchases.vendor_id')
-                ->selectRaw('purchases.vendor_id as vendor_id')
-                ->selectRaw('COALESCE(SUM(purchase_returns.total_amount), 0) as returned_amount')
-                ->pluck('returned_amount', 'vendor_id');
-
         $topVendors = $vendorCredits
-            ->map(function ($row) use ($vendorReturns) {
-                $returned = (float) ($vendorReturns[$row->vendor_id] ?? 0);
-                $net = max(0, (float) $row->credit_amount - $returned);
-
+            ->map(function ($row) {
                 return [
                     'id' => $row->vendor_id,
                     'name' => $row->vendor_name ?? 'N/A',
                     'count' => (int) $row->credit_purchases,
-                    'amount' => $net,
+                    'amount' => max(0, (float) $row->credit_amount),
                 ];
             })
             ->sortByDesc('amount')
@@ -792,8 +674,8 @@ class ReportsStatsWidget extends Widget
             ->all();
 
         return [
-            'receivable_total' => max(0, $creditSalesTotal - $creditSalesReturns),
-            'payable_total' => max(0, $creditPurchasesTotal - $creditPurchaseReturns),
+            'receivable_total' => max(0, $creditSalesTotal),
+            'payable_total' => max(0, $creditPurchasesTotal),
             'top_customers' => $topCustomers,
             'top_vendors' => $topVendors,
         ];
@@ -823,26 +705,11 @@ class ReportsStatsWidget extends Widget
         $cashPurchasesQuery = $this->purchaseBaseQuery($user, $merchantId)
             ->whereRaw('LOWER(payment_type) = ?', ['cash']);
 
-        $cashSaleIds = (clone $cashSalesQuery)->pluck('sales.id');
-        $cashPurchaseIds = (clone $cashPurchasesQuery)->pluck('purchases.id');
-
         $cashSalesAmount = (float) (clone $cashSalesQuery)->sum('total_amount');
         $cashPurchasesAmount = (float) (clone $cashPurchasesQuery)->sum('total_amount');
 
-        $cashSaleReturns = $cashSaleIds->isEmpty()
-            ? 0
-            : (float) DB::table('sale_returns')
-                ->whereIn('sale_id', $cashSaleIds)
-                ->sum('total_amount');
-
-        $cashPurchaseReturns = $cashPurchaseIds->isEmpty()
-            ? 0
-            : (float) DB::table('purchase_returns')
-                ->whereIn('purchase_id', $cashPurchaseIds)
-                ->sum('total_amount');
-
-        $salesCashInflow = $cashSalesAmount - $cashSaleReturns;
-        $purchasesCashOutflow = $cashPurchasesAmount - $cashPurchaseReturns;
+        $salesCashInflow = $cashSalesAmount;
+        $purchasesCashOutflow = $cashPurchasesAmount;
         $netCashMovement = $salesCashInflow - $purchasesCashOutflow;
 
         return [

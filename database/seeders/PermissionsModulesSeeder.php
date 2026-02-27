@@ -22,6 +22,7 @@ class PermissionsModulesSeeder extends Seeder
             'branches' => 'Branches',
             'customers' => 'Customers',
             'vendors' => 'Vendors',
+            'notification_templates' => 'Notification Templates',
             'categories' => 'Categories',
             'sub_categories'=>'Sub Categories',
             'brands' => 'Brands',
@@ -32,8 +33,10 @@ class PermissionsModulesSeeder extends Seeder
             'sales' => 'Sales',
             'purchases' => 'Purchases',
             'expenses' => 'Expenses',
+            'audits' => 'Audits',
             'reports' => 'Reports',
             'payrolls'=>'Payrolls',
+            'invoice_templates' => 'Invoice Templates',
         ];
 
         foreach ($modules as $key => $label) {

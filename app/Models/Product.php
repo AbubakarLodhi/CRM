@@ -154,4 +154,11 @@ class Product extends Model implements Auditable
     {
         return $this->hasMany(ProductOption::class);
     }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Product $product): void {
+            $product->variants()->delete();
+        });
+    }
 }

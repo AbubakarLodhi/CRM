@@ -6,6 +6,7 @@ use App\Filament\Resources\Activities\Support\ActivityPerformer;
 use App\Models\Merchant;
 use App\Models\User;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
@@ -109,7 +110,11 @@ class ActivitiesTable
                     }),
             ])
             ->recordActions([
-                ViewAction::make(),
+                ViewAction::make()
+                    ->visible(fn () =>
+                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('audits.view', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
             ])
             ->defaultSort('created_at', 'desc');
     }

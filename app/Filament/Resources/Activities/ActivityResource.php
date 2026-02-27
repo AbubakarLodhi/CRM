@@ -8,6 +8,7 @@ use App\Filament\Resources\Activities\Schemas\ActivityInfolist;
 use App\Filament\Resources\Activities\Tables\ActivitiesTable;
 use App\Models\Audit;
 use App\Models\Merchant;
+use App\Models\PermissionModule;
 use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
@@ -28,6 +29,34 @@ class ActivityResource extends Resource
     protected static ?int $navigationSort = 1;
 
     protected static ?string $recordTitleAttribute = 'event';
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        if (! PermissionModule::isEnabledForCurrentMerchant('audits')) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('audits.view', $guard);
+    }
+
+    public static function canView($record): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('audits.view', $guard);
+    }
 
     public static function canCreate(): bool
     {
@@ -101,4 +130,3 @@ class ActivityResource extends Resource
         ];
     }
 }
-

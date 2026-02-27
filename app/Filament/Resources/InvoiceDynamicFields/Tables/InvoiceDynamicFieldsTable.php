@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\InvoiceDynamicFields\Tables;
 
+use App\Filament\Resources\InvoiceDynamicFields\InvoiceDynamicFieldResource;
+use App\Models\InvoiceDynamicGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -45,13 +48,24 @@ class InvoiceDynamicFieldsTable
                         'footer' => 'Footer',
                     ]),
             ])
+            ->recordUrl(fn (InvoiceDynamicGroup $record) =>
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo('invoice_templates.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ? InvoiceDynamicFieldResource::getUrl('edit', [
+                        'record' => $record,
+                    ])
+                    : null
+            )
             ->recordActions([
                 EditAction::make()
-                    ->label('Edit Template'),
+                    ->label('Edit Template')
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('invoice_templates.update', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('invoice_templates.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ])
             ->defaultSort('section');

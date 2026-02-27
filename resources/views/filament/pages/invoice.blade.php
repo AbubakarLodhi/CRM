@@ -31,24 +31,22 @@
             $totalTaxPercent += $taxRate;
         }
 
-        $headerGroups = $headerGroups ?? [];
-        $footerGroups = $footerGroups ?? [];
-        $headerGroupOptions = $headerGroupOptions ?? ['__default' => 'Default (Current Header)'];
-        $footerGroupOptions = $footerGroupOptions ?? ['__default' => 'Default (Current Footer)'];
-        $selectedHeaderGroup = $selectedHeaderGroup ?? '__default';
-        $selectedFooterGroup = $selectedFooterGroup ?? '__default';
-        $showDefaultHeader = $showDefaultHeader ?? true;
-        $showDefaultFooter = $showDefaultFooter ?? true;
+        $combinations = $combinations ?? [];
+        $selectedCombinationIndex = (int) ($selectedCombinationIndex ?? 0);
 
-        $configuredHeaderLogo = null;
-        foreach ($headerGroups as $group) {
-            foreach (($group['fields'] ?? []) as $field) {
-                if (($field['value_type'] ?? null) === 'business_logo' && filled($field['value'] ?? null)) {
-                    $configuredHeaderLogo = (string) $field['value'];
-                    break 2;
-                }
-            }
+        if (empty($combinations)) {
+            $combinations = [[
+                'id' => '__default|__default',
+                'headerLabel' => 'Default (Current Header)',
+                'footerLabel' => 'Default (Current Footer)',
+                'headerGroups' => [],
+                'footerGroups' => [],
+                'showDefaultHeader' => true,
+                'showDefaultFooter' => true,
+            ]];
         }
+
+        $selectedCombinationIndex = max(0, min($selectedCombinationIndex, count($combinations) - 1));
     @endphp
 
     <title>Invoice {{ $invoiceNo }}</title>
@@ -275,54 +273,106 @@
             color: #111827;
         }
 
-        .invoice-controls {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(180px, 1fr));
-            gap: 10px 12px;
+        .combo-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             background: rgba(255, 255, 255, 0.95);
             border: 1px solid #e5e7eb;
             border-radius: 12px;
             padding: 10px 12px;
             box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
             pointer-events: auto;
+            min-width: 320px;
         }
 
-        .invoice-control {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-width: 0;
-        }
-
-        .invoice-control label {
-            font-size: 11px;
-            color: #6b7280;
+        .combo-label {
+            font-size: 12px;
+            color: #374151;
             font-weight: 600;
             line-height: 1.2;
         }
 
-        .invoice-control select {
+        .combo-slider {
+            width: 100%;
+            accent-color: #111827;
+        }
+
+        .combo-current {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 12px;
+            color: #4b5563;
+        }
+
+        .combo-current strong {
+            color: #111827;
+            font-weight: 700;
+        }
+
+        .side-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
             border: 1px solid #d1d5db;
-            border-radius: 8px;
             background: #fff;
             color: #111827;
-            font-size: 12px;
-            padding: 6px 10px;
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            line-height: 1;
+            padding: 0;
+            z-index: 12;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+        }
+
+        .side-arrow.left {
+            left: calc(50% - (var(--invoice-max-width) / 2) - 56px);
+        }
+
+        .side-arrow.right {
+            right: calc(50% - (var(--invoice-max-width) / 2) - 56px);
+        }
+
+        .side-arrow:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .invoice-carousel {
             width: 100%;
-            min-height: 34px;
+        }
+
+        .invoice-slide {
+            display: none;
+        }
+
+        .invoice-slide.is-active {
+            display: block;
         }
 
         @media (max-width: 900px) {
             .actions {
                 position: static;
                 margin: 12px;
-                justify-content: flex-end;
+                justify-content: space-between;
                 flex-wrap: wrap;
             }
 
-            .invoice-controls {
-                grid-template-columns: 1fr;
-                width: min(100%, 420px);
+            .combo-controls {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .side-arrow {
+                display: none;
             }
         }
 
@@ -346,39 +396,37 @@
             .actions {
                 display: none;
             }
+            .side-arrow {
+                display: none !important;
+            }
+            .invoice-slide {
+                display: none !important;
+            }
+            .invoice-slide.is-active {
+                display: block !important;
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="actions">
-    <form
-        method="GET"
-        action="{{ route('invoices.show', ['type' => $type, 'id' => $record->id]) }}"
-        class="invoice-controls"
-    >
-        <div class="invoice-control">
-            <label for="header_group">Header</label>
-            <select id="header_group" name="header_group" onchange="this.form.submit()">
-                @foreach($headerGroupOptions as $groupId => $groupLabel)
-                    <option value="{{ $groupId }}" @selected((string) $selectedHeaderGroup === (string) $groupId)>
-                        {{ $groupLabel }}
-                    </option>
-                @endforeach
-            </select>
+    <div class="combo-controls">
+        <label class="combo-label" for="invoice-combination-slider">Invoice Combination</label>
+        <input
+            id="invoice-combination-slider"
+            class="combo-slider"
+            type="range"
+            min="0"
+            max="{{ max(count($combinations) - 1, 0) }}"
+            value="{{ $selectedCombinationIndex }}"
+            step="1"
+        >
+        <div class="combo-current">
+            <span id="invoice-combination-text">-</span>
+            <span><strong id="invoice-combination-count">1</strong> / {{ count($combinations) }}</span>
         </div>
-
-        <div class="invoice-control">
-            <label for="footer_group">Footer</label>
-            <select id="footer_group" name="footer_group" onchange="this.form.submit()">
-                @foreach($footerGroupOptions as $groupId => $groupLabel)
-                    <option value="{{ $groupId }}" @selected((string) $selectedFooterGroup === (string) $groupId)>
-                        {{ $groupLabel }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-    </form>
+    </div>
 
     <div class="action-buttons">
         <button class="btn" type="button" onclick="window.print()">Print</button>
@@ -393,191 +441,281 @@
     </div>
 </div>
 
-<div class="invoice">
+<button type="button" id="invoice-combination-prev" class="side-arrow left" aria-label="Previous Combination">&lt;</button>
+<button type="button" id="invoice-combination-next" class="side-arrow right" aria-label="Next Combination">&gt;</button>
 
-    <div class="header">
-        <div class="brand">
-            @if($configuredHeaderLogo)
-                <img src="{{ asset('storage/'.$configuredHeaderLogo) }}">
-            @elseif($record->merchant?->logo)
-                <img src="{{ asset('storage/'.$record->merchant->logo->photo_url) }}">
-            @else
-                <strong>{{ $record->merchant?->name }}</strong>
-            @endif
+<div class="invoice-carousel" id="invoice-carousel">
+    @foreach($combinations as $comboIndex => $combo)
+        @php
+            $headerGroups = $combo['headerGroups'] ?? [];
+            $footerGroups = $combo['footerGroups'] ?? [];
+            $showDefaultHeader = (bool) ($combo['showDefaultHeader'] ?? true);
+            $showDefaultFooter = (bool) ($combo['showDefaultFooter'] ?? true);
+            $configuredHeaderLogo = null;
 
-            @if($showDefaultHeader)
-                <div>
-                    {{ $record->merchant?->name }}<br>
-                    @if($record->merchant?->address)
-                        {{ $record->merchant->address }}<br>
-                    @endif
-                    @if($record->merchant?->city || $record->merchant?->country)
-                        {{ $record->merchant->city }} {{ $record->merchant->country }}<br>
-                    @endif
-                    @if($record->merchant?->phone)
-                        {{ $record->merchant->phone }}<br>
-                    @endif
-                    @if($record->merchant?->email)
-                        {{ $record->merchant->email }}<br>
-                    @endif
-                    @if($record->merchant?->vat_number)
-                        VAT: {{ $record->merchant->vat_number }}
-                    @endif
+            foreach ($headerGroups as $group) {
+                foreach (($group['fields'] ?? []) as $field) {
+                    if (($field['value_type'] ?? null) === 'business_logo' && filled($field['value'] ?? null)) {
+                        $configuredHeaderLogo = (string) $field['value'];
+                        break 2;
+                    }
+                }
+            }
+        @endphp
+        <section
+            class="invoice-slide @if($comboIndex === $selectedCombinationIndex) is-active @endif"
+            data-combo-label="Header: {{ $combo['headerLabel'] ?? 'Default' }} | Footer: {{ $combo['footerLabel'] ?? 'Default' }}"
+            data-combo-id="{{ $combo['id'] ?? '' }}"
+        >
+            <div class="invoice">
+                <div class="header">
+                    <div class="brand">
+                        @if($configuredHeaderLogo)
+                            <img src="{{ asset('storage/'.$configuredHeaderLogo) }}">
+                        @elseif($record->merchant?->logo)
+                            <img src="{{ asset('storage/'.$record->merchant->logo->photo_url) }}">
+                        @else
+                            <strong>{{ $record->merchant?->name }}</strong>
+                        @endif
+
+                        @if($showDefaultHeader)
+                            <div>
+                                {{ $record->merchant?->name }}<br>
+                                @if($record->merchant?->address)
+                                    {{ $record->merchant->address }}<br>
+                                @endif
+                                @if($record->merchant?->city || $record->merchant?->country)
+                                    {{ $record->merchant->city }} {{ $record->merchant->country }}<br>
+                                @endif
+                                @if($record->merchant?->phone)
+                                    {{ $record->merchant->phone }}<br>
+                                @endif
+                                @if($record->merchant?->email)
+                                    {{ $record->merchant->email }}<br>
+                                @endif
+                                @if($record->merchant?->vat_number)
+                                    VAT: {{ $record->merchant->vat_number }}
+                                @endif
+                            </div>
+                        @endif
+
+                        @foreach($headerGroups as $group)
+                            <div>
+                                <strong>{{ $group['group_name'] }}</strong><br>
+                                @foreach($group['fields'] as $field)
+                                    @continue(($field['value_type'] ?? null) === 'business_logo')
+                                    {{ $field['label'] }}: {{ $field['value'] }}<br>
+                                @endforeach
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="invoice-title">
+                        <h1>INVOICE</h1>
+                        <div class="subtitle">Invoice# {{ $invoiceNo }}</div>
+                    </div>
                 </div>
-            @endif
 
-            @foreach($headerGroups as $group)
-                <div>
-                    <strong>{{ $group['group_name'] }}</strong><br>
-                    @foreach($group['fields'] as $field)
-                        @continue(($field['value_type'] ?? null) === 'business_logo')
-                        {{ $field['label'] }}: {{ $field['value'] }}<br>
-                    @endforeach
-                </div>
-            @endforeach
-        </div>
-
-        <div class="invoice-title">
-            <h1>INVOICE</h1>
-            <div class="subtitle">Invoice# {{ $invoiceNo }}</div>
-        </div>
-    </div>
-
-    <div class="party-row">
-        <div>
-            <strong>{{ $isSale ? 'Bill To' : 'Bill From' }}</strong><br>
-            {{ $party?->name }}<br>
-            @if($party?->email)
-                {{ $party->email }}<br>
-            @endif
-            @if($party?->phone)
-                {{ $party->phone }}<br>
-            @endif
-            {{ $party?->address ?? '—' }}
-        </div>
-        <div>
-            <div class="invoice-meta">
-                <div><span class="label">Invoice Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
-                <div><span class="label">Invoice #</span><span>{{ $invoiceNo }}</span></div>
-                <div><span class="label">Due Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
-                <div aria-hidden="true"></div>
-                <div><span class="label">Created By</span><span>{{ $record->createdBy?->name ?: ($record->merchant?->name ?: '—') }}</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <table>
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>Item & Description</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Subtotal</th>
-            <th>Discount (%)</th>
-            <th>Tax (%)</th>
-            <th>Total</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach($record->items as $i => $item)
-            <tr>
-                <td>{{ $i + 1 }}</td>
-                <td>
-                    {{ $item->product?->name }}
-                    @if($item->variants->first())
-                        <div class="item-meta">
-                            {{ $item->variants->first()->variant?->name }}
+                <div class="party-row">
+                    <div>
+                        <strong>{{ $isSale ? 'Bill To' : 'Bill From' }}</strong><br>
+                        {{ $party?->name }}<br>
+                        @if($party?->email)
+                            {{ $party->email }}<br>
+                        @endif
+                        @if($party?->phone)
+                            {{ $party->phone }}<br>
+                        @endif
+                        {{ $party?->address ?? '—' }}
+                    </div>
+                    <div>
+                        <div class="invoice-meta">
+                            <div><span class="label">Invoice Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
+                            <div><span class="label">Invoice #</span><span>{{ $invoiceNo }}</span></div>
+                            <div><span class="label">Due Date</span><span>{{ $invoiceDate?->format('d/m/Y') }}</span></div>
+                            <div aria-hidden="true"></div>
+                            <div><span class="label">Created By</span><span>{{ $record->createdBy?->name ?: ($record->merchant?->name ?: '—') }}</span></div>
                         </div>
-                    @endif
-                </td>
-                <td>Rs{{ number_format($item->unit_price, 2) }}</td>
-                <td>{{ $item->quantity }}</td>
-                <td>Rs{{ number_format($item->line_total, 2) }}</td>
-                <td>{{ number_format((float) ($item->discount ?? 0), 2) }}%</td>
-                <td>{{ number_format((float) ($item->tax ?? 0), 2) }}%</td>
-                @php
-                    $lineTotal = (float) ($item->line_total ?? 0);
-                    $discountRate = (float) ($item->discount ?? 0);
-                    $taxRate = (float) ($item->tax ?? 0);
+                    </div>
+                </div>
 
-                    $discountAmount = $lineTotal * ($discountRate / 100);
-                    $taxableAmount = $lineTotal - $discountAmount;
-                    $taxAmount = $taxableAmount * ($taxRate / 100);
+                <div class="divider"></div>
 
-                    $lineGrandTotal = $taxableAmount + $taxAmount;
-                @endphp
-                <td>Rs{{ number_format($lineGrandTotal, 2) }}</td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item & Description</th>
+                        <th>Price</th>
+                        <th>Qty</th>
+                        <th>Subtotal</th>
+                        <th>Discount (%)</th>
+                        <th>Tax (%)</th>
+                        <th>Total</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach($record->items as $i => $item)
+                        <tr>
+                            <td>{{ $i + 1 }}</td>
+                            <td>
+                                {{ $item->product?->name }}
+                                @if($item->variants->first())
+                                    <div class="item-meta">
+                                        {{ $item->variants->first()->variant?->name }}
+                                    </div>
+                                @endif
+                            </td>
+                            <td>Rs{{ number_format($item->unit_price, 2) }}</td>
+                            <td>{{ $item->quantity }}</td>
+                            <td>Rs{{ number_format($item->line_total, 2) }}</td>
+                            <td>{{ number_format((float) ($item->discount ?? 0), 2) }}%</td>
+                            <td>{{ number_format((float) ($item->tax ?? 0), 2) }}%</td>
+                            @php
+                                $lineTotal = (float) ($item->line_total ?? 0);
+                                $discountRate = (float) ($item->discount ?? 0);
+                                $taxRate = (float) ($item->tax ?? 0);
 
-    <div class="footer-gap"></div>
+                                $discountAmount = $lineTotal * ($discountRate / 100);
+                                $taxableAmount = $lineTotal - $discountAmount;
+                                $taxAmount = $taxableAmount * ($taxRate / 100);
 
-    <div class="summary" style="margin-bottom: 24px;">
-        <div>
-            <span>Sub Total</span>
-            <span>Rs{{ number_format($record->subtotal, 2) }}</span>
-        </div>
+                                $lineGrandTotal = $taxableAmount + $taxAmount;
+                            @endphp
+                            <td>Rs{{ number_format($lineGrandTotal, 2) }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
 
-        <div>
-            <span>Total Discount</span>
-            <span>Rs{{ number_format($totalDiscount, 2) }}</span>
-        </div>
+                <div class="footer-gap"></div>
 
-        <div>
-            <span>Total Tax</span>
-            <span>Rs{{ number_format($totalTax, 2) }}</span>
-        </div>
+                <div class="summary" style="margin-bottom: 24px;">
+                    <div>
+                        <span>Sub Total</span>
+                        <span>Rs{{ number_format($record->subtotal, 2) }}</span>
+                    </div>
 
-        <div class="grand">
-            <span>Grand Total</span>
-            <span>Rs{{ number_format($record->total_amount, 2) }}</span>
-        </div>
+                    <div>
+                        <span>Total Discount</span>
+                        <span>Rs{{ number_format($totalDiscount, 2) }}</span>
+                    </div>
 
-    </div>
+                    <div>
+                        <span>Total Tax</span>
+                        <span>Rs{{ number_format($totalTax, 2) }}</span>
+                    </div>
 
-    @if($record->notes)
-        <div class="notes">
-            <strong>Notes</strong><br>
-            {{ $record->notes }}
-        </div>
-    @endif
+                    <div class="grand">
+                        <span>Grand Total</span>
+                        <span>Rs{{ number_format($record->total_amount, 2) }}</span>
+                    </div>
 
-    @if($showDefaultFooter && ($record->merchant?->email || $record->merchant?->phone || $record->merchant?->whatsapp_number))
-        <div class="contact-us">
-            <strong>Contact Us</strong><br>
-            @if($record->merchant?->email)
-                Email: {{ $record->merchant->email }}<br>
-            @endif
-            @if($record->merchant?->phone)
-                Phone: {{ $record->merchant->phone }}<br>
-            @endif
-            @if($record->merchant?->whatsapp_number)
-                WhatsApp: {{ $record->merchant->whatsapp_number }}
-            @endif
-        </div>
-    @endif
+                </div>
 
-    @if(! empty($footerGroups))
-        <div class="contact-us">
-            @foreach($footerGroups as $group)
-                <strong>{{ $group['group_name'] }}</strong><br>
-                @foreach($group['fields'] as $field)
-                    @continue(($field['value_type'] ?? null) === 'business_logo')
-                    {{ $field['label'] }}: {{ $field['value'] }}<br>
-                @endforeach
-                @if(! $loop->last)
-                    <br>
+                @if($record->notes)
+                    <div class="notes">
+                        <strong>Notes</strong><br>
+                        {{ $record->notes }}
+                    </div>
                 @endif
-            @endforeach
-        </div>
-    @endif
 
+                @if($showDefaultFooter && ($record->merchant?->email || $record->merchant?->phone || $record->merchant?->whatsapp_number))
+                    <div class="contact-us">
+                        <strong>Contact Us</strong><br>
+                        @if($record->merchant?->email)
+                            Email: {{ $record->merchant->email }}<br>
+                        @endif
+                        @if($record->merchant?->phone)
+                            Phone: {{ $record->merchant->phone }}<br>
+                        @endif
+                        @if($record->merchant?->whatsapp_number)
+                            WhatsApp: {{ $record->merchant->whatsapp_number }}
+                        @endif
+                    </div>
+                @endif
+
+                @if(! empty($footerGroups))
+                    <div class="contact-us">
+                        @foreach($footerGroups as $group)
+                            <strong>{{ $group['group_name'] }}</strong><br>
+                            @foreach($group['fields'] as $field)
+                                @continue(($field['value_type'] ?? null) === 'business_logo')
+                                {{ $field['label'] }}: {{ $field['value'] }}<br>
+                            @endforeach
+                            @if(! $loop->last)
+                                <br>
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </section>
+    @endforeach
 </div>
+
+<script>
+    (function () {
+        const slides = Array.from(document.querySelectorAll('.invoice-slide'));
+        const slider = document.getElementById('invoice-combination-slider');
+        const comboText = document.getElementById('invoice-combination-text');
+        const comboCount = document.getElementById('invoice-combination-count');
+        const prevButton = document.getElementById('invoice-combination-prev');
+        const nextButton = document.getElementById('invoice-combination-next');
+
+        if (!slides.length || !slider || !comboText || !comboCount || !prevButton || !nextButton) {
+            return;
+        }
+
+        const activate = (index) => {
+            const safeIndex = Math.max(0, Math.min(index, slides.length - 1));
+
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('is-active', i === safeIndex);
+            });
+
+            slider.value = String(safeIndex);
+            comboCount.textContent = String(safeIndex + 1);
+            comboText.textContent = slides[safeIndex].dataset.comboLabel || `Combination ${safeIndex + 1}`;
+            prevButton.disabled = safeIndex === 0;
+            nextButton.disabled = safeIndex === slides.length - 1;
+        };
+
+        slider.addEventListener('input', (event) => {
+            activate(Number(event.target.value));
+        });
+
+        prevButton.addEventListener('click', () => {
+            activate(Number(slider.value || 0) - 1);
+        });
+
+        nextButton.addEventListener('click', () => {
+            activate(Number(slider.value || 0) + 1);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            const target = event.target;
+            const tagName = target?.tagName?.toLowerCase();
+            const isTypingContext = target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName);
+
+            if (isTypingContext) {
+                return;
+            }
+
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                activate(Number(slider.value || 0) - 1);
+            }
+
+            if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                activate(Number(slider.value || 0) + 1);
+            }
+        });
+
+        activate(Number(slider.value || 0));
+    })();
+</script>
 
 </body>
 </html>

@@ -86,6 +86,7 @@ class EditRoles extends EditRecord
             'branches'=>'Branches',
             'categories' => 'Categories',
             'customers' => 'Customers',
+            'audits' => 'Audits',
         ];
     }
     protected function handleRecordUpdate(

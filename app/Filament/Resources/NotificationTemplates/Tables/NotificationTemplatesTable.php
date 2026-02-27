@@ -2,9 +2,12 @@
 
 namespace App\Filament\Resources\NotificationTemplates\Tables;
 
+use App\Filament\Resources\NotificationTemplates\NotificationTemplateResource;
+use App\Models\NotificationTemplate;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Facades\Filament;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -44,12 +47,23 @@ class NotificationTemplatesTable
             ->filters([
                 //
             ])
+            ->recordUrl(fn (NotificationTemplate $record) =>
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo('notification_templates.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ? NotificationTemplateResource::getUrl('edit', [
+                        'record' => $record,
+                    ])
+                    : null
+            )
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('notification_templates.update', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('notification_templates.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ]);
     }

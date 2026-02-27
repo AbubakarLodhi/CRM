@@ -38,6 +38,7 @@
     @else
 
         @php($stats = $this->getSalesStats())
+        @php($returnStats = $this->getSalesReturnStats())
 
         {{-- ========================= --}}
         {{-- SALES OVERVIEW --}}
@@ -93,16 +94,52 @@
                     </div>
                 </x-filament::card>
 
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="mb-3 text-lg font-semibold">Return Overview</h2>
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <x-filament::card>
                     <div class="flex items-center gap-2 text-sm text-gray-500">
-                        <x-heroicon-o-chart-bar class="h-4 w-4 text-warning-500"/>
-                        Avg Sale Value
+                        <x-heroicon-o-arrow-uturn-left class="h-4 w-4 text-primary-500"/>
+                        Total Returns
                     </div>
-                    <div class="text-2xl font-bold text-warning-600 report-stat-value">
-                        PKR&nbsp;{{ number_format($stats['avg_sale'], 2) }}
+                    <div class="text-2xl font-bold report-stat-value">
+                        {{ $returnStats['total_returns'] }}
                     </div>
                 </x-filament::card>
 
+                <x-filament::card>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <x-heroicon-o-rectangle-stack class="h-4 w-4 text-info-500"/>
+                        Item Count
+                    </div>
+                    <div class="text-2xl font-bold report-stat-value">
+                        {{ $returnStats['total_items_count'] }}
+                    </div>
+                </x-filament::card>
+
+                <x-filament::card>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <x-heroicon-o-cube class="h-4 w-4 text-danger-500"/>
+                        Quantity Returned
+                    </div>
+                    <div class="text-2xl font-bold text-danger-700 report-stat-value">
+                        {{ number_format($returnStats['total_quantity']) }}
+                    </div>
+                </x-filament::card>
+
+                <x-filament::card>
+                    <div class="flex items-center gap-2 text-sm text-gray-500">
+                        <x-heroicon-o-currency-dollar class="h-4 w-4 text-success-600"/>
+                        Total Returned Amount
+                    </div>
+                    <div class="text-2xl font-bold text-success-700 report-stat-value">
+                        PKR&nbsp;{{ number_format($returnStats['total_amount'], 2) }}
+                    </div>
+                </x-filament::card>
             </div>
         </div>
 

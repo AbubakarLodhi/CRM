@@ -43,6 +43,9 @@ class PurchasesSummaryExport implements
             'Discount',
             'Tax',
             'Total Amount',
+            'Return Status',
+            'Returned Qty',
+            'Returned Amount',
         ];
     }
 
@@ -62,6 +65,13 @@ class PurchasesSummaryExport implements
         } else {
             $branchText = $branches->implode(', ');
         }
+
+        $returnsCount = (int) ($purchase->returns_count ?? 0);
+        $returnedQty = (float) $purchase->returns->sum(fn ($return) => $return->items->sum('quantity'));
+        $hasRemaining = $purchase->items->contains(fn ($item) => (int) ($item->quantity ?? 0) > 0);
+        $returnStatus = $returnsCount === 0
+            ? '-'
+            : ($hasRemaining ? 'Partially Returned' : 'Returned');
 
         return [
             $purchase->purchase_no,
@@ -84,6 +94,9 @@ class PurchasesSummaryExport implements
                 return $taxableAmount * ($taxRate / 100);
             }),
             (float) $purchase->total_amount,
+            $returnStatus,
+            $returnedQty,
+            (float) ($purchase->returned_amount ?? 0),
         ];
     }
 
@@ -107,8 +120,10 @@ class PurchasesSummaryExport implements
                 $event->sheet->setCellValue("G{$totalRow}", $this->totals['discount'] ?? 0);
                 $event->sheet->setCellValue("H{$totalRow}", $this->totals['tax'] ?? 0);
                 $event->sheet->setCellValue("I{$totalRow}", $this->totals['total'] ?? 0);
+                $event->sheet->setCellValue("K{$totalRow}", $this->totals['returned_quantity'] ?? 0);
+                $event->sheet->setCellValue("L{$totalRow}", $this->totals['returned_amount'] ?? 0);
 
-                $event->sheet->getStyle("D{$totalRow}:I{$totalRow}")
+                $event->sheet->getStyle("D{$totalRow}:L{$totalRow}")
                     ->getFont()
                     ->setBold(true);
             },

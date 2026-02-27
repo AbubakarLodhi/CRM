@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\SaleReturn;
+use App\Models\SaleReturnItem;
 use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -76,6 +78,23 @@ class Sale extends Model implements Auditable
     public function returns(): HasMany
     {
         return $this->hasMany(SaleReturn::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $sale): void {
+            $sale->returns()
+                ->with('items.variants')
+                ->get()
+                ->each(function (SaleReturn $return): void {
+                    $return->items->each(function (SaleReturnItem $item): void {
+                        $item->variants()->delete();
+                        $item->delete();
+                    });
+
+                    $return->delete();
+                });
+        });
     }
 
 }

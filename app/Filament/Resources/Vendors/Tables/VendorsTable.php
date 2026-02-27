@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Vendors\Tables;
 
 use App\Filament\Exports\VendorPurchasesExport;
+use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\Vendor;
 use App\Models\Purchase;
 use Filament\Actions\Action;
@@ -68,6 +69,15 @@ class VendorsTable
             ->filters([
                 //
             ])
+            ->recordUrl(fn (Vendor $record) =>
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo('vendors.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ? VendorResource::getUrl('edit', [
+                        'record' => $record,
+                    ])
+                    : null
+            )
             ->recordActions([
                 Action::make('export_vendor_purchases')
                     ->label('')

@@ -24,6 +24,7 @@ class PermissionsSeeder extends Seeder
             'branches' => ['view', 'create', 'update', 'delete'],
             'customers' => ['view', 'create', 'update', 'delete'],
             'vendors' => ['view', 'create', 'update', 'delete'],
+            'notification_templates' => ['view', 'create', 'update', 'delete'],
             'reports' => ['view', 'create', 'update', 'delete'],
             'categories' => ['view', 'create', 'update', 'delete'],
             'sub_categories' => ['view', 'create', 'update', 'delete'],
@@ -35,7 +36,9 @@ class PermissionsSeeder extends Seeder
             'sales' => ['view', 'create', 'update', 'delete'],
             'purchases' => ['view', 'create', 'update', 'delete'],
             'expenses' => ['view', 'create', 'update', 'delete'],
+            'audits' => ['view', 'create', 'update', 'delete'],
             'payrolls' => ['view', 'create', 'update', 'delete'],
+            'invoice_templates' => ['view', 'create', 'update', 'delete'],
         ];
 
         foreach ($modules as $module => $actions) {

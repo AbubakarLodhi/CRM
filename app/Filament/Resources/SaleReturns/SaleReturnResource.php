@@ -7,8 +7,10 @@ use App\Filament\Resources\SaleReturns\Pages\EditSaleReturn;
 use App\Filament\Resources\SaleReturns\Pages\ListSaleReturns;
 use App\Filament\Resources\SaleReturns\Schemas\SaleReturnForm;
 use App\Filament\Resources\SaleReturns\Tables\SaleReturnsTable;
+use App\Models\PermissionModule;
 use App\Models\SaleReturn;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -25,6 +27,23 @@ class SaleReturnResource extends Resource
     protected static ?int $navigationSort = 5;
 
     protected static ?string $recordTitleAttribute = 'Sale Return';
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('sales')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('sales.view', $guard);
+    }
 
     public static function form(Schema $schema): Schema
     {

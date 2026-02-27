@@ -6,6 +6,7 @@ use App\Services\PurchaseReturnService;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Collection;
 use Filament\Tables\Columns\TextColumn;
@@ -74,6 +75,10 @@ class PurchaseReturnsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
+                        ->visible(fn () =>
+                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        )
                         ->action(function (Collection $records): void {
                             foreach ($records as $record) {
                                 PurchaseReturnService::deleteReturn($record);

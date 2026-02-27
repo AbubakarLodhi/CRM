@@ -4,6 +4,7 @@ namespace App\Filament\Resources\SaleReturns\Pages;
 
 use App\Filament\Resources\SaleReturns\SaleReturnResource;
 use Filament\Actions\CreateAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\ListRecords;
 
 class ListSaleReturns extends ListRecords
@@ -13,7 +14,10 @@ class ListSaleReturns extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            //CreateAction::make(),
+            //CreateAction::make()->visible(fn () =>
+            //                    auth(Filament::getCurrentPanel()->getAuthGuard())
+            //                        ->user()?->hasPermissionTo('sales.create', Filament::getCurrentPanel()->getAuthGuard())
+            //                    ),
         ];
     }
 }

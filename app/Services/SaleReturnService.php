@@ -4,7 +4,8 @@ namespace App\Services;
 
 use App\Models\Sale;
 use App\Models\SaleReturn;
-use App\Models\SaleReturnItem;
+use App\Models\SaleItem;
+use App\Models\SaleItemVariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -35,11 +36,7 @@ class SaleReturnService
                     continue;
                 }
 
-                $returnedQty = (int) SaleReturnItem::query()
-                    ->where('sale_item_id', $saleItem->id)
-                    ->sum('quantity');
-
-                $remainingQty = (int) $saleItem->quantity - $returnedQty;
+                $remainingQty = (int) $saleItem->quantity;
 
                 if ($item['quantity'] > $remainingQty) {
                     $productName = $saleItem->product?->name ?? 'Product';
@@ -56,36 +53,22 @@ class SaleReturnService
                 $taxAmount = $taxableAmount * ($taxRate / 100);
 
                 $variantAllocations = [];
-                $variantRows = $saleItem->variants;
+                $variantRows = $saleItem->variants()->get();
                 $returnQty = (int) $item['quantity'];
 
                 if ($variantRows->isNotEmpty()) {
-                    $totalVariantQty = (int) $variantRows->sum('quantity');
-                    $remaining = $returnQty;
-                    $count = $variantRows->count();
+                    $variantAllocations = self::buildVariantAllocations(
+                        $variantRows,
+                        $returnQty,
+                        (float) $saleItem->unit_price
+                    );
 
-                    foreach ($variantRows->values() as $index => $variantRow) {
-                        if ($index === $count - 1) {
-                            $allocQty = $remaining;
-                        } else {
-                            $ratio = $totalVariantQty > 0 ? ($variantRow->quantity / $totalVariantQty) : 0;
-                            $allocQty = (int) floor($returnQty * $ratio);
-                            $allocQty = min($allocQty, $remaining);
-                        }
-
-                        $remaining -= $allocQty;
-
-                        if ($allocQty <= 0) {
-                            continue;
-                        }
-
-                        $variantUnit = (float) ($variantRow->unit_price ?? $saleItem->unit_price);
-                        $variantAllocations[] = [
-                            'product_variant_id' => $variantRow->product_variant_id,
-                            'quantity' => $allocQty,
-                            'unit_price' => $variantUnit,
-                            'line_total' => $variantUnit * $allocQty,
-                        ];
+                    $allocatedQty = (int) collect($variantAllocations)->sum('quantity');
+                    if ($allocatedQty !== $returnQty) {
+                        $productName = $saleItem->product?->name ?? 'Product';
+                        throw new \Exception(
+                            "Return quantity for {$productName} cannot exceed available variant quantity."
+                        );
                     }
                 }
 
@@ -107,8 +90,6 @@ class SaleReturnService
                 $subtotal += $lineTotal;
                 $totalDiscount += $discountAmount;
                 $totalTax += $taxAmount;
-
-                // ❌ REMOVE direct stock update
             }
 
             if (! $returnItems) {
@@ -135,7 +116,18 @@ class SaleReturnService
                 if (! empty($returnItem['variants'])) {
                     $itemModel->variants()->createMany($returnItem['variants']);
                 }
+
+                /** @var SaleItem|null $sourceItem */
+                $sourceItem = SaleItem::query()->find($returnItem['data']['sale_item_id'] ?? null);
+
+                self::reduceSourceSaleItem(
+                    $sourceItem,
+                    (int) ($returnItem['data']['quantity'] ?? 0),
+                    $returnItem['variants'] ?? []
+                );
             }
+
+            self::recalculateSaleTotals($sale);
         });
     }
 
@@ -145,11 +137,180 @@ class SaleReturnService
             $return->loadMissing('items.variants');
 
             foreach ($return->items as $item) {
+                /** @var SaleItem|null $sourceItem */
+                $sourceItem = SaleItem::query()->find($item->sale_item_id);
+
+                self::restoreSourceSaleItem($sourceItem, $item);
+
                 $item->variants()->delete();
                 $item->delete();
             }
 
+            $sale = $return->sale;
             $return->delete();
+
+            if ($sale) {
+                self::recalculateSaleTotals($sale);
+            }
         });
+    }
+
+    protected static function recalculateSaleTotals(Sale $sale): void
+    {
+        $items = $sale->items()->get();
+
+        $subtotal = (float) $items->sum('line_total');
+        $totalDiscount = 0.0;
+        $totalTax = 0.0;
+
+        foreach ($items as $item) {
+            $lineTotal = (float) ($item->line_total ?? 0);
+            $discountRate = (float) ($item->discount ?? 0);
+            $taxRate = (float) ($item->tax ?? 0);
+
+            $discountAmount = $lineTotal * ($discountRate / 100);
+            $taxableAmount = $lineTotal - $discountAmount;
+            $taxAmount = $taxableAmount * ($taxRate / 100);
+
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxAmount;
+        }
+
+        $sale->update([
+            'subtotal' => $subtotal,
+            'total_amount' => $subtotal - $totalDiscount + $totalTax,
+        ]);
+    }
+
+    protected static function buildVariantAllocations($variantRows, int $returnQty, float $fallbackUnitPrice): array
+    {
+        $allocations = [];
+        $remaining = $returnQty;
+
+        foreach ($variantRows as $variantRow) {
+            if ($remaining <= 0) {
+                break;
+            }
+
+            $availableQty = max(0, (int) ($variantRow->quantity ?? 0));
+            if ($availableQty <= 0) {
+                continue;
+            }
+
+            $allocQty = min($availableQty, $remaining);
+            $variantUnit = (float) ($variantRow->unit_price ?? $fallbackUnitPrice);
+
+            $allocations[] = [
+                'product_variant_id' => $variantRow->product_variant_id,
+                'quantity' => $allocQty,
+                'unit_price' => $variantUnit,
+                'line_total' => $variantUnit * $allocQty,
+            ];
+
+            $remaining -= $allocQty;
+        }
+
+        return $allocations;
+    }
+
+    protected static function reduceSourceSaleItem(?SaleItem $sourceItem, int $returnedQty, array $variantAllocations): void
+    {
+        if (! $sourceItem) {
+            return;
+        }
+
+        if (! empty($variantAllocations) && $sourceItem->variants()->exists()) {
+            $variantRows = $sourceItem->variants()->get()->keyBy('product_variant_id');
+
+            foreach ($variantAllocations as $allocation) {
+                $variantId = $allocation['product_variant_id'] ?? null;
+                $qtyToReduce = max(0, (int) ($allocation['quantity'] ?? 0));
+
+                if (! $variantId || $qtyToReduce <= 0) {
+                    continue;
+                }
+
+                /** @var SaleItemVariant|null $sourceVariant */
+                $sourceVariant = $variantRows->get($variantId);
+                if (! $sourceVariant) {
+                    continue;
+                }
+
+                $newQty = max(0, (int) $sourceVariant->quantity - $qtyToReduce);
+                $lineTotal = (float) $sourceVariant->unit_price * $newQty;
+                $sourceVariant->update([
+                    'quantity' => $newQty,
+                    'line_total' => $lineTotal,
+                ]);
+            }
+
+            $sourceItem->refresh();
+            $sourceItem->loadMissing('variants');
+            $newQty = (int) $sourceItem->variants->sum('quantity');
+            $lineTotal = (float) $sourceItem->variants->sum('line_total');
+        } else {
+            $newQty = max(0, (int) $sourceItem->quantity - $returnedQty);
+            $lineTotal = (float) $sourceItem->unit_price * $newQty;
+        }
+
+        $sourceItem->update([
+            'quantity' => $newQty,
+            'line_total' => $lineTotal,
+        ]);
+    }
+
+    protected static function restoreSourceSaleItem(?SaleItem $sourceItem, $returnItem): void
+    {
+        if (! $sourceItem) {
+            return;
+        }
+
+        $returnVariantRows = $returnItem->variants()->get();
+
+        if ($returnVariantRows->isNotEmpty() && $sourceItem->variants()->exists()) {
+            $sourceVariantRows = $sourceItem->variants()->get()->keyBy('product_variant_id');
+
+            foreach ($returnVariantRows as $returnVariant) {
+                $variantId = $returnVariant->product_variant_id;
+                $qtyToRestore = max(0, (int) ($returnVariant->quantity ?? 0));
+
+                if (! $variantId || $qtyToRestore <= 0) {
+                    continue;
+                }
+
+                /** @var SaleItemVariant|null $sourceVariant */
+                $sourceVariant = $sourceVariantRows->get($variantId);
+
+                if (! $sourceVariant) {
+                    $sourceVariant = $sourceItem->variants()->create([
+                        'product_variant_id' => $variantId,
+                        'quantity' => 0,
+                        'unit_price' => (float) ($returnVariant->unit_price ?? $sourceItem->unit_price),
+                        'line_total' => 0,
+                    ]);
+                    $sourceVariantRows->put($variantId, $sourceVariant);
+                }
+
+                $newQty = (int) $sourceVariant->quantity + $qtyToRestore;
+                $lineTotal = (float) $sourceVariant->unit_price * $newQty;
+                $sourceVariant->update([
+                    'quantity' => $newQty,
+                    'line_total' => $lineTotal,
+                ]);
+            }
+
+            $sourceItem->refresh();
+            $sourceItem->loadMissing('variants');
+            $newQty = (int) $sourceItem->variants->sum('quantity');
+            $lineTotal = (float) $sourceItem->variants->sum('line_total');
+        } else {
+            $newQty = (int) $sourceItem->quantity + (int) ($returnItem->quantity ?? 0);
+            $lineTotal = (float) $sourceItem->unit_price * $newQty;
+        }
+
+        $sourceItem->update([
+            'quantity' => $newQty,
+            'line_total' => $lineTotal,
+        ]);
     }
 }

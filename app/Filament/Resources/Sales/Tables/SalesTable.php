@@ -162,10 +162,20 @@ class SalesTable
 
                 BadgeColumn::make('return_status')
                     ->label('Return')
-                    ->colors(['success'])
-                    ->getStateUsing(fn (Sale $record) =>
-                        $record->returns()->exists() ? 'Returned' : '-'
-                    )
+                    ->colors([
+                        'gray' => '-',
+                        'warning' => 'Partially Returned',
+                        'success' => 'Returned',
+                    ])
+                    ->getStateUsing(function (Sale $record) {
+                        if (! $record->returns()->exists()) {
+                            return '-';
+                        }
+
+                        return self::hasReturnableItems($record)
+                            ? 'Partially Returned'
+                            : 'Returned';
+                    })
                     ->toggleable(),
 
                 TextColumn::make('createdBy.name')
@@ -305,6 +315,7 @@ class SalesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
+                && ! $record->returns()->exists()
                 ? SaleResource::getUrl('edit', ['record' => $record])
                 : null
             )
@@ -326,7 +337,11 @@ class SalesTable
                     ->url(fn (Sale $record): string => route('invoices.show', [
                         'type' => 'sale',
                         'id' => $record->id,
-                    ])),
+                    ]))
+                    ->visible(fn () =>
+                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('sales.view', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
 
 
                 Action::make('return_sale')
@@ -344,15 +359,20 @@ class SalesTable
                             ->title('Sale returned')
                             ->send();
                     })
-                    ->visible(fn (Sale $record) => ! $record->returns()->exists()),
+                    ->visible(fn (Sale $record) =>
+                        self::hasReturnableItems($record)
+                        && auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('sales.delete', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
 
                 EditAction::make()
                     ->color('warning')
                     ->label('')
                     ->tooltip('Edit')
-                    ->visible(fn () =>
+                    ->visible(fn (Sale $record) =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
+                        && ! $record->returns()->exists()
                     ),
 
                 DeleteAction::make()
@@ -412,8 +432,8 @@ class SalesTable
                             'sale_item_id' => $item->id,
                             'product_name' => $item->product?->name ?? 'Product',
                             'variant_name' => $variantLabel,
-                            'max_quantity' => $item->quantity,
-                            'quantity' => $item->quantity, // Prefill sold quantity
+                            'max_quantity' => max(0, (int) $item->quantity),
+                            'quantity' => max(0, (int) $item->quantity),
                             'unit_price' => $item->unit_price,
                             'discount' => $item->discount ?? 0,
                             'tax' => $item->tax ?? 0,
@@ -443,11 +463,13 @@ class SalesTable
 
                     TextInput::make('quantity')
                         ->numeric()
+                        ->live()
                         ->minValue(0)
                         ->maxValue(fn ($get) => $get('max_quantity'))
                         ->required()
-                        ->disabled()
+                        ->disabled(fn ($get) => (int) ($get('max_quantity') ?? 0) <= 0)
                         ->dehydrated()
+                        ->afterStateUpdated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
                         ->rules([
                             fn ($get) => function ($attribute, $value, $fail) use ($get) {
                                 $max = $get('max_quantity');
@@ -566,6 +588,17 @@ class SalesTable
             'total_tax' => round($totalTax, 2),
             'total_amount' => round($subtotal - $totalDiscount + $totalTax, 2),
         ];
+    }
+
+    private static function hasReturnableItems(Sale $sale): bool
+    {
+        foreach ($sale->items as $item) {
+            if ((int) $item->quantity > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

@@ -40,31 +40,55 @@ class InvoiceController
 
         $headerGroupOptions = $this->invoiceGroupOptions((string) $record->merchant_id, 'header');
         $footerGroupOptions = $this->invoiceGroupOptions((string) $record->merchant_id, 'footer');
+        $combinations = [];
 
-        $headerGroup = trim((string) request()->query('header_group', '__default'));
-        $footerGroup = trim((string) request()->query('footer_group', '__default'));
+        foreach ($headerGroupOptions as $headerGroupId => $headerGroupLabel) {
+            foreach ($footerGroupOptions as $footerGroupId => $footerGroupLabel) {
+                $dynamicGroups = InvoiceDynamicFieldResolver::resolveGroups(
+                    $record,
+                    (string) $headerGroupId,
+                    (string) $footerGroupId
+                );
 
-        if (! array_key_exists($headerGroup, $headerGroupOptions)) {
-            $headerGroup = '__default';
+                $combinations[] = [
+                    'id' => (string) $headerGroupId . '|' . (string) $footerGroupId,
+                    'headerLabel' => (string) $headerGroupLabel,
+                    'footerLabel' => (string) $footerGroupLabel,
+                    'headerGroups' => $dynamicGroups['header'],
+                    'footerGroups' => $dynamicGroups['footer'],
+                    'showDefaultHeader' => (string) $headerGroupId === '__default',
+                    'showDefaultFooter' => (string) $footerGroupId === '__default',
+                ];
+            }
         }
 
-        if (! array_key_exists($footerGroup, $footerGroupOptions)) {
-            $footerGroup = '__default';
+        if (empty($combinations)) {
+            $combinations[] = [
+                'id' => '__default|__default',
+                'headerLabel' => 'Default (Current Header)',
+                'footerLabel' => 'Default (Current Footer)',
+                'headerGroups' => [],
+                'footerGroups' => [],
+                'showDefaultHeader' => true,
+                'showDefaultFooter' => true,
+            ];
         }
 
-        $dynamicGroups = InvoiceDynamicFieldResolver::resolveGroups($record, $headerGroup, $footerGroup);
+        $selectedCombination = trim((string) request()->query('combo', $combinations[0]['id']));
+        $selectedCombinationIndex = 0;
+
+        foreach ($combinations as $index => $combination) {
+            if ((string) $combination['id'] === $selectedCombination) {
+                $selectedCombinationIndex = $index;
+                break;
+            }
+        }
 
         return view('filament.pages.invoice', [
             'type'   => $type,
             'record' => $record,
-            'headerGroups' => $dynamicGroups['header'],
-            'footerGroups' => $dynamicGroups['footer'],
-            'headerGroupOptions' => $headerGroupOptions,
-            'footerGroupOptions' => $footerGroupOptions,
-            'selectedHeaderGroup' => $headerGroup,
-            'selectedFooterGroup' => $footerGroup,
-            'showDefaultHeader' => $headerGroup === '__default',
-            'showDefaultFooter' => $footerGroup === '__default',
+            'combinations' => $combinations,
+            'selectedCombinationIndex' => $selectedCombinationIndex,
         ]);
     }
 

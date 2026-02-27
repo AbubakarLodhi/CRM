@@ -262,6 +262,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 'items.business.users',
                 'items.branch.users',
             ])
+            ->whereHas('sale')
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
             )
@@ -322,6 +323,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 'items.business.users',
                 'items.branch.users',
             ])
+            ->whereHas('purchase')
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
             )

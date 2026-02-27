@@ -7,8 +7,10 @@ use App\Filament\Resources\NotificationTemplates\Pages\EditNotificationTemplate;
 use App\Filament\Resources\NotificationTemplates\Pages\ListNotificationTemplates;
 use App\Filament\Resources\NotificationTemplates\Schemas\NotificationTemplateForm;
 use App\Filament\Resources\NotificationTemplates\Tables\NotificationTemplatesTable;
+use App\Models\PermissionModule;
 use App\Models\NotificationTemplate;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -23,6 +25,58 @@ class NotificationTemplateResource extends Resource
     protected static ?string $recordTitleAttribute = 'NotificationTemplate';
 
     protected static ?int $navigationSort = 9;
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        if (! PermissionModule::isEnabledForCurrentMerchant('notification_templates')) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('notification_templates.view', $guard);
+    }
+
+    public static function canCreate(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('notification_templates.create', $guard);
+    }
+
+    public static function canEdit($record): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('notification_templates.update', $guard);
+    }
+
+    public static function canDelete($record): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('notification_templates.delete', $guard);
+    }
 
     public static function form(Schema $schema): Schema
     {

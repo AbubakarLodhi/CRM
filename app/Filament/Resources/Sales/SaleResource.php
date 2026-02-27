@@ -47,6 +47,22 @@ class SaleResource extends Resource
         return $user->hasPermissionTo('sales.view', $guard);
     }
 
+    public static function canEdit($record): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($record?->returns()?->exists()) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('sales.update', $guard);
+    }
+
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();

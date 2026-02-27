@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\PurchaseReturn;
+use App\Models\PurchaseReturnItem;
 use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -68,5 +70,22 @@ class Purchase extends Model implements Auditable
     public function returns(): HasMany
     {
         return $this->hasMany(PurchaseReturn::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $purchase): void {
+            $purchase->returns()
+                ->with('items.variants')
+                ->get()
+                ->each(function (PurchaseReturn $return): void {
+                    $return->items->each(function (PurchaseReturnItem $item): void {
+                        $item->variants()->delete();
+                        $item->delete();
+                    });
+
+                    $return->delete();
+                });
+        });
     }
 }

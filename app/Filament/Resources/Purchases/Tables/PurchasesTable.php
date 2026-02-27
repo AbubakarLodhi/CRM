@@ -176,10 +176,20 @@ class PurchasesTable
 
                 BadgeColumn::make('return_status')
                     ->label('Return')
-                    ->colors(['success'])
-                    ->getStateUsing(fn (Purchase $record) =>
-                        $record->returns()->exists() ? 'Returned' : '-'
-                    )
+                    ->colors([
+                        'gray' => '-',
+                        'warning' => 'Partially Returned',
+                        'success' => 'Returned',
+                    ])
+                    ->getStateUsing(function (Purchase $record) {
+                        if (! $record->returns()->exists()) {
+                            return '-';
+                        }
+
+                        return self::hasReturnableItems($record)
+                            ? 'Partially Returned'
+                            : 'Returned';
+                    })
                     ->toggleable(),
 
                 TextColumn::make('createdBy.name')
@@ -352,6 +362,7 @@ class PurchasesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
+                && ! $record->returns()->exists()
                 ? PurchaseResource::getUrl('edit', ['record' => $record])
                 : null
             )
@@ -374,7 +385,11 @@ class PurchasesTable
                     ->url(fn (Purchase $record): string => route('invoices.show', [
                         'type' => 'purchase',
                         'id' => $record->id,
-                    ])),
+                    ]))
+                    ->visible(fn () =>
+                        auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
 
                 Action::make('return_purchase')
                     ->icon('heroicon-o-arrow-uturn-left')
@@ -391,15 +406,20 @@ class PurchasesTable
                             ->title('Purchase returned')
                             ->send();
                     })
-                    ->visible(fn (Purchase $record) => ! $record->returns()->exists()),
+                    ->visible(fn (Purchase $record) =>
+                        self::hasReturnableItems($record)
+                        && auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
 
                 EditAction::make()
                     ->color('warning')
                     ->label(' ')
                     ->tooltip('Edit')
-                    ->visible(fn () =>
+                    ->visible(fn (Purchase $record) =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
+                        && ! $record->returns()->exists()
                     ),
 
                 DeleteAction::make()
@@ -458,8 +478,8 @@ class PurchasesTable
                             'purchase_item_id' => $item->id,
                             'product_name' => $item->product?->name ?? 'Product',
                             'variant_name' => $variantLabel,
-                            'max_quantity' => $item->quantity,
-                            'quantity' => $item->quantity,
+                            'max_quantity' => max(0, (int) $item->quantity),
+                            'quantity' => max(0, (int) $item->quantity),
                             'unit_price' => $item->unit_price,
                             'discount' => $item->discount ?? 0,
                             'tax' => $item->tax ?? 0,
@@ -485,11 +505,13 @@ class PurchasesTable
 
                     TextInput::make('quantity')
                         ->numeric()
+                        ->live()
                         ->minValue(0)
                         ->maxValue(fn ($get) => $get('max_quantity'))
                         ->required()
-                        ->disabled()
+                        ->disabled(fn ($get) => (int) ($get('max_quantity') ?? 0) <= 0)
                         ->dehydrated()
+                        ->afterStateUpdated(fn (callable $set, callable $get) => self::recalcReturnTotals($set, $get))
                         ->rules([
                             fn ($get) => function ($attribute, $value, $fail) use ($get) {
                                 $max = $get('max_quantity');
@@ -607,5 +629,16 @@ class PurchasesTable
             'total_tax' => round($totalTax, 2),
             'total_amount' => round($subtotal - $totalDiscount + $totalTax, 2),
         ];
+    }
+
+    private static function hasReturnableItems(Purchase $purchase): bool
+    {
+        foreach ($purchase->items as $item) {
+            if ((int) $item->quantity > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

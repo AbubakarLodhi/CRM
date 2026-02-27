@@ -4,6 +4,7 @@ namespace App\Filament\Resources\InvoiceDynamicFields\Pages;
 
 use App\Filament\Resources\InvoiceDynamicFields\InvoiceDynamicFieldResource;
 use Filament\Actions\DeleteAction;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 
 class EditInvoiceDynamicField extends EditRecord
@@ -13,7 +14,8 @@ class EditInvoiceDynamicField extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('invoice_templates.delete', Filament::getCurrentPanel()->getAuthGuard())),
         ];
     }
 
@@ -22,5 +24,10 @@ class EditInvoiceDynamicField extends EditRecord
         $data['merchant_id'] = InvoiceDynamicFieldResource::resolveMerchantId();
 
         return $data;
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
     }
 }

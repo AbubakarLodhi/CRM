@@ -44,6 +44,9 @@ class SalesSummaryExport implements
             'Discount',
             'Tax',
             'Total Amount',
+            'Return Status',
+            'Returned Qty',
+            'Returned Amount',
         ];
     }
 
@@ -64,6 +67,13 @@ class SalesSummaryExport implements
         } else {
             $branchText = $branches->implode(', ');
         }
+
+        $returnsCount = (int) ($sale->returns_count ?? 0);
+        $returnedQty = (float) $sale->returns->sum(fn ($return) => $return->items->sum('quantity'));
+        $hasRemaining = $sale->items->contains(fn ($item) => (int) ($item->quantity ?? 0) > 0);
+        $returnStatus = $returnsCount === 0
+            ? '-'
+            : ($hasRemaining ? 'Partially Returned' : 'Returned');
 
         return [
             $sale->sale_no,
@@ -87,6 +97,9 @@ class SalesSummaryExport implements
                 return $taxableAmount * ($taxRate / 100);
             }),
             (float) $sale->total_amount,
+            $returnStatus,
+            $returnedQty,
+            (float) ($sale->returned_amount ?? 0),
         ];
     }
 
@@ -110,9 +123,11 @@ class SalesSummaryExport implements
                 $event->sheet->setCellValue("H{$totalRow}", $this->totals['discount'] ?? 0);
                 $event->sheet->setCellValue("I{$totalRow}", $this->totals['tax'] ?? 0);
                 $event->sheet->setCellValue("J{$totalRow}", $this->totals['total'] ?? 0);
+                $event->sheet->setCellValue("L{$totalRow}", $this->totals['returned_quantity'] ?? 0);
+                $event->sheet->setCellValue("M{$totalRow}", $this->totals['returned_amount'] ?? 0);
 
                 $event->sheet
-                    ->getStyle("E{$totalRow}:J{$totalRow}")
+                    ->getStyle("E{$totalRow}:M{$totalRow}")
                     ->getFont()
                     ->setBold(true);
             },

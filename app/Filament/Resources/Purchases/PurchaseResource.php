@@ -48,6 +48,22 @@ class PurchaseResource extends Resource
         return $user->hasPermissionTo('purchases.view', $guard);
     }
 
+    public static function canEdit($record): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($record?->returns()?->exists()) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('purchases.update', $guard);
+    }
+
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();

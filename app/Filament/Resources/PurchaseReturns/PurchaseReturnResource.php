@@ -4,8 +4,10 @@ namespace App\Filament\Resources\PurchaseReturns;
 
 use App\Filament\Resources\PurchaseReturns\Pages\ListPurchaseReturns;
 use App\Filament\Resources\PurchaseReturns\Tables\PurchaseReturnsTable;
+use App\Models\PermissionModule;
 use App\Models\PurchaseReturn;
 use BackedEnum;
+use Filament\Facades\Filament;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -23,6 +25,22 @@ class PurchaseReturnResource extends Resource
     protected static ?int $navigationSort = 6;
     protected static ?string $recordTitleAttribute = 'PurchaseReturn';
 
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('purchases')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('purchases.view', $guard);
+    }
     public static function form(Schema $schema): Schema
     {
         return $schema;

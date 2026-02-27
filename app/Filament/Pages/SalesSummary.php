@@ -59,7 +59,9 @@ class SalesSummary extends Page implements HasTable
 
                 $query = Sale::query()
                     ->where('merchant_id', $merchantId)
-                    ->with(['items.business', 'items.branch']);
+                    ->with(['items.business', 'items.branch', 'returns.items'])
+                    ->withCount('returns')
+                    ->withSum('returns as returned_amount', 'total_amount');
 
                 if ($user instanceof \App\Models\User) {
                     $query
@@ -162,6 +164,48 @@ class SalesSummary extends Page implements HasTable
                     ->color(fn ($state) => $state === 'credit' ? 'warning' : 'success')
                     ->formatStateUsing(fn ($state) => ucfirst($state))
                     ->sortable(),
+
+                BadgeColumn::make('return_status')
+                    ->label('Return Status')
+                    ->colors([
+                        'gray' => '-',
+                        'warning' => 'Partially Returned',
+                        'success' => 'Returned',
+                    ])
+                    ->getStateUsing(function (Sale $record) {
+                        if ((int) ($record->returns_count ?? 0) === 0) {
+                            return '-';
+                        }
+
+                        $hasRemaining = $record->items->contains(
+                            fn ($item) => (int) ($item->quantity ?? 0) > 0
+                        );
+
+                        return $hasRemaining ? 'Partially Returned' : 'Returned';
+                    })
+                    ->toggleable(),
+
+                TextColumn::make('returned_quantity')
+                    ->label('Returned Qty')
+                    ->getStateUsing(fn (Sale $record) =>
+                        (float) $record->returns->sum(fn ($return) => $return->items->sum('quantity'))
+                    )
+                    ->numeric(0)
+                    ->toggleable(),
+
+                TextColumn::make('sale_quantity')
+                    ->label('Sale Qty')
+                    ->getStateUsing(fn (Sale $record) =>
+                        (float) $record->items->sum('quantity')
+                    )
+                    ->numeric(0)
+                    ->toggleable(),
+
+                TextColumn::make('returned_amount')
+                    ->label('Returned Amount')
+                    ->money('PKR')
+                    ->getStateUsing(fn (Sale $record) => (float) ($record->returned_amount ?? 0))
+                    ->toggleable(),
 
             ])
             ->filters([
@@ -300,6 +344,7 @@ class SalesSummary extends Page implements HasTable
         // -----------------------------
         $totalItemLines = DB::table('sale_items')
             ->whereIn('sale_id', $saleIds)
+            ->where('quantity', '>', 0)
             ->count();
 
         // -----------------------------
@@ -323,26 +368,11 @@ class SalesSummary extends Page implements HasTable
             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)'));
         $totalSubtotal = (clone $filteredQuery)->sum('subtotal');
 
-        $returnTotals = DB::table('sale_returns')
-            ->whereIn('sale_id', $saleIds)
-            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
-            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
-            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
-            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
-            ->first();
-
-        $returnedQuantity = DB::table('sale_return_item_variants as srv')
-            ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-            ->whereIn('sr.sale_id', $saleIds)
-            ->sum('srv.quantity');
-
-        $netAmount = $totalAmount - (float) ($returnTotals->total_amount ?? 0);
-        $netDiscount = $totalDiscount - (float) ($returnTotals->total_discount ?? 0);
-        $netTax = $totalTax - (float) ($returnTotals->total_tax ?? 0);
-        $netSubtotal = $totalSubtotal - (float) ($returnTotals->subtotal ?? 0);
-
-        $netQuantity = $totalQuantitySold - (float) $returnedQuantity;
+        $netAmount = $totalAmount;
+        $netDiscount = $totalDiscount;
+        $netTax = $totalTax;
+        $netSubtotal = $totalSubtotal;
+        $netQuantity = $totalQuantitySold;
 
         $avgSale = $totalSales > 0 ? $netAmount / $totalSales : 0;
 
@@ -354,15 +384,8 @@ class SalesSummary extends Page implements HasTable
         }
 
         $cashSalesQuery = (clone $filteredQuery)->whereRaw('LOWER(payment_type) = ?', ['cash']);
-        $cashSaleIds = (clone $cashSalesQuery)->pluck('sales.id');
         $cashSalesAmount = (float) (clone $cashSalesQuery)->sum('total_amount');
-        $cashSaleReturns = $cashSaleIds->isEmpty()
-            ? 0
-            : (float) DB::table('sale_returns')
-                ->whereIn('sale_id', $cashSaleIds)
-                ->sum('total_amount');
-
-        $salesCashEffect = $cashSalesAmount - $cashSaleReturns;
+        $salesCashEffect = $cashSalesAmount;
         $currentTotalFunds = $openingTotalFunds + $salesCashEffect;
 
         // 🚨 HEADERS EXACTLY AS REQUIRED
@@ -381,6 +404,50 @@ class SalesSummary extends Page implements HasTable
         ];
     }
 
+    public function getSalesReturnStats(): array
+    {
+        $filteredQuery = $this->getFilteredTableQueryWithoutPagination();
+        $saleIds = (clone $filteredQuery)->pluck('sales.id');
+
+        if ($saleIds->isEmpty()) {
+            return [
+                'total_returns' => 0,
+                'total_items_count' => 0,
+                'total_quantity' => 0,
+                'total_amount' => 0,
+                'avg_return' => 0,
+            ];
+        }
+
+        $totalReturns = DB::table('sale_returns')
+            ->whereIn('sale_id', $saleIds)
+            ->count();
+
+        $totalItemsCount = DB::table('sale_return_items as sri')
+            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
+            ->whereIn('sr.sale_id', $saleIds)
+            ->count();
+
+        $totalQuantity = DB::table('sale_return_items as sri')
+            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
+            ->whereIn('sr.sale_id', $saleIds)
+            ->sum('sri.quantity');
+
+        $totalAmount = DB::table('sale_returns')
+            ->whereIn('sale_id', $saleIds)
+            ->sum('total_amount');
+
+        $avgReturn = $totalReturns > 0 ? ((float) $totalAmount / (int) $totalReturns) : 0;
+
+        return [
+            'total_returns' => (int) $totalReturns,
+            'total_items_count' => (int) $totalItemsCount,
+            'total_quantity' => (float) $totalQuantity,
+            'total_amount' => (float) $totalAmount,
+            'avg_return' => round($avgReturn, 2),
+        ];
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -395,10 +462,13 @@ class SalesSummary extends Page implements HasTable
 
                     $exportQuery = (clone $baseQuery)
                         ->withCount('items')
+                        ->withCount('returns')
+                        ->withSum('returns as returned_amount', 'total_amount')
                         ->with([
                             'merchant',
                             'customer',
                             'items.branch',
+                            'returns.items',
                         ]);
 
                     // Sale IDs from SAME filtered dataset
@@ -423,27 +493,14 @@ class SalesSummary extends Page implements HasTable
                             ->whereIn('sale_id', $saleIds)
                             ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)')),
                         'total'    => (float) (clone $baseQuery)->sum('total_amount'),
+                        'returned_quantity' => (float) DB::table('sale_return_items as sri')
+                            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
+                            ->whereIn('sr.sale_id', $saleIds)
+                            ->sum('sri.quantity'),
+                        'returned_amount' => (float) DB::table('sale_returns')
+                            ->whereIn('sale_id', $saleIds)
+                            ->sum('total_amount'),
                     ];
-
-                    $returnTotals = DB::table('sale_returns')
-                        ->whereIn('sale_id', $saleIds)
-                        ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
-                        ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
-                        ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
-                        ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
-                        ->first();
-
-                    $returnedQuantity = DB::table('sale_return_item_variants as srv')
-                        ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-                        ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-                        ->whereIn('sr.sale_id', $saleIds)
-                        ->sum('srv.quantity');
-
-                    $totals['quantity'] = (float) $totals['quantity'] - (float) $returnedQuantity;
-                    $totals['subtotal'] = (float) $totals['subtotal'] - (float) ($returnTotals->subtotal ?? 0);
-                    $totals['discount'] = (float) $totals['discount'] - (float) ($returnTotals->total_discount ?? 0);
-                    $totals['tax'] = (float) $totals['tax'] - (float) ($returnTotals->total_tax ?? 0);
-                    $totals['total'] = (float) $totals['total'] - (float) ($returnTotals->total_amount ?? 0);
 
                     return Excel::download(
                         new SalesSummaryExport($exportQuery, $totals),
