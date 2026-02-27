@@ -58,6 +58,8 @@
             --line: #e5e7eb;
             --accent: #111827;
             --bg: #f3f4f6;
+            --invoice-frame-width: min(900px, calc(100vw - 24px));
+            --invoice-arrow-gap: 52px;
         }
 
         body {
@@ -307,6 +309,33 @@
             color: #4b5563;
         }
 
+        .combo-nav-buttons {
+            display: inline-flex;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .combo-nav-btn {
+            border: 1px solid #d1d5db;
+            background: #fff;
+            color: #111827;
+            width: 24px;
+            height: 24px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .combo-nav-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
         .combo-current strong {
             color: #111827;
             font-weight: 700;
@@ -334,16 +363,20 @@
         }
 
         .side-arrow.left {
-            left: calc(50% - (var(--invoice-max-width) / 2) - 56px);
+            left: max(12px, calc(50% - (var(--invoice-frame-width) / 2) - var(--invoice-arrow-gap)));
         }
 
         .side-arrow.right {
-            right: calc(50% - (var(--invoice-max-width) / 2) - 56px);
+            right: max(12px, calc(50% - (var(--invoice-frame-width) / 2) - var(--invoice-arrow-gap)));
         }
 
         .side-arrow:disabled {
             opacity: 0.45;
             cursor: not-allowed;
+        }
+
+        .invoice-nav-arrow {
+            text-decoration: none;
         }
 
         .invoice-carousel {
@@ -424,7 +457,13 @@
         >
         <div class="combo-current">
             <span id="invoice-combination-text">-</span>
-            <span><strong id="invoice-combination-count">1</strong> / {{ count($combinations) }}</span>
+            <span>
+                <strong id="invoice-combination-count">1</strong> / {{ count($combinations) }}
+                <span class="combo-nav-buttons">
+                    <button type="button" id="invoice-combination-prev" class="combo-nav-btn" aria-label="Previous Combination">&lt;</button>
+                    <button type="button" id="invoice-combination-next" class="combo-nav-btn" aria-label="Next Combination">&gt;</button>
+                </span>
+            </span>
         </div>
     </div>
 
@@ -441,8 +480,25 @@
     </div>
 </div>
 
-<button type="button" id="invoice-combination-prev" class="side-arrow left" aria-label="Previous Combination">&lt;</button>
-<button type="button" id="invoice-combination-next" class="side-arrow right" aria-label="Next Combination">&gt;</button>
+<button
+    type="button"
+    id="invoice-prev-arrow"
+    class="side-arrow left invoice-nav-arrow"
+    aria-label="Previous Invoice"
+    data-href="{{ $previousInvoiceUrl ?? '' }}"
+    data-direction="-1"
+    @if(empty($previousInvoiceUrl) && count($combinations) <= 1) disabled @endif
+>&lt;</button>
+
+<button
+    type="button"
+    id="invoice-next-arrow"
+    class="side-arrow right invoice-nav-arrow"
+    aria-label="Next Invoice"
+    data-href="{{ $nextInvoiceUrl ?? '' }}"
+    data-direction="1"
+    @if(empty($nextInvoiceUrl) && count($combinations) <= 1) disabled @endif
+>&gt;</button>
 
 <div class="invoice-carousel" id="invoice-carousel">
     @foreach($combinations as $comboIndex => $combo)
@@ -662,6 +718,8 @@
         const comboCount = document.getElementById('invoice-combination-count');
         const prevButton = document.getElementById('invoice-combination-prev');
         const nextButton = document.getElementById('invoice-combination-next');
+        const prevInvoiceArrow = document.getElementById('invoice-prev-arrow');
+        const nextInvoiceArrow = document.getElementById('invoice-next-arrow');
 
         if (!slides.length || !slider || !comboText || !comboCount || !prevButton || !nextButton) {
             return;
@@ -679,6 +737,31 @@
             comboText.textContent = slides[safeIndex].dataset.comboLabel || `Combination ${safeIndex + 1}`;
             prevButton.disabled = safeIndex === 0;
             nextButton.disabled = safeIndex === slides.length - 1;
+
+            // If there is no adjacent invoice URL, side arrows navigate combinations.
+            if (prevInvoiceArrow && !prevInvoiceArrow.dataset.href) {
+                prevInvoiceArrow.disabled = safeIndex === 0;
+            }
+            if (nextInvoiceArrow && !nextInvoiceArrow.dataset.href) {
+                nextInvoiceArrow.disabled = safeIndex === slides.length - 1;
+            }
+        };
+
+        const navigateWithSideArrow = (arrowElement) => {
+            if (!arrowElement) {
+                return;
+            }
+
+            const href = arrowElement.dataset.href;
+            if (href) {
+                window.location.href = href;
+                return;
+            }
+
+            const direction = Number(arrowElement.dataset.direction || 0);
+            if (direction !== 0) {
+                activate(Number(slider.value || 0) + direction);
+            }
         };
 
         slider.addEventListener('input', (event) => {
@@ -693,6 +776,14 @@
             activate(Number(slider.value || 0) + 1);
         });
 
+        prevInvoiceArrow?.addEventListener('click', () => {
+            navigateWithSideArrow(prevInvoiceArrow);
+        });
+
+        nextInvoiceArrow?.addEventListener('click', () => {
+            navigateWithSideArrow(nextInvoiceArrow);
+        });
+
         document.addEventListener('keydown', (event) => {
             const target = event.target;
             const tagName = target?.tagName?.toLowerCase();
@@ -704,12 +795,12 @@
 
             if (event.key === 'ArrowLeft') {
                 event.preventDefault();
-                activate(Number(slider.value || 0) - 1);
+                navigateWithSideArrow(prevInvoiceArrow);
             }
 
             if (event.key === 'ArrowRight') {
                 event.preventDefault();
-                activate(Number(slider.value || 0) + 1);
+                navigateWithSideArrow(nextInvoiceArrow);
             }
         });
 

@@ -84,11 +84,15 @@ class InvoiceController
             }
         }
 
+        [$previousInvoiceUrl, $nextInvoiceUrl] = $this->adjacentInvoiceUrls($type, $record);
+
         return view('filament.pages.invoice', [
             'type'   => $type,
             'record' => $record,
             'combinations' => $combinations,
             'selectedCombinationIndex' => $selectedCombinationIndex,
+            'previousInvoiceUrl' => $previousInvoiceUrl,
+            'nextInvoiceUrl' => $nextInvoiceUrl,
         ]);
     }
 
@@ -115,5 +119,53 @@ class InvoiceController
         }
 
         return $options;
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string}
+     */
+    protected function adjacentInvoiceUrls(string $type, Sale|Purchase $record): array
+    {
+        $ids = match ($type) {
+            'sale' => Sale::query()
+                ->where('merchant_id', $record->merchant_id)
+                ->orderBy('sale_date')
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->pluck('id')
+                ->values(),
+            'purchase' => Purchase::query()
+                ->where('merchant_id', $record->merchant_id)
+                ->orderBy('purchase_date')
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->pluck('id')
+                ->values(),
+            default => collect(),
+        };
+
+        $currentIndex = $ids->search((string) $record->id);
+        if ($currentIndex === false) {
+            return [null, null];
+        }
+
+        $combo = request()->query('combo');
+        $buildUrl = function (?string $invoiceId) use ($type, $combo): ?string {
+            if (! $invoiceId) {
+                return null;
+            }
+
+            $params = ['type' => $type, 'id' => $invoiceId];
+            if (filled($combo)) {
+                $params['combo'] = $combo;
+            }
+
+            return route('invoices.show', $params);
+        };
+
+        $previousId = $ids->get($currentIndex - 1);
+        $nextId = $ids->get($currentIndex + 1);
+
+        return [$buildUrl($previousId), $buildUrl($nextId)];
     }
 }
