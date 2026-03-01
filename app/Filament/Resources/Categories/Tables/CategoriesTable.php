@@ -48,7 +48,7 @@ class CategoriesTable
                         ? CategoryResource::getUrl('index', ['parent_id' => $record->id])
                         : null
                     )
-                    ->visible(function () {
+                    ->visible(function (?Category $record) {
                         $guard = Filament::getCurrentPanel()->getAuthGuard();
                         $user  = Auth::guard($guard)->user();
 
@@ -62,8 +62,12 @@ class CategoriesTable
                             return false;
                         }
 
-                        // 🧠 3. UI condition (only top-level categories)
-                        return ! request()->filled('parent_id');
+                        // 🧠 3. Only for top-level categories with at least one sub-category
+                        if (request()->filled('parent_id') || ! $record) {
+                            return false;
+                        }
+
+                        return $record->children()->exists();
                     }),
 
 

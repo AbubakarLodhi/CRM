@@ -8,6 +8,7 @@ use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 use App\Enums\AttachmentType;
 use App\Enums\AttachmentMetaType;
+use Illuminate\Validation\ValidationException;
 
 
 class EditCategory extends EditRecord
@@ -44,6 +45,17 @@ class EditCategory extends EditRecord
         if ($this->record->icon) {
             // ✅ FileUpload EXPECTS ARRAY
             $data['category_icon'] = [$this->record->icon->photo_url];
+        }
+
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if (($data['parent_id'] ?? null) === $this->record->id) {
+            throw ValidationException::withMessages([
+                'data.parent_id' => 'A category cannot be its own parent.',
+            ]);
         }
 
         return $data;

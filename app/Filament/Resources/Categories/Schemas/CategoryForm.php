@@ -30,16 +30,21 @@ class CategoryForm
                     }),
                 Select::make('parent_id')
                     ->label('Global Category')
-                    ->relationship(
-                        name: 'parent',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: function (Builder $query) {
-                            $user = Filament::auth()->user();
+                    ->options(function (?Category $record): array {
+                        $user = Filament::auth()->user();
+                        $merchantId = $user->merchant_id ?? $user->id;
 
-                            $query->whereNull('parent_id');
-                            $query->where('merchant_id', $user->merchant_id ?? $user->id);
-                        }
-                    )
+                        return Category::query()
+                            ->whereNull('parent_id')
+                            ->where('merchant_id', $merchantId)
+                            ->when(
+                                filled($record?->id),
+                                fn (Builder $query) => $query->whereKeyNot($record->id)
+                            )
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray();
+                    })
                     ->searchable()
                     ->preload()
                     ->reactive()
