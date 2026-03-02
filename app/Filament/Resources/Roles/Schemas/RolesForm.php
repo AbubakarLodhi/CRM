@@ -2,23 +2,19 @@
 
 namespace App\Filament\Resources\Roles\Schemas;
 
-use App\Models\PermissionModule;
-use Filament\Facades\Filament;
+use App\Filament\Resources\Roles\RolesResource;
 use Filament\Forms\Components\Checkbox;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\Auth;
 
 class RolesForm
 {
     public static function configure(Schema $schema): Schema
     {
-        $enabledModules = self::getEnabledModules();
-        $actions = ['view', 'create', 'update', 'delete'];
+        $assignable = RolesResource::getAssignablePermissionMatrix();
 
         return $schema
             ->columns(1)
@@ -47,8 +43,8 @@ class RolesForm
                         Checkbox::make('permissions_select_all')
                             ->label('Select All')
                             ->reactive()
-                            ->afterStateUpdated(function ($state, callable $set) use ($enabledModules, $actions) {
-                                foreach ($enabledModules as $module) {
+                            ->afterStateUpdated(function ($state, callable $set) use ($assignable) {
+                                foreach ($assignable as $module => $actions) {
                                     $set("permissions.{$module}.enabled", $state);
                                     foreach ($actions as $action) {
                                         $set("permissions.{$module}.{$action}", $state);
@@ -66,15 +62,9 @@ class RolesForm
             ]);
     }
 
-    protected static function getEnabledModules(): array
-    {
-        return PermissionModule::enabledForCurrentMerchant();
-    }
-
     protected static function getPermissionRows(): array
     {
-        $enabledModules = self::getEnabledModules();
-        $actions = ['view', 'create', 'update', 'delete'];
+        $assignable = RolesResource::getAssignablePermissionMatrix();
 
         // 🔹 DISPLAY-ONLY ALIASES (NO FUNCTIONAL IMPACT)
         $moduleAliases = [
@@ -83,7 +73,7 @@ class RolesForm
 
         $rows = [];
 
-        foreach ($enabledModules as $module) {
+        foreach ($assignable as $module => $actions) {
             // Resolve label with alias fallback
             $label = $moduleAliases[$module]
                 ?? ucfirst(str_replace('_', ' ', $module));

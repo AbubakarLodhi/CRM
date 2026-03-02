@@ -16,7 +16,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\Auth;
 
 class RolesResource extends Resource
 {
@@ -76,23 +75,78 @@ class RolesResource extends Resource
         static::syncPermissions($record, $data);
     }
 
-    protected static function syncPermissions($record, array $data)
+    public static function getAssignablePermissionMatrix(): array
     {
         $enabledModules = PermissionModule::enabledForCurrentMerchant();
+        $actions = ['view', 'create', 'update', 'delete'];
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
+        // Staff can only assign permissions they already have.
+        if ($user instanceof \App\Models\User) {
+            $matrix = [];
+
+            foreach ($enabledModules as $module) {
+                $allowedActions = [];
+
+                foreach ($actions as $action) {
+                    if ($user->hasPermissionTo("{$module}.{$action}", $guard)) {
+                        $allowedActions[] = $action;
+                    }
+                }
+
+                if (! empty($allowedActions)) {
+                    $matrix[$module] = $allowedActions;
+                }
+            }
+
+            return $matrix;
+        }
+
+        // Merchant/Admin can assign all enabled module actions.
+        return collect($enabledModules)
+            ->mapWithKeys(fn (string $module) => [$module => $actions])
+            ->toArray();
+    }
+
+    protected static function syncPermissions($record, array $data)
+    {
+        $assignable = static::getAssignablePermissionMatrix();
         $permissions = [];
 
         foreach ($data ?? [] as $module => $actions) {
-
-            if (! in_array($module, $enabledModules)) {
+            if (! array_key_exists($module, $assignable) || ! is_array($actions)) {
                 continue;
             }
 
             foreach ($actions as $action => $checked) {
-                if ($checked && $action !== 'select_all') {
+                if (
+                    $checked
+                    && $action !== 'select_all'
+                    && in_array($action, $assignable[$module], true)
+                ) {
                     $permissions[] = "{$module}.{$action}";
                 }
             }
+        }
+
+        $user = Filament::auth()->user();
+
+        // Preserve non-assignable permissions when staff edits an existing role.
+        if ($user instanceof \App\Models\User) {
+            $assignablePermissionNames = collect($assignable)
+                ->flatMap(fn (array $actions, string $module) =>
+                    collect($actions)->map(fn (string $action) => "{$module}.{$action}")
+                )
+                ->all();
+
+            $lockedExistingPermissions = $record->permissions
+                ->pluck('name')
+                ->reject(fn (string $name) => in_array($name, $assignablePermissionNames, true))
+                ->values()
+                ->all();
+
+            $permissions = array_values(array_unique(array_merge($lockedExistingPermissions, $permissions)));
         }
 
         $record->syncPermissions($permissions);

@@ -19,10 +19,12 @@ class CreateRoles extends CreateRecord
     protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
         $permissions = $data['permissions'] ?? [];
-        $guard_name=\Filament\Facades\Filament::getCurrentPanel()->getAuthGuard();
-        if($guard_name == 'merchant') {
-            $data['guard_name'] = 'staff';
-        }
+        $panelGuard = \Filament\Facades\Filament::getCurrentPanel()?->getAuthGuard();
+
+        $data['guard_name'] = $data['guard_name'] ?? match ($panelGuard) {
+            'merchant', 'staff' => 'staff',
+            default => $panelGuard ?? 'staff',
+        };
 
         unset($data['permissions']);
 
