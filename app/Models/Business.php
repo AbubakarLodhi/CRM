@@ -30,6 +30,12 @@ class Business extends Model implements Auditable
 
     protected static function booted()
     {
+        static::saving(function (Business $business) {
+            if (! filled($business->postal_code)) {
+                $business->postal_code = '54000';
+            }
+        });
+
         static::deleting(function (Business $business) {
             $business->users()->detach();
 

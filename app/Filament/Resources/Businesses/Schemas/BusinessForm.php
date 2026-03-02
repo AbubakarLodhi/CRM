@@ -124,7 +124,7 @@ class BusinessForm
                             ->regex('/^\d{1,12}$/')
                             ->minLength(5)
                             ->maxLength(12)
-                            ->required()
+                            ->nullable()
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set, $livewire) {
                                 $livewire->resetValidation('data.postal_code');

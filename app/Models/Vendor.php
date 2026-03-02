@@ -31,6 +31,15 @@ class Vendor extends Model implements Auditable
         'occupation',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (Vendor $vendor): void {
+            if (! filled($vendor->postal_code)) {
+                $vendor->postal_code = '54000';
+            }
+        });
+    }
+
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);

@@ -25,6 +25,15 @@ class Customer extends Model implements Auditable
     /** @var string $keyType */
     protected $keyType = 'string';
 
+    protected static function booted(): void
+    {
+        static::saving(function (Customer $customer): void {
+            if (! filled($customer->postal_code)) {
+                $customer->postal_code = '54000';
+            }
+        });
+    }
+
     /**
      * @return BelongsTo
      */

@@ -50,6 +50,12 @@ class Branch extends Model implements Auditable
 
     protected static function booted()
     {
+        static::saving(function (Branch $branch) {
+            if (! filled($branch->postal_code)) {
+                $branch->postal_code = '54000';
+            }
+        });
+
         static::deleting(function (Branch $branch) {
             if (! $branch->isForceDeleting()) {
                 return;
