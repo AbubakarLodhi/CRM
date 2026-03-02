@@ -5,6 +5,7 @@ namespace App\Filament\Widgets;
 use App\Models\Merchant;
 use App\Models\Purchase;
 use App\Models\Sale;
+use App\Models\User;
 use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
@@ -60,6 +61,14 @@ class ReportsStatsWidget extends Widget
         ];
     }
 
+    protected function staffAssignments(User $user): array
+    {
+        return [
+            'business_ids' => $user->businesses()->pluck('businesses.id'),
+            'branch_ids' => $user->branches()->pluck('branches.id'),
+        ];
+    }
+
     protected function salesBaseQuery($user, string $merchantId): EloquentBuilder
     {
         $filters = $this->filters();
@@ -87,14 +96,19 @@ class ReportsStatsWidget extends Widget
                 fn (EloquentBuilder $query, $date) => $query->whereDate('sale_date', '<=', $date),
             );
 
-        if ($user instanceof \App\Models\User) {
-            $query
-                ->whereHas('items.business.users', fn ($q) =>
-                    $q->where('users.id', $user->id)
-                )
-                ->whereHas('items.branch.users', fn ($q) =>
-                    $q->where('users.id', $user->id)
+        if ($user instanceof User) {
+            $assignments = $this->staffAssignments($user);
+            $businessIds = $assignments['business_ids'];
+            $branchIds = $assignments['branch_ids'];
+
+            if ($businessIds->isEmpty() || $branchIds->isEmpty()) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereHas('items', fn ($q) => $q
+                    ->whereIn('sale_items.business_id', $businessIds)
+                    ->whereIn('sale_items.branch_id', $branchIds)
                 );
+            }
         }
 
         return $query;
@@ -127,10 +141,19 @@ class ReportsStatsWidget extends Widget
                 fn (EloquentBuilder $query, $date) => $query->whereDate('purchase_date', '<=', $date),
             );
 
-        if ($user instanceof \App\Models\User) {
-            $query->whereHas('items.branch.users', fn ($q) =>
-                $q->where('users.id', $user->id)
-            );
+        if ($user instanceof User) {
+            $assignments = $this->staffAssignments($user);
+            $businessIds = $assignments['business_ids'];
+            $branchIds = $assignments['branch_ids'];
+
+            if ($businessIds->isEmpty() || $branchIds->isEmpty()) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->whereHas('items', fn ($q) => $q
+                    ->whereIn('purchase_items.business_id', $businessIds)
+                    ->whereIn('purchase_items.branch_id', $branchIds)
+                );
+            }
         }
 
         return $query;
@@ -377,16 +400,32 @@ class ReportsStatsWidget extends Widget
 
         $variantIds = collect();
 
-        if ($user instanceof \App\Models\User) {
-            $branchIds = $user->branches()->pluck('branches.id');
+        if ($user instanceof User) {
+            $assignments = $this->staffAssignments($user);
+            $branchIds = $assignments['branch_ids'];
+            $businessIds = $assignments['business_ids'];
+
+            if ($branchIds->isEmpty() || $businessIds->isEmpty()) {
+                return [
+                    'total_products'      => 0,
+                    'total_purchased_qty' => 0,
+                    'total_sold_qty'      => 0,
+                    'available_stock'     => 0,
+                    'total_revenue'       => 0,
+                    'avg_selling_price'   => 0,
+                    'avg_buying_price'    => 0,
+                ];
+            }
 
             $soldVariantIds = DB::table('sale_item_variants as sv')
                 ->join('sale_items as si', 'si.id', '=', 'sv.sale_item_id')
+                ->whereIn('si.business_id', $businessIds)
                 ->whereIn('si.branch_id', $branchIds)
                 ->pluck('sv.product_variant_id');
 
             $purchasedVariantIds = DB::table('purchase_item_variants as pv')
                 ->join('purchase_items as pi', 'pi.id', '=', 'pv.purchase_item_id')
+                ->whereIn('pi.business_id', $businessIds)
                 ->whereIn('pi.branch_id', $branchIds)
                 ->pluck('pv.product_variant_id');
 

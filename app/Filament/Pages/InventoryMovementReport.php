@@ -40,6 +40,9 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
     public ?string $typeFilter = null;
     public ?string $directionFilter = null;
+    public ?string $dateFromFilter = null;
+    public ?string $dateToFilter = null;
+    public ?string $branchFilter = null;
 
     /* ============================================================
      | FILTER FORM
@@ -47,8 +50,19 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
     protected function getFormSchema(): array
     {
+        $user = Filament::auth()->user();
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
         return [
-            Grid::make(2)->schema([
+            Grid::make([
+                'default' => 1,
+                'sm' => 2,
+                'xl' => 5,
+            ])->schema([
                 Forms\Components\Select::make('typeFilter')
                     ->label('Type')
                     ->options([
@@ -67,6 +81,41 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                         'out' => 'Out',
                     ])
                     ->placeholder('All')
+                    ->reactive(),
+
+                Forms\Components\DatePicker::make('dateFromFilter')
+                    ->label('From')
+                    ->displayFormat('d/m/Y')
+                    ->maxDate(now())
+                    ->native(false)
+                    ->reactive(),
+
+                Forms\Components\DatePicker::make('dateToFilter')
+                    ->label('To')
+                    ->displayFormat('d/m/Y')
+                    ->minDate(fn (callable $get) => $get('dateFromFilter'))
+                    ->maxDate(now())
+                    ->native(false)
+                    ->reactive(),
+
+                Forms\Components\Select::make('branchFilter')
+                    ->label('Branch')
+                    ->placeholder('All')
+                    ->searchable()
+                    ->preload()
+                    ->options(function () use ($user, $merchantId) {
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = \App\Models\Branch::query()->where('merchant_id', $merchantId);
+
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
+                        }
+
+                        return $query->orderBy('name')->pluck('name', 'id')->toArray();
+                    })
                     ->reactive(),
             ]),
         ];
@@ -164,6 +213,15 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
             )
+            ->when($this->dateFromFilter, fn ($q, $date) =>
+                $q->whereDate('purchase_date', '>=', $date)
+            )
+            ->when($this->dateToFilter, fn ($q, $date) =>
+                $q->whereDate('purchase_date', '<=', $date)
+            )
+            ->when($this->branchFilter, fn ($q, $branchId) =>
+                $q->whereHas('items', fn ($itemQ) => $itemQ->where('branch_id', $branchId))
+            )
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereHas('items.business.users', fn ($u) =>
             $u->where('users.id', $user->id)
@@ -217,6 +275,15 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
             )
+            ->when($this->dateFromFilter, fn ($q, $date) =>
+                $q->whereDate('sale_date', '>=', $date)
+            )
+            ->when($this->dateToFilter, fn ($q, $date) =>
+                $q->whereDate('sale_date', '<=', $date)
+            )
+            ->when($this->branchFilter, fn ($q, $branchId) =>
+                $q->whereHas('items', fn ($itemQ) => $itemQ->where('branch_id', $branchId))
+            )
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereHas('items.business.users', fn ($u) =>
             $u->where('users.id', $user->id)
@@ -265,6 +332,15 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             ->whereHas('sale')
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
+            )
+            ->when($this->dateFromFilter, fn ($q, $date) =>
+                $q->whereDate('return_date', '>=', $date)
+            )
+            ->when($this->dateToFilter, fn ($q, $date) =>
+                $q->whereDate('return_date', '<=', $date)
+            )
+            ->when($this->branchFilter, fn ($q, $branchId) =>
+                $q->whereHas('items', fn ($itemQ) => $itemQ->where('branch_id', $branchId))
             )
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereHas('items.business.users', fn ($u) =>
@@ -326,6 +402,15 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             ->whereHas('purchase')
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
+            )
+            ->when($this->dateFromFilter, fn ($q, $date) =>
+                $q->whereDate('return_date', '>=', $date)
+            )
+            ->when($this->dateToFilter, fn ($q, $date) =>
+                $q->whereDate('return_date', '<=', $date)
+            )
+            ->when($this->branchFilter, fn ($q, $branchId) =>
+                $q->whereHas('items', fn ($itemQ) => $itemQ->where('branch_id', $branchId))
             )
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereHas('items.business.users', fn ($u) =>
