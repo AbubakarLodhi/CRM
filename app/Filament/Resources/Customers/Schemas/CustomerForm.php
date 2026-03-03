@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Schemas\Schema;
+use Illuminate\Validation\Rules\Unique;
 
 class CustomerForm
 {
@@ -55,7 +56,12 @@ class CustomerForm
                 ->label('Email address')
                 ->email()
                 ->maxLength(255)
-                ->unique(Customer::class, 'email', ignoreRecord: true)
+                ->unique(
+                    Customer::class,
+                    'email',
+                    ignoreRecord: true,
+                    modifyRuleUsing: fn (Unique $rule): Unique => $rule->withoutTrashed()
+                )
                 ->nullable()
                 ->live()
                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {

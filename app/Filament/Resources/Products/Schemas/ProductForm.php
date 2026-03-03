@@ -205,6 +205,7 @@ class ProductForm
                             $user = Filament::auth()->user();
 
                             $branchesQuery = \App\Models\Branch::query()
+                                ->withoutTrashed()
                                 ->with('business')
                                 ->where('is_active', true);
 

@@ -80,17 +80,21 @@ class Purchase extends Model implements Auditable
     protected static function booted(): void
     {
         static::deleting(function (self $purchase): void {
-            $purchase->returns()
-                ->with('items.variants')
-                ->get()
-                ->each(function (PurchaseReturn $return): void {
-                    $return->items->each(function (PurchaseReturnItem $item): void {
-                        $item->variants()->delete();
-                        $item->delete();
-                    });
+            if ($purchase->isForceDeleting()) {
+                $purchase->returns()
+                    ->withTrashed()
+                    ->with('items.variants')
+                    ->get()
+                    ->each(fn (PurchaseReturn $return): bool|null => $return->forceDelete());
 
-                    $return->delete();
-                });
+                return;
+            }
+
+            $purchase->returns()->get()->each->delete();
+        });
+
+        static::restoring(function (self $purchase): void {
+            $purchase->returns()->onlyTrashed()->get()->each->restore();
         });
     }
 }

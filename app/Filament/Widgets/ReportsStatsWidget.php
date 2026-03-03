@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Merchant;
+use App\Models\Expense;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\User;
@@ -29,6 +30,7 @@ class ReportsStatsWidget extends Widget
         return [
             'sales' => $this->getSalesStats(),
             'purchases' => $this->getPurchaseStats(),
+            'expenses' => $this->getExpenseStats(),
             'funds' => $this->getFundStats(),
             'stock' => $this->getStockStats(),
             'returns' => $this->getReturnStats(),
@@ -74,6 +76,7 @@ class ReportsStatsWidget extends Widget
         $filters = $this->filters();
 
         $query = Sale::query()
+            ->withoutTrashed()
             ->where('merchant_id', $merchantId)
             ->when(
                 $filters['business_id'],
@@ -119,6 +122,7 @@ class ReportsStatsWidget extends Widget
         $filters = $this->filters();
 
         $query = Purchase::query()
+            ->withoutTrashed()
             ->where('merchant_id', $merchantId)
             ->when(
                 $filters['business_id'],
@@ -720,6 +724,69 @@ class ReportsStatsWidget extends Widget
         ];
     }
 
+    protected function expenseBaseQuery($user, string $merchantId): EloquentBuilder
+    {
+        $filters = $this->filters();
+
+        $query = Expense::query()
+            ->where('merchant_id', $merchantId)
+            ->when(
+                $filters['business_id'],
+                fn (EloquentBuilder $query, $businessId) => $query->where('business_id', $businessId),
+            )
+            ->when(
+                $filters['branch_id'],
+                fn (EloquentBuilder $query, $branchId) => $query->where('branch_id', $branchId),
+            )
+            ->when(
+                $filters['date_from'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('expense_date', '>=', $date),
+            )
+            ->when(
+                $filters['date_to'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('expense_date', '<=', $date),
+            );
+
+        if ($user instanceof User) {
+            $assignments = $this->staffAssignments($user);
+            $businessIds = $assignments['business_ids'];
+            $branchIds = $assignments['branch_ids'];
+
+            if ($businessIds->isEmpty() || $branchIds->isEmpty()) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query
+                    ->whereIn('business_id', $businessIds)
+                    ->whereIn('branch_id', $branchIds);
+            }
+        }
+
+        return $query;
+    }
+
+    protected function getExpenseStats(): array
+    {
+        [$user, $merchantId] = $this->authContext();
+
+        if (! $merchantId) {
+            return [
+                'total_expenses' => 0,
+                'total_amount' => 0,
+                'avg_expense' => 0,
+            ];
+        }
+
+        $query = $this->expenseBaseQuery($user, $merchantId);
+        $count = (clone $query)->count();
+        $amount = (float) (clone $query)->sum('total_amount');
+
+        return [
+            'total_expenses' => (int) $count,
+            'total_amount' => $amount,
+            'avg_expense' => $count > 0 ? round($amount / $count, 2) : 0,
+        ];
+    }
+
     protected function getFundStats(): array
     {
         [$user, $merchantId] = $this->authContext();
@@ -729,6 +796,7 @@ class ReportsStatsWidget extends Widget
                 'opening_total_funds' => 0,
                 'sales_cash_inflow' => 0,
                 'purchases_cash_outflow' => 0,
+                'expenses_outflow' => 0,
                 'net_cash_movement' => 0,
                 'current_total_funds' => 0,
             ];
@@ -746,15 +814,18 @@ class ReportsStatsWidget extends Widget
 
         $cashSalesAmount = (float) (clone $cashSalesQuery)->sum('total_amount');
         $cashPurchasesAmount = (float) (clone $cashPurchasesQuery)->sum('total_amount');
+        $expenseAmount = (float) (clone $this->expenseBaseQuery($user, $merchantId))->sum('total_amount');
 
         $salesCashInflow = $cashSalesAmount;
         $purchasesCashOutflow = $cashPurchasesAmount;
-        $netCashMovement = $salesCashInflow - $purchasesCashOutflow;
+        $expensesOutflow = $expenseAmount;
+        $netCashMovement = $salesCashInflow - $purchasesCashOutflow - $expensesOutflow;
 
         return [
             'opening_total_funds' => $openingTotalFunds,
             'sales_cash_inflow' => $salesCashInflow,
             'purchases_cash_outflow' => $purchasesCashOutflow,
+            'expenses_outflow' => $expensesOutflow,
             'net_cash_movement' => $netCashMovement,
             'current_total_funds' => $openingTotalFunds + $netCashMovement,
         ];

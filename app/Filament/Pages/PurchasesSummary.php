@@ -70,10 +70,11 @@ class PurchasesSummary extends Page implements HasTable
                 };
 
                 if (! $merchantId) {
-                    return Purchase::query()->whereRaw('1 = 0');
+                    return Purchase::query()->withoutTrashed()->whereRaw('1 = 0');
                 }
 
                 $query = Purchase::query()
+                    ->withoutTrashed()
                     ->where('merchant_id', $merchantId)
                     ->with([
                         'merchant',
@@ -275,6 +276,7 @@ class PurchasesSummary extends Page implements HasTable
                         }
 
                         $query = \App\Models\Branch::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {

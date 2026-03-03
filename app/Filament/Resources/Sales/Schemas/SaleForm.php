@@ -261,6 +261,7 @@ class SaleForm
                                     // MERCHANT → all products
                                     if ($user instanceof \App\Models\Merchant) {
                                         return Product::query()
+                                            ->withoutTrashed()
                                             ->where('is_active', true)
                                             ->where('merchant_id', self::merchantId())
                                             ->orderBy('name')
@@ -276,6 +277,7 @@ class SaleForm
                                     $branchIds = $user->branches()->pluck('branches.id');
 
                                     return Product::query()
+                                        ->withoutTrashed()
                                         ->where('products.is_active', true)
                                         ->where('products.merchant_id', self::merchantId())
                                         ->whereExists(function ($q) use ($branchIds) {
@@ -291,6 +293,21 @@ class SaleForm
                                             $p->id => "{$p->name} ({$p->sku})",
                                         ])
                                         ->all();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (! $value) {
+                                        return null;
+                                    }
+
+                                    $product = \App\Models\Product::withTrashed()
+                                        ->select(['id', 'name', 'sku'])
+                                        ->find($value);
+
+                                    if (! $product) {
+                                        return (string) $value;
+                                    }
+
+                                    return $product->name . ' (' . $product->sku . ')';
                                 })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.product_id');
@@ -312,6 +329,7 @@ class SaleForm
 
                                     // Find branches where THIS product exists
                                     $branchQuery = \App\Models\Branch::query()
+                                        ->withoutTrashed()
                                         ->where('merchant_id', self::merchantId())
                                         ->whereExists(function ($q) use ($state) {
                                             $q->selectRaw(1)
@@ -356,6 +374,7 @@ class SaleForm
                                     $user = Filament::auth()->user();
 
                                     $query = \App\Models\Branch::query()
+                                        ->withoutTrashed()
                                         ->with('business')
                                         ->where('merchant_id', self::merchantId())
                                         ->whereExists(function ($q) use ($productId) {
@@ -411,6 +430,7 @@ class SaleForm
                                     }
 
                                     return \App\Models\ProductVariant::query()
+                                        ->withoutTrashed()
                                         ->where('product_id', $productId)
                                         ->limit(50)
                                         ->get()
@@ -424,6 +444,21 @@ class SaleForm
                                             return [$variant->id => $label];
                                         })
                                         ->all();
+                                })
+                                ->getOptionLabelUsing(function ($value): ?string {
+                                    if (! $value) {
+                                        return null;
+                                    }
+
+                                    $variant = \App\Models\ProductVariant::withTrashed()
+                                        ->select(['id', 'name', 'sku'])
+                                        ->find($value);
+
+                                    if (! $variant) {
+                                        return (string) $value;
+                                    }
+
+                                    return (string) ($variant->name ?? $variant->sku ?? $variant->id);
                                 })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.product_variant_id');

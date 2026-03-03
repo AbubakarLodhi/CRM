@@ -21,13 +21,25 @@ class OrderForm
                     ->relationship('merchant', 'name')
                     ->required(),
                 Select::make('business_id')
-                    ->relationship('business', 'name')
+                    ->relationship(
+                        'business',
+                        'name',
+                        fn ($query) => $query->withoutTrashed()
+                    )
                     ->required(),
                 Select::make('branch_id')
-                    ->relationship('branch', 'name')
+                    ->relationship(
+                        'branch',
+                        'name',
+                        fn ($query) => $query->withoutTrashed()
+                    )
                     ->required(),
                 Select::make('sale_id')
-                    ->relationship('sale', 'id')
+                    ->relationship(
+                        'sale',
+                        'id',
+                        fn ($query) => $query->withoutTrashed()
+                    )
                     ->required(),
             ]);
     }

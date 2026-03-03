@@ -51,6 +51,7 @@ class Dashboard extends BaseDashboard
                                 }
 
                                 $query = Business::query()
+                                    ->withoutTrashed()
                                     ->where('merchant_id', $merchantId);
 
                                 if ($user instanceof User) {
@@ -86,6 +87,7 @@ class Dashboard extends BaseDashboard
                                 }
 
                                 $query = Branch::query()
+                                    ->withoutTrashed()
                                     ->where('merchant_id', $merchantId);
 
                                 if ($businessId = $get('business_id')) {

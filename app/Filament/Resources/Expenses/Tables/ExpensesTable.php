@@ -111,6 +111,7 @@ class ExpensesTable
                         }
 
                         $query = \App\Models\Business::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         // 🔵 Staff → assigned businesses only
@@ -148,6 +149,7 @@ class ExpensesTable
                         $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
 
                         $query = \App\Models\Branch::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($businessId) {

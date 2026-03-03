@@ -128,6 +128,7 @@ class OrdersTable
                         }
 
                         $query = \App\Models\Business::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {
@@ -163,6 +164,7 @@ class OrdersTable
                         }
 
                         $query = \App\Models\Branch::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {

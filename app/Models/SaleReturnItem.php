@@ -5,6 +5,7 @@ namespace App\Models;
 use OwenIt\Auditing\Contracts\Auditable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,6 +13,7 @@ class SaleReturnItem extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
     use HasUuids;
+    use SoftDeletes;
 
     protected $keyType = 'string';
     public $incrementing = false;
@@ -58,5 +60,25 @@ class SaleReturnItem extends Model implements Auditable
     public function variants(): HasMany
     {
         return $this->hasMany(SaleReturnItemVariant::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $item): void {
+            if ($item->isForceDeleting()) {
+                $item->variants()
+                    ->withTrashed()
+                    ->get()
+                    ->each(fn (SaleReturnItemVariant $variant): bool|null => $variant->forceDelete());
+
+                return;
+            }
+
+            $item->variants()->get()->each->delete();
+        });
+
+        static::restoring(function (self $item): void {
+            $item->variants()->onlyTrashed()->get()->each->restore();
+        });
     }
 }

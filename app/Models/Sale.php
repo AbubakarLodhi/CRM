@@ -88,17 +88,21 @@ class Sale extends Model implements Auditable
     protected static function booted(): void
     {
         static::deleting(function (self $sale): void {
-            $sale->returns()
-                ->with('items.variants')
-                ->get()
-                ->each(function (SaleReturn $return): void {
-                    $return->items->each(function (SaleReturnItem $item): void {
-                        $item->variants()->delete();
-                        $item->delete();
-                    });
+            if ($sale->isForceDeleting()) {
+                $sale->returns()
+                    ->withTrashed()
+                    ->with('items.variants')
+                    ->get()
+                    ->each(fn (SaleReturn $return): bool|null => $return->forceDelete());
 
-                    $return->delete();
-                });
+                return;
+            }
+
+            $sale->returns()->get()->each->delete();
+        });
+
+        static::restoring(function (self $sale): void {
+            $sale->returns()->onlyTrashed()->get()->each->restore();
         });
     }
 

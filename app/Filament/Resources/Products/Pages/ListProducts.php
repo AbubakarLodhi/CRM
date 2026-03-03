@@ -26,6 +26,7 @@ class ListProducts extends ListRecords
         };
 
         return Product::query()
+            ->withoutTrashed()
             ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
             ->when(
                 request()->filled('brand_model_id'),

@@ -36,6 +36,6 @@ class PurchaseItemVariant extends Model implements Auditable
 
     public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id')->withTrashed();
     }
 }

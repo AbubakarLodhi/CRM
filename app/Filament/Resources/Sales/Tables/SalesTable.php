@@ -213,6 +213,7 @@ class SalesTable
                         }
 
                         $query = Business::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {
@@ -256,6 +257,7 @@ class SalesTable
                         $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
 
                         $query = Branch::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($businessId) {
@@ -361,8 +363,12 @@ class SalesTable
                     })
                     ->visible(fn (Sale $record) =>
                         self::hasReturnableItems($record)
-                        && auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user()?->hasPermissionTo('sales.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        && (
+                            auth(Filament::getCurrentPanel()->getAuthGuard())
+                                ->user()?->hasPermissionTo('sales.delete', Filament::getCurrentPanel()->getAuthGuard())
+                            || auth(Filament::getCurrentPanel()->getAuthGuard())
+                                ->user()?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
+                        )
                     ),
 
                 EditAction::make()
@@ -593,7 +599,9 @@ class SalesTable
     private static function hasReturnableItems(Sale $sale): bool
     {
         foreach ($sale->items as $item) {
-            if ((int) $item->quantity > 0) {
+            $itemQty = (int) ($item->quantity ?? 0);
+            $variantQty = (int) $item->variants->sum('quantity');
+            if (max($itemQty, $variantQty) > 0) {
                 return true;
             }
         }

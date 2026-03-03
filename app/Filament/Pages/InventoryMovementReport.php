@@ -108,7 +108,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             return [];
                         }
 
-                        $query = \App\Models\Branch::query()->where('merchant_id', $merchantId);
+                        $query = \App\Models\Branch::query()->withoutTrashed()->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {
                             $query->whereHas('users', fn ($q) => $q->where('users.id', $user->id));
@@ -205,11 +205,13 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         };
 
         $purchaseRows = \App\Models\Purchase::query()
+            ->withoutTrashed()
             ->with([
                 'items.variants.variant.product',
                 'items.business.users',
                 'items.branch.users',
             ])
+            ->whereHas('items.variants.variant.product', fn (Builder $q) => $q->withoutTrashed())
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
             )
@@ -234,9 +236,11 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             ->flatMap(function ($purchase) {
                 return $purchase->items->flatMap(function ($item) use ($purchase) {
                     return $item->variants->map(function ($variantRow) use ($purchase, $item) {
-
                         $variant = $variantRow->variant;
-                        $product = $variant->product;
+                        $product = $variant?->product;
+                        if (! $variant || ! $product) {
+                            return null;
+                        }
 
                         return [
                             'id'            => 'purchase-var-' . $variantRow->id,
@@ -257,7 +261,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
                             'direction'     => 'in',
                         ];
-                    });
+                    })->filter();
                 });
             });
 
@@ -267,11 +271,13 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         // Sales (OUT)
 
         $saleRows = \App\Models\Sale::query()
+            ->withoutTrashed()
             ->with([
                 'items.variants.variant.product',
                 'items.business.users',
                 'items.branch.users',
             ])
+            ->whereHas('items.variants.variant.product', fn (Builder $q) => $q->withoutTrashed())
             ->when($merchantId, fn ($q) =>
             $q->where('merchant_id', $merchantId)
             )
@@ -296,9 +302,11 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
             ->flatMap(function ($sale) {
                 return $sale->items->flatMap(function ($item) use ($sale) {
                     return $item->variants->map(function ($variantRow) use ($sale, $item) {
-
                         $variant = $variantRow->variant;
-                        $product = $variant->product;
+                        $product = $variant?->product;
+                        if (! $variant || ! $product) {
+                            return null;
+                        }
 
                         return [
                             'id'            => 'sale-var-' . $variantRow->id,
@@ -316,7 +324,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
 
                             'direction'     => 'out',
                         ];
-                    });
+                    })->filter();
                 });
             });
 
@@ -355,6 +363,9 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 return $return->items->flatMap(function ($item) use ($return) {
                     if ($item->variants->isEmpty()) {
                         $product = $item->product;
+                        if (! $product || (method_exists($product, 'trashed') && $product->trashed())) {
+                            return [];
+                        }
 
                         return [[
                             'id'            => 'sale-return-item-' . $item->id,
@@ -374,6 +385,9 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     return $item->variants->map(function ($variantRow) use ($return, $item) {
                         $variant = $variantRow->variant;
                         $product = $variant?->product ?? $item->product;
+                        if (! $product || (method_exists($product, 'trashed') && $product->trashed())) {
+                            return null;
+                        }
 
                         return [
                             'id'            => 'sale-return-var-' . $variantRow->id,
@@ -388,7 +402,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'total'         => $variantRow->line_total,
                             'direction'     => 'in',
                         ];
-                    });
+                    })->filter();
                 });
             });
 
@@ -425,6 +439,9 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                 return $return->items->flatMap(function ($item) use ($return) {
                     if ($item->variants->isEmpty()) {
                         $product = $item->product;
+                        if (! $product || (method_exists($product, 'trashed') && $product->trashed())) {
+                            return [];
+                        }
 
                         return [[
                             'id'            => 'purchase-return-item-' . $item->id,
@@ -444,6 +461,9 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     return $item->variants->map(function ($variantRow) use ($return, $item) {
                         $variant = $variantRow->variant;
                         $product = $variant?->product ?? $item->product;
+                        if (! $product || (method_exists($product, 'trashed') && $product->trashed())) {
+                            return null;
+                        }
 
                         return [
                             'id'            => 'purchase-return-var-' . $variantRow->id,
@@ -458,7 +478,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'total'         => $variantRow->line_total,
                             'direction'     => 'out',
                         ];
-                    });
+                    })->filter();
                 });
             });
 

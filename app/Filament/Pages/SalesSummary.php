@@ -54,10 +54,11 @@ class SalesSummary extends Page implements HasTable
                 };
 
                 if (! $merchantId) {
-                    return Sale::query()->whereRaw('1 = 0');
+                    return Sale::query()->withoutTrashed()->whereRaw('1 = 0');
                 }
 
                 $query = Sale::query()
+                    ->withoutTrashed()
                     ->where('merchant_id', $merchantId)
                     ->with(['items.business', 'items.branch', 'returns.items'])
                     ->withCount('returns')
@@ -252,6 +253,7 @@ class SalesSummary extends Page implements HasTable
                         }
 
                         return \App\Models\Customer::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId)
                             ->orderBy('name')
                             ->pluck('name', 'id')
@@ -281,6 +283,7 @@ class SalesSummary extends Page implements HasTable
                         }
 
                         $query = \App\Models\Branch::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {

@@ -158,7 +158,20 @@ class Product extends Model implements Auditable
     protected static function booted(): void
     {
         static::deleting(function (Product $product): void {
+            if ($product->isForceDeleting()) {
+                $product->variants()
+                    ->withTrashed()
+                    ->get()
+                    ->each(fn (ProductVariant $variant) => $variant->forceDelete());
+
+                return;
+            }
+
             $product->variants()->delete();
+        });
+
+        static::restoring(function (Product $product): void {
+            $product->variants()->onlyTrashed()->restore();
         });
     }
 }

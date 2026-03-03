@@ -96,6 +96,7 @@ class VendorsTable
                         };
 
                         $baseQuery = Purchase::query()
+                            ->withoutTrashed()
                             ->where('vendor_id', $record->id)
                             ->when($merchantId, fn ($q) =>
                                 $q->where('merchant_id', $merchantId)

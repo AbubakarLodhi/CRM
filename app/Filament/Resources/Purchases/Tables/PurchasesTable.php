@@ -226,6 +226,7 @@ class PurchasesTable
                         }
 
                         $query = Business::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($user instanceof \App\Models\User) {
@@ -270,6 +271,7 @@ class PurchasesTable
                         $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
 
                         $query = Branch::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId);
 
                         if ($businessId) {
@@ -314,6 +316,7 @@ class PurchasesTable
                         }
 
                         return Vendor::query()
+                            ->withoutTrashed()
                             ->where('merchant_id', $merchantId)
                             ->orderBy('name')
                             ->pluck('name', 'id')
@@ -408,8 +411,12 @@ class PurchasesTable
                     })
                     ->visible(fn (Purchase $record) =>
                         self::hasReturnableItems($record)
-                        && auth(Filament::getCurrentPanel()->getAuthGuard())
-                            ->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())
+                        && (
+                            auth(Filament::getCurrentPanel()->getAuthGuard())
+                                ->user()?->hasPermissionTo('purchases.delete', Filament::getCurrentPanel()->getAuthGuard())
+                            || auth(Filament::getCurrentPanel()->getAuthGuard())
+                                ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
+                        )
                     ),
 
                 EditAction::make()
@@ -634,7 +641,9 @@ class PurchasesTable
     private static function hasReturnableItems(Purchase $purchase): bool
     {
         foreach ($purchase->items as $item) {
-            if ((int) $item->quantity > 0) {
+            $itemQty = (int) ($item->quantity ?? 0);
+            $variantQty = (int) $item->variants->sum('quantity');
+            if (max($itemQty, $variantQty) > 0) {
                 return true;
             }
         }

@@ -176,6 +176,7 @@ class UsersTable
                         // Merchant owner → all businesses
                         if ($user->id === $user->merchant_id) {
                             return \App\Models\Business::query()
+                                ->withoutTrashed()
                                 ->where('merchant_id', $user->merchant_id)
                                 ->orderBy('name')
                                 ->pluck('name', 'id')
@@ -209,6 +210,7 @@ class UsersTable
                         // Merchant owner → all branches
                         if ($user->id === $user->merchant_id) {
                             return \App\Models\Branch::query()
+                                ->withoutTrashed()
                                 ->where('merchant_id', $user->merchant_id)
                                 ->orderBy('name')
                                 ->pluck('name', 'id')

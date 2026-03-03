@@ -26,6 +26,7 @@ class ListVariants extends ListRecords
         };
 
         return ProductVariant::query()
+            ->withoutTrashed()
             ->when(
                 $merchantId,
                 fn (Builder $query) => $query->where('merchant_id', $merchantId),

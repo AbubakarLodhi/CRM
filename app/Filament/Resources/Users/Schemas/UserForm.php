@@ -166,6 +166,7 @@ class UserForm
 
                                 // Fetch branches with business relation
                                 $branchesQuery = Branch::query()
+                                    ->withoutTrashed()
                                     ->with('business')
                                     ->where('is_active', true);
 

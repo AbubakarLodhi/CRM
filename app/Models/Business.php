@@ -37,9 +37,22 @@ class Business extends Model implements Auditable
         });
 
         static::deleting(function (Business $business) {
-            $business->users()->detach();
+            if ($business->isForceDeleting()) {
+                $business->users()->detach();
+
+                $business->branches()
+                    ->withTrashed()
+                    ->get()
+                    ->each(fn (Branch $branch) => $branch->forceDelete());
+
+                return;
+            }
 
             $business->branches()->delete();
+        });
+
+        static::restoring(function (Business $business) {
+            $business->branches()->onlyTrashed()->restore();
         });
     }
 

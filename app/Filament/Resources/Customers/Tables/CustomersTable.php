@@ -99,6 +99,7 @@ class CustomersTable
                         };
 
                         $baseQuery = Sale::query()
+                            ->withoutTrashed()
                             ->where('customer_id', $record->id)
                             ->when($merchantId, fn ($q) =>
                                 $q->where('merchant_id', $merchantId)

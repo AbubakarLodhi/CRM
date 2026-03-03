@@ -100,6 +100,7 @@ class ExpenseForm
                             $user = Filament::auth()->user();
 
                             $query = \App\Models\Branch::query()
+                                ->withoutTrashed()
                                 ->with('business')
                                 ->where('is_active', true);
 
@@ -137,6 +138,7 @@ class ExpenseForm
                 ]),
 
             Section::make('Expense Items')
+                ->extraAttributes(['class' => 'line-items-section'])
                 ->columnSpanFull()
                 ->schema([
                     Repeater::make('items')
@@ -154,14 +156,15 @@ class ExpenseForm
 
                             TextInput::make('quantity')
                                 ->label('Quantity')
-                                ->numeric()
+                                ->inputMode('numeric')
+                                ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'quantity'])
                                 ->required()
                                 ->default(1)
                                 ->minValue(1)
-                                ->reactive()
-                                ->debounce(300)
+                                ->live()
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    if ($state === null || $state === '') {
+                                    if ($state === null || $state === '' || ! is_numeric($state)) {
                                         $set('line_total', 0);
                                         self::recalcTotals($set, $get);
                                         return;
@@ -171,7 +174,6 @@ class ExpenseForm
 
                                     $unit = (float)($get('unit_price') ?? 0);
 
-                                    $set('quantity', $qty); // update state if negative
                                     $set('line_total', $unit * $qty);
 
                                     self::recalcTotals($set, $get);
@@ -180,18 +182,29 @@ class ExpenseForm
 
                             TextInput::make('unit_price')
                                 ->label('Unit Price')
-                                ->numeric()
+                                ->inputMode('decimal')
+                                ->rule('numeric')
+                                ->extraInputAttributes(['data-line-field' => 'unit_price'])
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->reactive()
-                                ->debounce(300)
+                                ->live(onBlur: true)
                                 ->afterStateUpdated(function ($state, callable $set, callable $get) {
-                                    // ✅ Clamp unit price to minimum 0
-                                    $unit = max(0, (float)($state ?? 0));
+                                    if ($state === null || $state === '') {
+                                        self::recalcTotals($set, $get);
+                                        return;
+                                    }
+
+                                    $raw = trim((string) $state);
+
+                                    // Allow in-progress decimal input (e.g. "12.")
+                                    if (! preg_match('/^\d*\.?\d*$/', $raw)) {
+                                        return;
+                                    }
+
+                                    $unit = max(0, (float) $raw);
                                     $qty = (float)($get('quantity') ?? 1);
 
-                                    $set('unit_price', $unit); // update state if negative
                                     $set('line_total', $unit * $qty);
 
                                     self::recalcTotals($set, $get);
@@ -203,13 +216,15 @@ class ExpenseForm
                                 ->numeric()
                                 ->disabled()
                                 ->dehydrated()
+                                ->extraInputAttributes(['data-line-field' => 'line_total'])
                                 ->default(0),
                         ])
                         ->columns(4)
                         ->defaultItems(1)
                         ->minItems(1)
                         ->collapsible()
-                        ->itemLabel(fn(array $state): string => $state['description'] ?? 'New Item')
+                        ->itemLabel('Item')
+                        ->itemNumbers()
                         ->addActionLabel('Add Item')
                         ->reorderable(false)
                         ->deletable(true)
@@ -266,7 +281,12 @@ class ExpenseForm
     private static function recalcTotals(callable $set, callable $get): void
     {
         $items = $get('items') ?? [];
-        $subtotal = collect($items)->sum(fn($item) => (float)($item['line_total'] ?? 0));
+        $subtotal = collect($items)->sum(function ($item) {
+            $qty = is_numeric($item['quantity'] ?? null) ? (float) ($item['quantity'] ?? 0) : 0;
+            $unit = is_numeric($item['unit_price'] ?? null) ? (float) ($item['unit_price'] ?? 0) : 0;
+
+            return max(0, $qty) * max(0, $unit);
+        });
 
         $discount = (float)($get('discount') ?? 0);
         $tax = (float)($get('tax') ?? 0);
