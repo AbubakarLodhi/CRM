@@ -192,7 +192,7 @@ class SalesTable
             ->filters([
 
                 SelectFilter::make('customer_id')
-                    ->relationship('customer', 'name')
+                    ->relationship('activeCustomer', 'name')
                     ->label('Customer')
                     ->searchable()
                     ->preload(),

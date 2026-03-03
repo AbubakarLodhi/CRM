@@ -50,6 +50,11 @@ class Purchase extends Model implements Auditable
         return $this->belongsTo(Vendor::class)->withTrashed();
     }
 
+    public function activeVendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
 
     /**
      * @return BelongsTo

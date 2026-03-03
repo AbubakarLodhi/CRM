@@ -63,7 +63,7 @@ class SaleForm
                             Select::make('customer_id')
                                 ->label('Customer')
                                 ->relationship(
-                                    'customer',
+                                    'activeCustomer',
                                     'name',
                                     fn (Builder $query) => $query->where(
                                         'merchant_id',

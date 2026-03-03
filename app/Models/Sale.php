@@ -56,6 +56,11 @@ class Sale extends Model implements Auditable
         return $this->belongsTo(Customer::class)->withTrashed();
     }
 
+    public function activeCustomer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
     /**
      * @return BelongsTo
      */

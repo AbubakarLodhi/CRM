@@ -62,7 +62,7 @@ class PurchaseForm
                             Select::make('vendor_id')
                                 ->label('Vendor')
                                 ->relationship(
-                                    'vendor',
+                                    'activeVendor',
                                     'name',
                                     fn ($query) => $query->where('merchant_id', self::merchantId())
                                 )
