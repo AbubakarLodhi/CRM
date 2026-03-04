@@ -31,22 +31,25 @@
             $totalTaxPercent += $taxRate;
         }
 
-        $combinations = $combinations ?? [];
-        $selectedCombinationIndex = (int) ($selectedCombinationIndex ?? 0);
+        $headerGroupOptions = $headerGroupOptions ?? ['__default' => 'Default (Current Header)'];
+        $footerGroupOptions = $footerGroupOptions ?? ['__default' => 'Default (Current Footer)'];
+        $selectedHeaderGroupId = (string) ($selectedHeaderGroupId ?? array_key_first($headerGroupOptions));
+        $selectedFooterGroupId = (string) ($selectedFooterGroupId ?? array_key_first($footerGroupOptions));
+        $dynamicGroups = $dynamicGroups ?? ['header' => [], 'footer' => []];
+        $headerGroups = $dynamicGroups['header'] ?? [];
+        $footerGroups = $dynamicGroups['footer'] ?? [];
+        $showDefaultHeader = $selectedHeaderGroupId === '__default';
+        $showDefaultFooter = $selectedFooterGroupId === '__default';
 
-        if (empty($combinations)) {
-            $combinations = [[
-                'id' => '__default|__default',
-                'headerLabel' => 'Default (Current Header)',
-                'footerLabel' => 'Default (Current Footer)',
-                'headerGroups' => [],
-                'footerGroups' => [],
-                'showDefaultHeader' => true,
-                'showDefaultFooter' => true,
-            ]];
+        $configuredHeaderLogo = null;
+        foreach ($headerGroups as $group) {
+            foreach (($group['fields'] ?? []) as $field) {
+                if (($field['value_type'] ?? null) === 'business_logo' && filled($field['value'] ?? null)) {
+                    $configuredHeaderLogo = (string) $field['value'];
+                    break 2;
+                }
+            }
         }
-
-        $selectedCombinationIndex = max(0, min($selectedCombinationIndex, count($combinations) - 1));
     @endphp
 
     <title>Invoice {{ $invoiceNo }}</title>
@@ -295,50 +298,27 @@
             line-height: 1.2;
         }
 
-        .combo-slider {
-            width: 100%;
-            accent-color: #111827;
+        .combo-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
 
-        .combo-current {
+        .combo-field {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            font-size: 12px;
-            color: #4b5563;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
         }
 
-        .combo-nav-buttons {
-            display: inline-flex;
-            gap: 6px;
-            margin-left: 8px;
-        }
-
-        .combo-nav-btn {
+        .combo-select {
             border: 1px solid #d1d5db;
             background: #fff;
             color: #111827;
-            width: 24px;
-            height: 24px;
-            border-radius: 999px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
             font-size: 12px;
-            line-height: 1;
-            padding: 0;
-        }
-
-        .combo-nav-btn:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
-
-        .combo-current strong {
-            color: #111827;
-            font-weight: 700;
+            border-radius: 8px;
+            padding: 6px 8px;
+            width: 100%;
         }
 
         .side-arrow {
@@ -379,18 +359,6 @@
             text-decoration: none;
         }
 
-        .invoice-carousel {
-            width: 100%;
-        }
-
-        .invoice-slide {
-            display: none;
-        }
-
-        .invoice-slide.is-active {
-            display: block;
-        }
-
         @media (max-width: 900px) {
             .actions {
                 position: static;
@@ -402,6 +370,10 @@
             .combo-controls {
                 width: 100%;
                 min-width: 0;
+            }
+
+            .combo-fields {
+                grid-template-columns: 1fr;
             }
 
             .side-arrow {
@@ -432,40 +404,44 @@
             .side-arrow {
                 display: none !important;
             }
-            .invoice-slide {
-                display: none !important;
-            }
-            .invoice-slide.is-active {
-                display: block !important;
-            }
         }
     </style>
 </head>
 <body>
 
 <div class="actions">
-    <div class="combo-controls">
-        <label class="combo-label" for="invoice-combination-slider">Invoice Combination</label>
-        <input
-            id="invoice-combination-slider"
-            class="combo-slider"
-            type="range"
-            min="0"
-            max="{{ max(count($combinations) - 1, 0) }}"
-            value="{{ $selectedCombinationIndex }}"
-            step="1"
-        >
-        <div class="combo-current">
-            <span id="invoice-combination-text">-</span>
-            <span>
-                <strong id="invoice-combination-count">1</strong> / {{ count($combinations) }}
-                <span class="combo-nav-buttons">
-                    <button type="button" id="invoice-combination-prev" class="combo-nav-btn" aria-label="Previous Combination">&lt;</button>
-                    <button type="button" id="invoice-combination-next" class="combo-nav-btn" aria-label="Next Combination">&gt;</button>
-                </span>
-            </span>
+    <form
+        id="invoice-template-form"
+        class="combo-controls"
+        method="GET"
+        action="{{ route('invoices.show', ['type' => $type, 'id' => $record->id]) }}"
+    >
+        <span class="combo-label">Invoice Template</span>
+
+        <div class="combo-fields">
+            <div class="combo-field">
+                <label class="combo-label" for="invoice-header-select">Header</label>
+                <select id="invoice-header-select" name="header" class="combo-select">
+                    @foreach($headerGroupOptions as $optionId => $optionLabel)
+                        <option value="{{ $optionId }}" @selected((string) $optionId === $selectedHeaderGroupId)>
+                            {{ $optionLabel }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="combo-field">
+                <label class="combo-label" for="invoice-footer-select">Footer</label>
+                <select id="invoice-footer-select" name="footer" class="combo-select">
+                    @foreach($footerGroupOptions as $optionId => $optionLabel)
+                        <option value="{{ $optionId }}" @selected((string) $optionId === $selectedFooterGroupId)>
+                            {{ $optionLabel }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
         </div>
-    </div>
+    </form>
 
     <div class="action-buttons">
         <button class="btn" type="button" onclick="window.print()">Print</button>
@@ -486,8 +462,7 @@
     class="side-arrow left invoice-nav-arrow"
     aria-label="Previous Invoice"
     data-href="{{ $previousInvoiceUrl ?? '' }}"
-    data-direction="-1"
-    @if(empty($previousInvoiceUrl) && count($combinations) <= 1) disabled @endif
+    @if(empty($previousInvoiceUrl)) disabled @endif
 >&lt;</button>
 
 <button
@@ -496,34 +471,12 @@
     class="side-arrow right invoice-nav-arrow"
     aria-label="Next Invoice"
     data-href="{{ $nextInvoiceUrl ?? '' }}"
-    data-direction="1"
-    @if(empty($nextInvoiceUrl) && count($combinations) <= 1) disabled @endif
+    @if(empty($nextInvoiceUrl)) disabled @endif
 >&gt;</button>
 
-<div class="invoice-carousel" id="invoice-carousel">
-    @foreach($combinations as $comboIndex => $combo)
-        @php
-            $headerGroups = $combo['headerGroups'] ?? [];
-            $footerGroups = $combo['footerGroups'] ?? [];
-            $showDefaultHeader = (bool) ($combo['showDefaultHeader'] ?? true);
-            $showDefaultFooter = (bool) ($combo['showDefaultFooter'] ?? true);
-            $configuredHeaderLogo = null;
-
-            foreach ($headerGroups as $group) {
-                foreach (($group['fields'] ?? []) as $field) {
-                    if (($field['value_type'] ?? null) === 'business_logo' && filled($field['value'] ?? null)) {
-                        $configuredHeaderLogo = (string) $field['value'];
-                        break 2;
-                    }
-                }
-            }
-        @endphp
-        <section
-            class="invoice-slide @if($comboIndex === $selectedCombinationIndex) is-active @endif"
-            data-combo-label="Header: {{ $combo['headerLabel'] ?? 'Default' }} | Footer: {{ $combo['footerLabel'] ?? 'Default' }}"
-            data-combo-id="{{ $combo['id'] ?? '' }}"
-        >
-            <div class="invoice">
+<div>
+    <section>
+        <div class="invoice">
                 <div class="header">
                     <div class="brand">
                         @if($configuredHeaderLogo)
@@ -707,81 +660,37 @@
                 @endif
             </div>
         </section>
-    @endforeach
 </div>
 
 <script>
     (function () {
-        const slides = Array.from(document.querySelectorAll('.invoice-slide'));
-        const slider = document.getElementById('invoice-combination-slider');
-        const comboText = document.getElementById('invoice-combination-text');
-        const comboCount = document.getElementById('invoice-combination-count');
-        const prevButton = document.getElementById('invoice-combination-prev');
-        const nextButton = document.getElementById('invoice-combination-next');
+        const templateForm = document.getElementById('invoice-template-form');
+        const headerSelect = document.getElementById('invoice-header-select');
+        const footerSelect = document.getElementById('invoice-footer-select');
         const prevInvoiceArrow = document.getElementById('invoice-prev-arrow');
         const nextInvoiceArrow = document.getElementById('invoice-next-arrow');
 
-        if (!slides.length || !slider || !comboText || !comboCount || !prevButton || !nextButton) {
-            return;
-        }
-
-        const activate = (index) => {
-            const safeIndex = Math.max(0, Math.min(index, slides.length - 1));
-
-            slides.forEach((slide, i) => {
-                slide.classList.toggle('is-active', i === safeIndex);
-            });
-
-            slider.value = String(safeIndex);
-            comboCount.textContent = String(safeIndex + 1);
-            comboText.textContent = slides[safeIndex].dataset.comboLabel || `Combination ${safeIndex + 1}`;
-            prevButton.disabled = safeIndex === 0;
-            nextButton.disabled = safeIndex === slides.length - 1;
-
-            // If there is no adjacent invoice URL, side arrows navigate combinations.
-            if (prevInvoiceArrow && !prevInvoiceArrow.dataset.href) {
-                prevInvoiceArrow.disabled = safeIndex === 0;
-            }
-            if (nextInvoiceArrow && !nextInvoiceArrow.dataset.href) {
-                nextInvoiceArrow.disabled = safeIndex === slides.length - 1;
+        const submitTemplateForm = () => {
+            if (templateForm) {
+                templateForm.submit();
             }
         };
 
-        const navigateWithSideArrow = (arrowElement) => {
-            if (!arrowElement) {
-                return;
-            }
-
-            const href = arrowElement.dataset.href;
-            if (href) {
-                window.location.href = href;
-                return;
-            }
-
-            const direction = Number(arrowElement.dataset.direction || 0);
-            if (direction !== 0) {
-                activate(Number(slider.value || 0) + direction);
-            }
-        };
-
-        slider.addEventListener('input', (event) => {
-            activate(Number(event.target.value));
-        });
-
-        prevButton.addEventListener('click', () => {
-            activate(Number(slider.value || 0) - 1);
-        });
-
-        nextButton.addEventListener('click', () => {
-            activate(Number(slider.value || 0) + 1);
-        });
+        headerSelect?.addEventListener('change', submitTemplateForm);
+        footerSelect?.addEventListener('change', submitTemplateForm);
 
         prevInvoiceArrow?.addEventListener('click', () => {
-            navigateWithSideArrow(prevInvoiceArrow);
+            const href = prevInvoiceArrow.dataset.href;
+            if (href) {
+                window.location.href = href;
+            }
         });
 
         nextInvoiceArrow?.addEventListener('click', () => {
-            navigateWithSideArrow(nextInvoiceArrow);
+            const href = nextInvoiceArrow.dataset.href;
+            if (href) {
+                window.location.href = href;
+            }
         });
 
         document.addEventListener('keydown', (event) => {
@@ -795,16 +704,20 @@
 
             if (event.key === 'ArrowLeft') {
                 event.preventDefault();
-                navigateWithSideArrow(prevInvoiceArrow);
+                const href = prevInvoiceArrow?.dataset.href;
+                if (href) {
+                    window.location.href = href;
+                }
             }
 
             if (event.key === 'ArrowRight') {
                 event.preventDefault();
-                navigateWithSideArrow(nextInvoiceArrow);
+                const href = nextInvoiceArrow?.dataset.href;
+                if (href) {
+                    window.location.href = href;
+                }
             }
         });
-
-        activate(Number(slider.value || 0));
     })();
 </script>
 

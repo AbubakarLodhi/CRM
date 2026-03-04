@@ -40,57 +40,40 @@ class InvoiceController
 
         $headerGroupOptions = $this->invoiceGroupOptions((string) $record->merchant_id, 'header');
         $footerGroupOptions = $this->invoiceGroupOptions((string) $record->merchant_id, 'footer');
-        $combinations = [];
+        $fallbackHeaderId = (string) array_key_first($headerGroupOptions);
+        $fallbackFooterId = (string) array_key_first($footerGroupOptions);
 
-        foreach ($headerGroupOptions as $headerGroupId => $headerGroupLabel) {
-            foreach ($footerGroupOptions as $footerGroupId => $footerGroupLabel) {
-                $dynamicGroups = InvoiceDynamicFieldResolver::resolveGroups(
-                    $record,
-                    (string) $headerGroupId,
-                    (string) $footerGroupId
-                );
+        // Backward compatibility for old combo links.
+        $combo = trim((string) request()->query('combo', ''));
+        [$comboHeaderId, $comboFooterId] = $this->splitCombo($combo);
 
-                $combinations[] = [
-                    'id' => (string) $headerGroupId . '|' . (string) $footerGroupId,
-                    'headerLabel' => (string) $headerGroupLabel,
-                    'footerLabel' => (string) $footerGroupLabel,
-                    'headerGroups' => $dynamicGroups['header'],
-                    'footerGroups' => $dynamicGroups['footer'],
-                    'showDefaultHeader' => (string) $headerGroupId === '__default',
-                    'showDefaultFooter' => (string) $footerGroupId === '__default',
-                ];
-            }
+        $selectedHeaderGroupId = trim((string) request()->query('header', $comboHeaderId ?? $fallbackHeaderId));
+        $selectedFooterGroupId = trim((string) request()->query('footer', $comboFooterId ?? $fallbackFooterId));
+
+        if (! array_key_exists($selectedHeaderGroupId, $headerGroupOptions)) {
+            $selectedHeaderGroupId = $fallbackHeaderId;
         }
 
-        if (empty($combinations)) {
-            $combinations[] = [
-                'id' => '__default|__default',
-                'headerLabel' => 'Default (Current Header)',
-                'footerLabel' => 'Default (Current Footer)',
-                'headerGroups' => [],
-                'footerGroups' => [],
-                'showDefaultHeader' => true,
-                'showDefaultFooter' => true,
-            ];
+        if (! array_key_exists($selectedFooterGroupId, $footerGroupOptions)) {
+            $selectedFooterGroupId = $fallbackFooterId;
         }
 
-        $selectedCombination = trim((string) request()->query('combo', $combinations[0]['id']));
-        $selectedCombinationIndex = 0;
-
-        foreach ($combinations as $index => $combination) {
-            if ((string) $combination['id'] === $selectedCombination) {
-                $selectedCombinationIndex = $index;
-                break;
-            }
-        }
+        $dynamicGroups = InvoiceDynamicFieldResolver::resolveGroups(
+            $record,
+            $selectedHeaderGroupId,
+            $selectedFooterGroupId,
+        );
 
         [$previousInvoiceUrl, $nextInvoiceUrl] = $this->adjacentInvoiceUrls($type, $record);
 
         return view('filament.pages.invoice', [
             'type'   => $type,
             'record' => $record,
-            'combinations' => $combinations,
-            'selectedCombinationIndex' => $selectedCombinationIndex,
+            'headerGroupOptions' => $headerGroupOptions,
+            'footerGroupOptions' => $footerGroupOptions,
+            'selectedHeaderGroupId' => $selectedHeaderGroupId,
+            'selectedFooterGroupId' => $selectedFooterGroupId,
+            'dynamicGroups' => $dynamicGroups,
             'previousInvoiceUrl' => $previousInvoiceUrl,
             'nextInvoiceUrl' => $nextInvoiceUrl,
         ]);
@@ -150,7 +133,9 @@ class InvoiceController
         }
 
         $combo = request()->query('combo');
-        $buildUrl = function (?string $invoiceId) use ($type, $combo): ?string {
+        $header = request()->query('header');
+        $footer = request()->query('footer');
+        $buildUrl = function (?string $invoiceId) use ($type, $combo, $header, $footer): ?string {
             if (! $invoiceId) {
                 return null;
             }
@@ -158,6 +143,12 @@ class InvoiceController
             $params = ['type' => $type, 'id' => $invoiceId];
             if (filled($combo)) {
                 $params['combo'] = $combo;
+            }
+            if (filled($header)) {
+                $params['header'] = $header;
+            }
+            if (filled($footer)) {
+                $params['footer'] = $footer;
             }
 
             return route('invoices.show', $params);
@@ -167,5 +158,22 @@ class InvoiceController
         $nextId = $ids->get($currentIndex + 1);
 
         return [$buildUrl($previousId), $buildUrl($nextId)];
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string}
+     */
+    protected function splitCombo(string $combo): array
+    {
+        if (! str_contains($combo, '|')) {
+            return [null, null];
+        }
+
+        [$header, $footer] = explode('|', $combo, 2);
+
+        return [
+            filled($header) ? $header : null,
+            filled($footer) ? $footer : null,
+        ];
     }
 }

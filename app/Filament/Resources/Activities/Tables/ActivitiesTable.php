@@ -39,7 +39,13 @@ class ActivitiesTable
                 TextColumn::make('actor')
                     ->label('Performed By')
                     ->getStateUsing(fn ($record) => ActivityPerformer::resolve($record))
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHasMorph(
+                            'user',
+                            [Merchant::class, User::class],
+                            fn (Builder $query): Builder => $query->where('name', 'like', "%{$search}%"),
+                        );
+                    }),
 
                 TextColumn::make('user_type')
                     ->label('Actor Type')
