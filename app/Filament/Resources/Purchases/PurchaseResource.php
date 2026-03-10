@@ -66,7 +66,10 @@ class PurchaseResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with([
+                'returns:id,purchase_id,subtotal,total_discount,total_tax,total_amount',
+            ]);
         $user  = Filament::auth()->user();
 
         $merchantId = match (true) {

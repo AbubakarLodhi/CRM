@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Vendors;
 use App\Filament\Resources\Vendors\Pages\CreateVendor;
 use App\Filament\Resources\Vendors\Pages\EditVendor;
 use App\Filament\Resources\Vendors\Pages\ListVendors;
+use App\Filament\Resources\Vendors\Pages\ViewVendorPurchases;
 use App\Filament\Resources\Vendors\Schemas\VendorForm;
 use App\Filament\Resources\Vendors\Tables\VendorsTable;
 use App\Models\Vendor;
@@ -73,6 +74,7 @@ class VendorResource extends Resource
         return [
             'index' => ListVendors::route('/'),
             'create' => CreateVendor::route('/create'),
+            'purchases' => ViewVendorPurchases::route('/{record}/purchases'),
             'edit' => EditVendor::route('/{record}/edit'),
         ];
     }

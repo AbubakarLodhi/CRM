@@ -96,42 +96,71 @@ class PurchaseInfolist
                     ]),
 
                 Section::make('Summary')
-                    ->columns(4)
+                    ->columns(6)
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('subtotal')
                             ->label('Subtotal')
+                            ->getStateUsing(function ($record) {
+                                $returnedSubtotal = (float) $record->returns()->sum('subtotal');
+
+                                return (float) ($record->subtotal ?? 0) + $returnedSubtotal;
+                            })
                             ->money('PKR'),
 
                         TextEntry::make('discount')
                             ->label('Discount')
                             ->money('PKR')
                             ->getStateUsing(function ($record) {
-                                return $record->items->sum(function ($item) {
+                                $currentDiscount = (float) $record->items->sum(function ($item) {
                                     $lineTotal = (float) ($item->line_total ?? 0);
                                     $discountRate = (float) ($item->discount ?? 0);
+
                                     return $lineTotal * ($discountRate / 100);
                                 });
+
+                                $returnedDiscount = (float) $record->returns()->sum('total_discount');
+
+                                return $currentDiscount + $returnedDiscount;
                             }),
 
                         TextEntry::make('tax')
                             ->label('Tax')
                             ->money('PKR')
                             ->getStateUsing(function ($record) {
-                                return $record->items->sum(function ($item) {
+                                $currentTax = (float) $record->items->sum(function ($item) {
                                     $lineTotal = (float) ($item->line_total ?? 0);
                                     $discountRate = (float) ($item->discount ?? 0);
                                     $taxRate = (float) ($item->tax ?? 0);
                                     $discountAmount = $lineTotal * ($discountRate / 100);
                                     $taxableAmount = $lineTotal - $discountAmount;
+
                                     return $taxableAmount * ($taxRate / 100);
                                 });
+
+                                $returnedTax = (float) $record->returns()->sum('total_tax');
+
+                                return $currentTax + $returnedTax;
                             }),
 
                         TextEntry::make('total_amount')
                             ->label('Total Amount')
+                            ->getStateUsing(function ($record) {
+                                $returnedTotal = (float) $record->returns()->sum('total_amount');
+
+                                return (float) ($record->total_amount ?? 0) + $returnedTotal;
+                            })
                             ->money('PKR')
                             ->weight('bold'),
+
+                        TextEntry::make('paid_amount')
+                            ->label('Amount Paid')
+                            ->money('PKR'),
+
+                        TextEntry::make('due_amount')
+                            ->label('Amount Due')
+                            ->money('PKR')
+                            ->color(fn ($state) => (float) $state > 0 ? 'warning' : null),
                     ]),
 
                 Section::make('Notes')

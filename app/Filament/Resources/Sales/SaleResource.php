@@ -65,7 +65,10 @@ class SaleResource extends Resource
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $query = parent::getEloquentQuery();
+        $query = parent::getEloquentQuery()
+            ->with([
+                'returns:id,sale_id,subtotal,total_discount,total_tax,total_amount',
+            ]);
         $user  = Filament::auth()->user();
 
         $merchantId = match (true) {

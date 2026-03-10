@@ -544,11 +544,17 @@ class ReportsStatsWidget extends Widget
 
         $saleReturnIds = $saleIds->isEmpty()
             ? collect()
-            : DB::table('sale_returns')->whereIn('sale_id', $saleIds)->pluck('id');
+            : DB::table('sale_returns')
+                ->whereIn('sale_id', $saleIds)
+                ->whereNull('deleted_at')
+                ->pluck('id');
 
         $purchaseReturnIds = $purchaseIds->isEmpty()
             ? collect()
-            : DB::table('purchase_returns')->whereIn('purchase_id', $purchaseIds)->pluck('id');
+            : DB::table('purchase_returns')
+                ->whereIn('purchase_id', $purchaseIds)
+                ->whereNull('deleted_at')
+                ->pluck('id');
 
         $saleReturnsTotalAmount = $saleReturnIds->isEmpty()
             ? 0
@@ -561,6 +567,8 @@ class ReportsStatsWidget extends Widget
             : (float) DB::table('sale_return_item_variants as srv')
                 ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
                 ->whereIn('sri.sale_return_id', $saleReturnIds)
+                ->whereNull('sri.deleted_at')
+                ->whereNull('srv.deleted_at')
                 ->sum('srv.quantity');
 
         $purchaseReturnsTotalAmount = $purchaseReturnIds->isEmpty()
@@ -574,6 +582,8 @@ class ReportsStatsWidget extends Widget
             : (float) DB::table('purchase_return_item_variants as prv')
                 ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
                 ->whereIn('pri.purchase_return_id', $purchaseReturnIds)
+                ->whereNull('pri.deleted_at')
+                ->whereNull('prv.deleted_at')
                 ->sum('prv.quantity');
 
         return [
@@ -655,16 +665,16 @@ class ReportsStatsWidget extends Widget
         }
 
         $creditSalesQuery = $this->salesBaseQuery($user, $merchantId)
-            ->whereRaw('LOWER(payment_type) = ?', ['credit']);
+            ->where('due_amount', '>', 0);
 
         $creditPurchasesQuery = $this->purchaseBaseQuery($user, $merchantId)
-            ->whereRaw('LOWER(payment_type) = ?', ['credit']);
+            ->where('due_amount', '>', 0);
 
         $creditSaleIds = (clone $creditSalesQuery)->pluck('sales.id');
         $creditPurchaseIds = (clone $creditPurchasesQuery)->pluck('purchases.id');
 
-        $creditSalesTotal = (float) (clone $creditSalesQuery)->sum('total_amount');
-        $creditPurchasesTotal = (float) (clone $creditPurchasesQuery)->sum('total_amount');
+        $creditSalesTotal = (float) (clone $creditSalesQuery)->sum('due_amount');
+        $creditPurchasesTotal = (float) (clone $creditPurchasesQuery)->sum('due_amount');
 
         $customerCredits = $creditSaleIds->isEmpty()
             ? collect()
@@ -672,8 +682,8 @@ class ReportsStatsWidget extends Widget
                 ->join('customers', 'customers.id', '=', 'sales.customer_id')
                 ->whereIn('sales.id', $creditSaleIds)
                 ->selectRaw('customers.id as customer_id, customers.name as customer_name')
-                ->selectRaw('COUNT(sales.id) as credit_sales')
-                ->selectRaw('COALESCE(SUM(sales.total_amount), 0) as credit_amount')
+                ->selectRaw('COUNT(DISTINCT sales.id) as credit_sales')
+                ->selectRaw('COALESCE(SUM(sales.due_amount), 0) as credit_amount')
                 ->groupBy('customers.id', 'customers.name')
                 ->get();
 
@@ -697,8 +707,8 @@ class ReportsStatsWidget extends Widget
                 ->join('vendors', 'vendors.id', '=', 'purchases.vendor_id')
                 ->whereIn('purchases.id', $creditPurchaseIds)
                 ->selectRaw('vendors.id as vendor_id, vendors.name as vendor_name')
-                ->selectRaw('COUNT(purchases.id) as credit_purchases')
-                ->selectRaw('COALESCE(SUM(purchases.total_amount), 0) as credit_amount')
+                ->selectRaw('COUNT(DISTINCT purchases.id) as credit_purchases')
+                ->selectRaw('COALESCE(SUM(purchases.due_amount), 0) as credit_amount')
                 ->groupBy('vendors.id', 'vendors.name')
                 ->get();
 
@@ -806,14 +816,11 @@ class ReportsStatsWidget extends Widget
 
         $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
 
-        $cashSalesQuery = $this->salesBaseQuery($user, $merchantId)
-            ->whereRaw('LOWER(payment_type) = ?', ['cash']);
+        $salesQuery = $this->salesBaseQuery($user, $merchantId);
+        $cashSalesAmount = (float) (clone $salesQuery)->sum('paid_amount');
 
-        $cashPurchasesQuery = $this->purchaseBaseQuery($user, $merchantId)
-            ->whereRaw('LOWER(payment_type) = ?', ['cash']);
-
-        $cashSalesAmount = (float) (clone $cashSalesQuery)->sum('total_amount');
-        $cashPurchasesAmount = (float) (clone $cashPurchasesQuery)->sum('total_amount');
+        $purchasesQuery = $this->purchaseBaseQuery($user, $merchantId);
+        $cashPurchasesAmount = (float) (clone $purchasesQuery)->sum('paid_amount');
         $expenseAmount = (float) (clone $this->expenseBaseQuery($user, $merchantId))->sum('total_amount');
 
         $salesCashInflow = $cashSalesAmount;

@@ -76,6 +76,7 @@ class CreateSale extends CreateRecord
 
             $data['subtotal']     = $subtotal;
             $data['total_amount'] = $subtotal - $totalDiscount + $totalTax;
+            self::applyPaymentFields($data);
 
             /** -------------------------
              * CREATE SALE (UNCHANGED)
@@ -235,5 +236,22 @@ class CreateSale extends CreateRecord
         }
 
         return $items;
+    }
+
+    private static function applyPaymentFields(array &$data): void
+    {
+        $totalAmount = max(0, (float) ($data['total_amount'] ?? 0));
+        $paidAmount = $data['paid_amount'] ?? null;
+
+        $paidAmount = $paidAmount === null || $paidAmount === ''
+            ? $totalAmount
+            : (float) $paidAmount;
+
+        $paidAmount = max(0, min($totalAmount, $paidAmount));
+        $dueAmount = max(0, $totalAmount - $paidAmount);
+
+        $data['paid_amount'] = round($paidAmount, 2);
+        $data['due_amount'] = round($dueAmount, 2);
+        $data['payment_type'] = $dueAmount > 0 ? 'credit' : 'cash';
     }
 }

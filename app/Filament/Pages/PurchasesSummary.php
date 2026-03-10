@@ -161,17 +161,23 @@ class PurchasesSummary extends Page implements HasTable
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->money('PKR')
+                    ->getStateUsing(fn (Purchase $record) => (float) ($record->subtotal ?? 0) + (float) $record->returns->sum('subtotal'))
                     ->sortable(),
 
                 TextColumn::make('discount')
                     ->label('Discount')
                     ->money('PKR')
                     ->getStateUsing(function (Purchase $record) {
-                        return $record->items->sum(function ($item) {
+                        $currentDiscount = (float) $record->items->sum(function ($item) {
                             $lineTotal = (float) ($item->line_total ?? 0);
                             $discountRate = (float) ($item->discount ?? 0);
+
                             return $lineTotal * ($discountRate / 100);
                         });
+
+                        $returnedDiscount = (float) $record->returns->sum('total_discount');
+
+                        return $currentDiscount + $returnedDiscount;
                     })
                     ->sortable(),
 
@@ -179,20 +185,26 @@ class PurchasesSummary extends Page implements HasTable
                     ->label('Tax')
                     ->money('PKR')
                     ->getStateUsing(function (Purchase $record) {
-                        return $record->items->sum(function ($item) {
+                        $currentTax = (float) $record->items->sum(function ($item) {
                             $lineTotal = (float) ($item->line_total ?? 0);
                             $discountRate = (float) ($item->discount ?? 0);
                             $taxRate = (float) ($item->tax ?? 0);
                             $discountAmount = $lineTotal * ($discountRate / 100);
                             $taxableAmount = $lineTotal - $discountAmount;
+
                             return $taxableAmount * ($taxRate / 100);
                         });
+
+                        $returnedTax = (float) $record->returns->sum('total_tax');
+
+                        return $currentTax + $returnedTax;
                     })
                     ->sortable(),
 
                 TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('PKR')
+                    ->getStateUsing(fn (Purchase $record) => (float) ($record->total_amount ?? 0) + (float) $record->returns->sum('total_amount'))
                     ->sortable()
                     ->weight('bold'),
 
@@ -228,6 +240,7 @@ class PurchasesSummary extends Page implements HasTable
                     ->label('Purchase Qty')
                     ->getStateUsing(fn (Purchase $record) =>
                         (float) $record->items->sum('quantity')
+                        + (float) $record->returns->sum(fn ($return) => $return->items->sum('quantity'))
                     )
                     ->numeric(0)
                     ->toggleable(),
@@ -364,9 +377,14 @@ class PurchasesSummary extends Page implements HasTable
             $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
         }
 
-        $cashPurchasesQuery = (clone $filteredQuery)->whereRaw('LOWER(payment_type) = ?', ['cash']);
-        $cashPurchasesAmount = (float) (clone $cashPurchasesQuery)->sum('total_amount');
-        $purchasesCashEffect = $cashPurchasesAmount;
+        $grossPaid = (float) (clone $filteredQuery)->sum('paid_amount');
+        $grossDue = (float) (clone $filteredQuery)->sum('due_amount');
+        $returnsTotal = (float) DB::table('purchase_returns')
+            ->whereIn('purchase_id', $purchaseIds)
+            ->whereNull('deleted_at')
+            ->sum('total_amount');
+
+        $purchasesCashEffect = max(0, $grossPaid - max(0, $returnsTotal - $grossDue));
         $currentTotalFunds = $openingTotalFunds - $purchasesCashEffect;
 
         return [
@@ -400,20 +418,26 @@ class PurchasesSummary extends Page implements HasTable
 
         $totalReturns = DB::table('purchase_returns')
             ->whereIn('purchase_id', $purchaseIds)
+            ->whereNull('deleted_at')
             ->count();
 
         $totalItemsCount = DB::table('purchase_return_items as pri')
             ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
             ->whereIn('pr.purchase_id', $purchaseIds)
+            ->whereNull('pr.deleted_at')
+            ->whereNull('pri.deleted_at')
             ->count();
 
         $totalQuantity = DB::table('purchase_return_items as pri')
             ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
             ->whereIn('pr.purchase_id', $purchaseIds)
+            ->whereNull('pr.deleted_at')
+            ->whereNull('pri.deleted_at')
             ->sum('pri.quantity');
 
         $totalAmount = DB::table('purchase_returns')
             ->whereIn('purchase_id', $purchaseIds)
+            ->whereNull('deleted_at')
             ->sum('total_amount');
 
         return [
@@ -459,21 +483,40 @@ class PurchasesSummary extends Page implements HasTable
                             ->whereIn('pi.purchase_id', $purchaseIds)
                             ->sum('piv.quantity'),
 
-                        'subtotal' => (float) (clone $baseQuery)->sum('subtotal'),
+                        'subtotal' => (float) (clone $baseQuery)->sum('subtotal')
+                            + (float) DB::table('purchase_returns')
+                                ->whereIn('purchase_id', $purchaseIds)
+                                ->whereNull('deleted_at')
+                                ->sum('subtotal'),
                         'discount' => (float) DB::table('purchase_items')
                             ->whereIn('purchase_id', $purchaseIds)
-                            ->sum(DB::raw('line_total * (discount / 100.0)')),
+                            ->sum(DB::raw('line_total * (discount / 100.0)'))
+                            + (float) DB::table('purchase_returns')
+                                ->whereIn('purchase_id', $purchaseIds)
+                                ->whereNull('deleted_at')
+                                ->sum('total_discount'),
 
                         'tax' => (float) DB::table('purchase_items')
                             ->whereIn('purchase_id', $purchaseIds)
-                            ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)')),
-                        'total'    => (float) (clone $baseQuery)->sum('total_amount'),
+                            ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)'))
+                            + (float) DB::table('purchase_returns')
+                                ->whereIn('purchase_id', $purchaseIds)
+                                ->whereNull('deleted_at')
+                                ->sum('total_tax'),
+                        'total'    => (float) (clone $baseQuery)->sum('total_amount')
+                            + (float) DB::table('purchase_returns')
+                                ->whereIn('purchase_id', $purchaseIds)
+                                ->whereNull('deleted_at')
+                                ->sum('total_amount'),
                         'returned_quantity' => (float) DB::table('purchase_return_items as pri')
                             ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
                             ->whereIn('pr.purchase_id', $purchaseIds)
+                            ->whereNull('pr.deleted_at')
+                            ->whereNull('pri.deleted_at')
                             ->sum('pri.quantity'),
                         'returned_amount' => (float) DB::table('purchase_returns')
                             ->whereIn('purchase_id', $purchaseIds)
+                            ->whereNull('deleted_at')
                             ->sum('total_amount'),
                     ];
 

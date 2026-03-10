@@ -40,6 +40,8 @@ class CustomerSalesExport implements
             'Merchant',
             'Branch',
             'Payment Type',
+            'Paid Amount',
+            'Due Amount',
             'Items Count',
             'Subtotal',
             'Discount',
@@ -65,6 +67,11 @@ class CustomerSalesExport implements
             $branchText = $branches->implode(', ');
         }
 
+        $returnedSubtotal = (float) $sale->returns->sum('subtotal');
+        $returnedDiscount = (float) $sale->returns->sum('total_discount');
+        $returnedTax = (float) $sale->returns->sum('total_tax');
+        $returnedTotal = (float) $sale->returns->sum('total_amount');
+
         return [
             $sale->sale_no,
             optional($sale->sale_date)->format('d/m/Y'),
@@ -72,22 +79,26 @@ class CustomerSalesExport implements
             $sale->merchant?->name,
             $branchText ?: '-',
             ucfirst((string) ($sale->payment_type ?? '')),
+            (float) ($sale->paid_amount ?? 0),
+            (float) ($sale->due_amount ?? 0),
             (int) $sale->items_count,
-            (float) $sale->subtotal,
+            (float) $sale->subtotal + $returnedSubtotal,
             (float) $sale->items->sum(function ($item) {
                 $lineTotal = (float) ($item->line_total ?? 0);
                 $discountRate = (float) ($item->discount ?? 0);
+
                 return $lineTotal * ($discountRate / 100);
-            }),
+            }) + $returnedDiscount,
             (float) $sale->items->sum(function ($item) {
                 $lineTotal = (float) ($item->line_total ?? 0);
                 $discountRate = (float) ($item->discount ?? 0);
                 $taxRate = (float) ($item->tax ?? 0);
                 $discountAmount = $lineTotal * ($discountRate / 100);
                 $taxableAmount = $lineTotal - $discountAmount;
+
                 return $taxableAmount * ($taxRate / 100);
-            }),
-            (float) $sale->total_amount,
+            }) + $returnedTax,
+            (float) $sale->total_amount + $returnedTotal,
         ];
     }
 
@@ -104,31 +115,31 @@ class CustomerSalesExport implements
                 $endRow   = $this->rowCount + 1;
                 $totalRow = $endRow + 1;
 
-                $event->sheet->setCellValue("F{$totalRow}", 'TOTAL');
+                $event->sheet->setCellValue("H{$totalRow}", 'TOTAL');
 
-                $event->sheet->setCellValue("G{$totalRow}", $this->totals['items_count'] ?? 0);
-                $event->sheet->setCellValue("H{$totalRow}", $this->totals['subtotal'] ?? 0);
-                $event->sheet->setCellValue("I{$totalRow}", $this->totals['discount'] ?? 0);
-                $event->sheet->setCellValue("J{$totalRow}", $this->totals['tax'] ?? 0);
-                $event->sheet->setCellValue("K{$totalRow}", $this->totals['total'] ?? 0);
+                $event->sheet->setCellValue("I{$totalRow}", $this->totals['items_count'] ?? 0);
+                $event->sheet->setCellValue("J{$totalRow}", $this->totals['subtotal'] ?? 0);
+                $event->sheet->setCellValue("K{$totalRow}", $this->totals['discount'] ?? 0);
+                $event->sheet->setCellValue("L{$totalRow}", $this->totals['tax'] ?? 0);
+                $event->sheet->setCellValue("M{$totalRow}", $this->totals['total'] ?? 0);
 
                 $event->sheet
-                    ->getStyle("F{$totalRow}:K{$totalRow}")
+                    ->getStyle("H{$totalRow}:M{$totalRow}")
                     ->getFont()
                     ->setBold(true);
 
                 $summaryStart = $totalRow + 2;
-                $event->sheet->setCellValue("J{$summaryStart}", 'Total Amount');
-                $event->sheet->setCellValue("K{$summaryStart}", $this->totals['total_amount'] ?? ($this->totals['total'] ?? 0));
+                $event->sheet->setCellValue("L{$summaryStart}", 'Total Amount');
+                $event->sheet->setCellValue("M{$summaryStart}", $this->totals['total_amount'] ?? ($this->totals['total'] ?? 0));
 
-                $event->sheet->setCellValue("J" . ($summaryStart + 1), 'Amount Paid');
-                $event->sheet->setCellValue("K" . ($summaryStart + 1), $this->totals['amount_paid'] ?? 0);
+                $event->sheet->setCellValue("L" . ($summaryStart + 1), 'Amount Paid');
+                $event->sheet->setCellValue("M" . ($summaryStart + 1), $this->totals['amount_paid'] ?? 0);
 
-                $event->sheet->setCellValue("J" . ($summaryStart + 2), 'Amount Pending');
-                $event->sheet->setCellValue("K" . ($summaryStart + 2), $this->totals['amount_pending'] ?? 0);
+                $event->sheet->setCellValue("L" . ($summaryStart + 2), 'Amount Pending');
+                $event->sheet->setCellValue("M" . ($summaryStart + 2), $this->totals['amount_pending'] ?? 0);
 
                 $event->sheet
-                    ->getStyle("J{$summaryStart}:K" . ($summaryStart + 2))
+                    ->getStyle("L{$summaryStart}:M" . ($summaryStart + 2))
                     ->getFont()
                     ->setBold(true);
             },

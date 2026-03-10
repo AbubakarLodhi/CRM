@@ -70,10 +70,6 @@
                             <span>Quantity Sold</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($sales['total_quantity'], 2) }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span>Avg Sale</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($sales['avg_sale'], 2) }}</span>
-                        </div>
                     </div>
                 </div>
 
@@ -92,10 +88,6 @@
                             <span>Quantity Bought</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($purchases['total_items_quantity'], 2) }}</span>
                         </div>
-                        <div class="flex items-center justify-between">
-                            <span>Avg Purchase</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($purchases['avg_purchase'], 2) }}</span>
-                        </div>
                     </div>
                 </div>
 
@@ -113,10 +105,6 @@
                         <div class="flex items-center justify-between">
                             <span>Total Revenue</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['total_revenue'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Avg Selling Price</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['avg_selling_price'], 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -153,10 +141,6 @@
                         <div class="flex items-center justify-between">
                             <span>Total Expenses</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($expenses['total_expenses']) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Avg Expense</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($expenses['avg_expense'], 2) }}</span>
                         </div>
                     </div>
                 </div>

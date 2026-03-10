@@ -23,7 +23,7 @@ class Sale extends Model implements Auditable
     /** @var string[] $fillable */
     protected $fillable = [
         'merchant_id', 'customer_id', 'sale_no', 'sale_date', 'subtotal',
-        'total_amount', 'notes', 'created_by','payment_type',
+        'total_amount', 'paid_amount', 'due_amount', 'notes', 'created_by', 'payment_type',
     ];
 
     /** @var string $keyType */
@@ -34,6 +34,8 @@ class Sale extends Model implements Auditable
         'sale_date' => 'date',
         'subtotal' => 'decimal:2',
         'total_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'due_amount' => 'decimal:2',
         'payment_type' => 'string',
     ];
 

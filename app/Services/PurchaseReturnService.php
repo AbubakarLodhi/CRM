@@ -158,6 +158,9 @@ class PurchaseReturnService
     {
         $items = $purchase->items()->get();
 
+        $oldTotal = (float) ($purchase->total_amount ?? 0);
+        $oldPaid = (float) ($purchase->paid_amount ?? 0);
+
         $subtotal = (float) $items->sum('line_total');
         $totalDiscount = 0.0;
         $totalTax = 0.0;
@@ -175,9 +178,20 @@ class PurchaseReturnService
             $totalTax += $taxAmount;
         }
 
+        $newTotal = $subtotal - $totalDiscount + $totalTax;
+        $newPaid = max(0, min($newTotal, $oldPaid));
+        $newDue = max(0, $newTotal - $newPaid);
+
+        if ($oldTotal > 0 && $oldPaid <= 0 && $newTotal > 0) {
+            $newDue = $newTotal;
+        }
+
         $purchase->update([
             'subtotal' => $subtotal,
-            'total_amount' => $subtotal - $totalDiscount + $totalTax,
+            'total_amount' => $newTotal,
+            'paid_amount' => round($newPaid, 2),
+            'due_amount' => round($newDue, 2),
+            'payment_type' => $newDue > 0 ? 'credit' : 'cash',
         ]);
     }
 

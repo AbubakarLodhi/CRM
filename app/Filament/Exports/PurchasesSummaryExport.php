@@ -73,27 +73,34 @@ class PurchasesSummaryExport implements
             ? '-'
             : ($hasRemaining ? 'Partially Returned' : 'Returned');
 
+        $returnedSubtotal = (float) $purchase->returns->sum('subtotal');
+        $returnedDiscount = (float) $purchase->returns->sum('total_discount');
+        $returnedTax = (float) $purchase->returns->sum('total_tax');
+        $returnedTotal = (float) $purchase->returns->sum('total_amount');
+
         return [
             $purchase->purchase_no,
             optional($purchase->purchase_date)->format('d/m/Y'),
             $purchase->merchant?->name,
             $branchText ?: '-',
             (int) $purchase->items_count,
-            (float) $purchase->subtotal,
+            (float) $purchase->subtotal + $returnedSubtotal,
             (float) $purchase->items->sum(function ($item) {
                 $lineTotal = (float) ($item->line_total ?? 0);
                 $discountRate = (float) ($item->discount ?? 0);
+
                 return $lineTotal * ($discountRate / 100);
-            }),
+            }) + $returnedDiscount,
             (float) $purchase->items->sum(function ($item) {
                 $lineTotal = (float) ($item->line_total ?? 0);
                 $discountRate = (float) ($item->discount ?? 0);
                 $taxRate = (float) ($item->tax ?? 0);
                 $discountAmount = $lineTotal * ($discountRate / 100);
                 $taxableAmount = $lineTotal - $discountAmount;
+
                 return $taxableAmount * ($taxRate / 100);
-            }),
-            (float) $purchase->total_amount,
+            }) + $returnedTax,
+            (float) $purchase->total_amount + $returnedTotal,
             $returnStatus,
             $returnedQty,
             (float) ($purchase->returned_amount ?? 0),

@@ -40,6 +40,8 @@ class VendorPurchasesExport implements
             'Merchant',
             'Branch',
             'Payment Type',
+            'Paid Amount',
+            'Due Amount',
             'Items Count',
             'Subtotal',
             'Discount',
@@ -72,6 +74,8 @@ class VendorPurchasesExport implements
             $purchase->merchant?->name,
             $branchText ?: '-',
             ucfirst((string) ($purchase->payment_type ?? '')),
+            (float) ($purchase->paid_amount ?? 0),
+            (float) ($purchase->due_amount ?? 0),
             (int) $purchase->items_count,
             (float) $purchase->subtotal,
             (float) $purchase->items->sum(function ($item) {
@@ -104,31 +108,31 @@ class VendorPurchasesExport implements
                 $endRow   = $this->rowCount + 1;
                 $totalRow = $endRow + 1;
 
-                $event->sheet->setCellValue("F{$totalRow}", 'TOTAL');
+                $event->sheet->setCellValue("H{$totalRow}", 'TOTAL');
 
-                $event->sheet->setCellValue("G{$totalRow}", $this->totals['items_count'] ?? 0);
-                $event->sheet->setCellValue("H{$totalRow}", $this->totals['subtotal'] ?? 0);
-                $event->sheet->setCellValue("I{$totalRow}", $this->totals['discount'] ?? 0);
-                $event->sheet->setCellValue("J{$totalRow}", $this->totals['tax'] ?? 0);
-                $event->sheet->setCellValue("K{$totalRow}", $this->totals['total'] ?? 0);
+                $event->sheet->setCellValue("I{$totalRow}", $this->totals['items_count'] ?? 0);
+                $event->sheet->setCellValue("J{$totalRow}", $this->totals['subtotal'] ?? 0);
+                $event->sheet->setCellValue("K{$totalRow}", $this->totals['discount'] ?? 0);
+                $event->sheet->setCellValue("L{$totalRow}", $this->totals['tax'] ?? 0);
+                $event->sheet->setCellValue("M{$totalRow}", $this->totals['total'] ?? 0);
 
                 $event->sheet
-                    ->getStyle("F{$totalRow}:K{$totalRow}")
+                    ->getStyle("H{$totalRow}:M{$totalRow}")
                     ->getFont()
                     ->setBold(true);
 
                 $summaryStart = $totalRow + 2;
-                $event->sheet->setCellValue("J{$summaryStart}", 'Total Amount');
-                $event->sheet->setCellValue("K{$summaryStart}", $this->totals['total_amount'] ?? ($this->totals['total'] ?? 0));
+                $event->sheet->setCellValue("L{$summaryStart}", 'Total Amount');
+                $event->sheet->setCellValue("M{$summaryStart}", $this->totals['total_amount'] ?? ($this->totals['total'] ?? 0));
 
-                $event->sheet->setCellValue("J" . ($summaryStart + 1), 'Amount Paid');
-                $event->sheet->setCellValue("K" . ($summaryStart + 1), $this->totals['amount_paid'] ?? 0);
+                $event->sheet->setCellValue("L" . ($summaryStart + 1), 'Amount Paid');
+                $event->sheet->setCellValue("M" . ($summaryStart + 1), $this->totals['amount_paid'] ?? 0);
 
-                $event->sheet->setCellValue("J" . ($summaryStart + 2), 'Amount Pending');
-                $event->sheet->setCellValue("K" . ($summaryStart + 2), $this->totals['amount_pending'] ?? 0);
+                $event->sheet->setCellValue("L" . ($summaryStart + 2), 'Amount Pending');
+                $event->sheet->setCellValue("M" . ($summaryStart + 2), $this->totals['amount_pending'] ?? 0);
 
                 $event->sheet
-                    ->getStyle("J{$summaryStart}:K" . ($summaryStart + 2))
+                    ->getStyle("L{$summaryStart}:M" . ($summaryStart + 2))
                     ->getFont()
                     ->setBold(true);
             },

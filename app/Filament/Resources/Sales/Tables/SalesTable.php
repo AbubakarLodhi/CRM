@@ -115,6 +115,11 @@ class SalesTable
                 TextColumn::make('subtotal')
                     ->label('Subtotal')
                     ->money('PKR')
+                    ->getStateUsing(function (Sale $record) {
+                        $returnedSubtotal = (float) $record->returns->sum('subtotal');
+
+                        return (float) ($record->subtotal ?? 0) + $returnedSubtotal;
+                    })
                     ->sortable()
                     ->toggleable(),
 
@@ -122,11 +127,16 @@ class SalesTable
                     ->label('Discount')
                     ->money('PKR')
                     ->getStateUsing(function (Sale $record) {
-                        return $record->items->sum(function ($item) {
+                        $currentDiscount = (float) $record->items->sum(function ($item) {
                             $lineTotal = (float) ($item->line_total ?? 0);
                             $discountRate = (float) ($item->discount ?? 0);
+
                             return $lineTotal * ($discountRate / 100);
                         });
+
+                        $returnedDiscount = (float) $record->returns->sum('total_discount');
+
+                        return $currentDiscount + $returnedDiscount;
                     })
                     ->sortable()
                     ->toggleable(),
@@ -135,14 +145,19 @@ class SalesTable
                     ->label('Tax')
                     ->money('PKR')
                     ->getStateUsing(function (Sale $record) {
-                        return $record->items->sum(function ($item) {
+                        $currentTax = (float) $record->items->sum(function ($item) {
                             $lineTotal = (float) ($item->line_total ?? 0);
                             $discountRate = (float) ($item->discount ?? 0);
                             $taxRate = (float) ($item->tax ?? 0);
                             $discountAmount = $lineTotal * ($discountRate / 100);
                             $taxableAmount = $lineTotal - $discountAmount;
+
                             return $taxableAmount * ($taxRate / 100);
                         });
+
+                        $returnedTax = (float) $record->returns->sum('total_tax');
+
+                        return $currentTax + $returnedTax;
                     })
                     ->sortable()
                     ->toggleable(),
@@ -150,8 +165,25 @@ class SalesTable
                 TextColumn::make('total_amount')
                     ->label('Total')
                     ->money('PKR')
+                    ->getStateUsing(function (Sale $record) {
+                        $returnedTotal = (float) $record->returns->sum('total_amount');
+
+                        return (float) ($record->total_amount ?? 0) + $returnedTotal;
+                    })
                     ->sortable()
                     ->weight('bold'),
+
+                TextColumn::make('paid_amount')
+                    ->label('Paid')
+                    ->money('PKR')
+                    ->sortable()
+                    ->toggleable(),
+
+                TextColumn::make('due_amount')
+                    ->label('Due')
+                    ->money('PKR')
+                    ->sortable()
+                    ->color(fn ($state) => (float) $state > 0 ? 'warning' : null),
 
                 TextColumn::make('payment_type')
                     ->label('Payment')

@@ -42,6 +42,20 @@ class EditSale extends EditRecord
             'tax'                => $item->tax ?? 0,
         ])->toArray();
 
+        if (! array_key_exists('paid_amount', $data) || $data['paid_amount'] === null) {
+            $totalAmount = (float) ($data['total_amount'] ?? 0);
+            $paidAmount = strtolower((string) ($data['payment_type'] ?? 'cash')) === 'cash'
+                ? $totalAmount
+                : 0;
+            $data['paid_amount'] = round($paidAmount, 2);
+        }
+
+        if (! array_key_exists('due_amount', $data) || $data['due_amount'] === null) {
+            $totalAmount = (float) ($data['total_amount'] ?? 0);
+            $paidAmount = (float) ($data['paid_amount'] ?? 0);
+            $data['due_amount'] = round(max(0, $totalAmount - $paidAmount), 2);
+        }
+
         return $data;
     }
 
@@ -87,6 +101,7 @@ class EditSale extends EditRecord
 
         $data['subtotal']     = $subtotal;
         $data['total_amount'] = $subtotal - $totalDiscount + $totalTax;
+        self::applyPaymentFields($data);
 
         return $data;
     }
@@ -199,5 +214,22 @@ class EditSale extends EditRecord
         }
 
         return $items;
+    }
+
+    private static function applyPaymentFields(array &$data): void
+    {
+        $totalAmount = max(0, (float) ($data['total_amount'] ?? 0));
+        $paidAmount = $data['paid_amount'] ?? null;
+
+        $paidAmount = $paidAmount === null || $paidAmount === ''
+            ? $totalAmount
+            : (float) $paidAmount;
+
+        $paidAmount = max(0, min($totalAmount, $paidAmount));
+        $dueAmount = max(0, $totalAmount - $paidAmount);
+
+        $data['paid_amount'] = round($paidAmount, 2);
+        $data['due_amount'] = round($dueAmount, 2);
+        $data['payment_type'] = $dueAmount > 0 ? 'credit' : 'cash';
     }
 }

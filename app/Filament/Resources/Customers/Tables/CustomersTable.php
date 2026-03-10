@@ -42,15 +42,8 @@ class CustomersTable
                     ->alignRight()
                     ->money('PKR')
                     ->getStateUsing(function (Customer $record) {
-
-                        $total = Sale::where('customer_id', $record->id)
+                        return (float) Sale::where('customer_id', $record->id)
                             ->sum('total_amount');
-
-                        $returns = DB::table('sale_returns')
-                            ->whereIn('sale_id', Sale::where('customer_id', $record->id)->select('id'))
-                            ->sum('total_amount');
-
-                        return $total - $returns;
                     })
                     ->sortable(),
 
@@ -59,18 +52,8 @@ class CustomersTable
                     ->alignRight()
                     ->money('PKR')
                     ->getStateUsing(function (Customer $record) {
-
-                        $cashTotal = Sale::where('customer_id', $record->id)
-                            ->whereRaw('LOWER(payment_type) = ?', ['cash'])
-                            ->sum('total_amount');
-
-                        $cashReturns = DB::table('sale_returns')
-                            ->whereIn('sale_id', Sale::where('customer_id', $record->id)
-                                ->whereRaw('LOWER(payment_type) = ?', ['cash'])
-                                ->select('id'))
-                            ->sum('total_amount');
-
-                        return $cashTotal - $cashReturns;
+                        return (float) Sale::where('customer_id', $record->id)
+                            ->sum('paid_amount');
                     }),
 
                 TextColumn::make('amount_pending')
@@ -78,18 +61,8 @@ class CustomersTable
                     ->alignRight()
                     ->money('PKR')
                     ->getStateUsing(function (Customer $record) {
-
-                        $creditTotal = Sale::where('customer_id', $record->id)
-                            ->whereRaw('LOWER(payment_type) = ?', ['credit'])
-                            ->sum('total_amount');
-
-                        $creditReturns = DB::table('sale_returns')
-                            ->whereIn('sale_id', Sale::where('customer_id', $record->id)
-                                ->whereRaw('LOWER(payment_type) = ?', ['credit'])
-                                ->select('id'))
-                            ->sum('total_amount');
-
-                        return $creditTotal - $creditReturns;
+                        return (float) Sale::where('customer_id', $record->id)
+                            ->sum('due_amount');
                     }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
@@ -129,8 +102,8 @@ class CustomersTable
             ->recordUrl(fn (Customer $record) =>
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
-                ?->hasPermissionTo('customers.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? CustomerResource::getUrl('edit', [
+                ?->hasPermissionTo('customers.view', Filament::getCurrentPanel()->getAuthGuard())
+                ? CustomerResource::getUrl('sales', [
                 'record' => $record,
             ])
                 : null
@@ -176,6 +149,7 @@ class CustomersTable
                                 'merchant',
                                 'customer',
                                 'items.branch',
+                                'returns',
                             ]);
 
                         $saleIds = (clone $baseQuery)->select('sales.id');
@@ -200,47 +174,23 @@ class CustomersTable
                                 ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)')),
                             'total'    => (float) (clone $baseQuery)->sum('total_amount'),
                         ];
-
                         $returnTotals = DB::table('sale_returns')
                             ->whereIn('sale_id', $saleIds)
+                            ->whereNull('deleted_at')
                             ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
                             ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
                             ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
                             ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
                             ->first();
 
-                        $returnedQuantity = DB::table('sale_return_item_variants as srv')
-                            ->join('sale_return_items as sri', 'sri.id', '=', 'srv.sale_return_item_id')
-                            ->join('sale_returns as sr', 'sr.id', '=', 'sri.sale_return_id')
-                            ->whereIn('sr.sale_id', $saleIds)
-                            ->sum('srv.quantity');
-
-                        $totals['quantity'] = (float) $totals['quantity'] - (float) $returnedQuantity;
-                        $totals['subtotal'] = (float) $totals['subtotal'] - (float) ($returnTotals->subtotal ?? 0);
-                        $totals['discount'] = (float) $totals['discount'] - (float) ($returnTotals->total_discount ?? 0);
-                        $totals['tax'] = (float) $totals['tax'] - (float) ($returnTotals->total_tax ?? 0);
-                        $totals['total'] = (float) $totals['total'] - (float) ($returnTotals->total_amount ?? 0);
-
-                        $cashQuery = (clone $baseQuery)->whereRaw('LOWER(payment_type) = ?', ['cash']);
-                        $creditQuery = (clone $baseQuery)->whereRaw('LOWER(payment_type) = ?', ['credit']);
-
-                        $cashSaleIds = (clone $cashQuery)->select('sales.id');
-                        $creditSaleIds = (clone $creditQuery)->select('sales.id');
-
-                        $cashTotal = (float) (clone $cashQuery)->sum('total_amount');
-                        $creditTotal = (float) (clone $creditQuery)->sum('total_amount');
-
-                        $cashReturns = (float) DB::table('sale_returns')
-                            ->whereIn('sale_id', $cashSaleIds)
-                            ->sum('total_amount');
-
-                        $creditReturns = (float) DB::table('sale_returns')
-                            ->whereIn('sale_id', $creditSaleIds)
-                            ->sum('total_amount');
+                        $totals['subtotal'] += (float) ($returnTotals->subtotal ?? 0);
+                        $totals['discount'] += (float) ($returnTotals->total_discount ?? 0);
+                        $totals['tax'] += (float) ($returnTotals->total_tax ?? 0);
+                        $totals['total'] += (float) ($returnTotals->total_amount ?? 0);
 
                         $totals['total_amount'] = (float) $totals['total'];
-                        $totals['amount_paid'] = $cashTotal - $cashReturns;
-                        $totals['amount_pending'] = $creditTotal - $creditReturns;
+                        $totals['amount_pending'] = (float) (clone $baseQuery)->sum('due_amount');
+                        $totals['amount_paid'] = (float) (clone $baseQuery)->sum('paid_amount');
 
                         $filename = 'customer-sales-' . ($record->name ?? 'customer') . '-' . now()->format('Y-m-d_H-i-s') . '.xlsx';
 

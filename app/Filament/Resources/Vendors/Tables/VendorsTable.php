@@ -41,15 +41,8 @@ class VendorsTable
                     ->alignRight()
                     ->money('PKR')
                     ->getStateUsing(function (Vendor $record) {
-
-                        $total = Purchase::where('vendor_id', $record->id)
+                        return Purchase::where('vendor_id', $record->id)
                             ->sum('total_amount');
-
-                        $returns = DB::table('purchase_returns')
-                            ->whereIn('purchase_id', Purchase::where('vendor_id', $record->id)->select('id'))
-                            ->sum('total_amount');
-
-                        return $total - $returns;
                     })
                     ->sortable(),
 
@@ -58,18 +51,8 @@ class VendorsTable
                     ->alignRight()
                     ->money('PKR')
                     ->getStateUsing(function (Vendor $record) {
-
-                        $cashTotal = Purchase::where('vendor_id', $record->id)
-                            ->whereRaw('LOWER(payment_type) = ?', ['cash'])
-                            ->sum('total_amount');
-
-                        $cashReturns = DB::table('purchase_returns')
-                            ->whereIn('purchase_id', Purchase::where('vendor_id', $record->id)
-                                ->whereRaw('LOWER(payment_type) = ?', ['cash'])
-                                ->select('id'))
-                            ->sum('total_amount');
-
-                        return $cashTotal - $cashReturns;
+                        return (float) Purchase::where('vendor_id', $record->id)
+                            ->sum('paid_amount');
                     }),
 
                 TextColumn::make('amount_pending')
@@ -77,18 +60,8 @@ class VendorsTable
                     ->alignRight()
                     ->money('PKR')
                     ->getStateUsing(function (Vendor $record) {
-
-                        $creditTotal = Purchase::where('vendor_id', $record->id)
-                            ->whereRaw('LOWER(payment_type) = ?', ['credit'])
-                            ->sum('total_amount');
-
-                        $creditReturns = DB::table('purchase_returns')
-                            ->whereIn('purchase_id', Purchase::where('vendor_id', $record->id)
-                                ->whereRaw('LOWER(payment_type) = ?', ['credit'])
-                                ->select('id'))
-                            ->sum('total_amount');
-
-                        return $creditTotal - $creditReturns;
+                        return (float) Purchase::where('vendor_id', $record->id)
+                            ->sum('due_amount');
                     }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
@@ -126,8 +99,8 @@ class VendorsTable
             ->recordUrl(fn (Vendor $record) =>
                 auth(Filament::getCurrentPanel()->getAuthGuard())
                     ->user()
-                    ?->hasPermissionTo('vendors.update', Filament::getCurrentPanel()->getAuthGuard())
-                    ? VendorResource::getUrl('edit', [
+                    ?->hasPermissionTo('vendors.view', Filament::getCurrentPanel()->getAuthGuard())
+                    ? VendorResource::getUrl('purchases', [
                         'record' => $record,
                     ])
                     : null
@@ -193,46 +166,9 @@ class VendorsTable
                             'total'    => (float) (clone $baseQuery)->sum('total_amount'),
                         ];
 
-                        $returnTotals = DB::table('purchase_returns')
-                            ->whereIn('purchase_id', $purchaseIds)
-                            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
-                            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
-                            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
-                            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
-                            ->first();
-
-                        $returnedQuantity = DB::table('purchase_return_item_variants as prv')
-                            ->join('purchase_return_items as pri', 'pri.id', '=', 'prv.purchase_return_item_id')
-                            ->join('purchase_returns as pr', 'pr.id', '=', 'pri.purchase_return_id')
-                            ->whereIn('pr.purchase_id', $purchaseIds)
-                            ->sum('prv.quantity');
-
-                        $totals['quantity'] = (float) $totals['quantity'] - (float) $returnedQuantity;
-                        $totals['subtotal'] = (float) $totals['subtotal'] - (float) ($returnTotals->subtotal ?? 0);
-                        $totals['discount'] = (float) $totals['discount'] - (float) ($returnTotals->total_discount ?? 0);
-                        $totals['tax'] = (float) $totals['tax'] - (float) ($returnTotals->total_tax ?? 0);
-                        $totals['total'] = (float) $totals['total'] - (float) ($returnTotals->total_amount ?? 0);
-
-                        $cashQuery = (clone $baseQuery)->whereRaw('LOWER(payment_type) = ?', ['cash']);
-                        $creditQuery = (clone $baseQuery)->whereRaw('LOWER(payment_type) = ?', ['credit']);
-
-                        $cashPurchaseIds = (clone $cashQuery)->select('purchases.id');
-                        $creditPurchaseIds = (clone $creditQuery)->select('purchases.id');
-
-                        $cashTotal = (float) (clone $cashQuery)->sum('total_amount');
-                        $creditTotal = (float) (clone $creditQuery)->sum('total_amount');
-
-                        $cashReturns = (float) DB::table('purchase_returns')
-                            ->whereIn('purchase_id', $cashPurchaseIds)
-                            ->sum('total_amount');
-
-                        $creditReturns = (float) DB::table('purchase_returns')
-                            ->whereIn('purchase_id', $creditPurchaseIds)
-                            ->sum('total_amount');
-
                         $totals['total_amount'] = (float) $totals['total'];
-                        $totals['amount_paid'] = $cashTotal - $cashReturns;
-                        $totals['amount_pending'] = $creditTotal - $creditReturns;
+                        $totals['amount_pending'] = (float) (clone $baseQuery)->sum('due_amount');
+                        $totals['amount_paid'] = (float) (clone $baseQuery)->sum('paid_amount');
 
                         $filename = 'vendor-purchases-' . ($record->name ?? 'vendor') . '-' . now()->format('Y-m-d_H-i-s') . '.xlsx';
 

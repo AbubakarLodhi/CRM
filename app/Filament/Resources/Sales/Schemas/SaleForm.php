@@ -92,20 +92,9 @@ class SaleForm
                                     $livewire->resetErrorBag('data.customer_id')
                                 )),
 
-                            Select::make('payment_type')
-                                ->label('Payment Type')
-                                ->options([
-                                    'cash'   => 'Cash',
-                                    'credit' => 'Credit',
-                                ])
+                            Hidden::make('payment_type')
                                 ->default('cash')
-                                ->required()
-                                ->native(false)
-                                ->live()
-                                ->afterStateUpdated(function ($state, $livewire) {
-                                    $livewire->resetValidation('data.payment_type');
-                                    $livewire->resetErrorBag('data.payment_type');
-                                }),
+                                ->dehydrated(true),
 
                             Hidden::make('merchant_id')
                                 ->default(fn () => self::merchantId())
@@ -774,7 +763,7 @@ class SaleForm
              * =========================== */
             Section::make('Summary')
                 ->extraAttributes(['class' => 'blue-section'])
-                ->columns(4)
+                ->columns(6)
                 ->columnSpanFull()
                 ->schema([
                     Placeholder::make('subtotal_display')
@@ -809,10 +798,34 @@ class SaleForm
                         'PKR ' . number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
 
+                    TextInput::make('paid_amount')
+                        ->label('Amount Paid')
+                        ->numeric()
+                        ->default(null)
+                        ->minValue(0)
+                        ->maxValue(fn (callable $get) => max(0, (float) ($get('total_amount') ?? 0)))
+                        ->live(onBlur: true)
+                        ->afterStateHydrated(function (callable $set, callable $get) {
+                            self::syncPaymentFromTotals($set, $get);
+                        })
+                        ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
+                            $livewire->resetValidation('data.paid_amount');
+                            $livewire->resetErrorBag('data.paid_amount');
+                            self::syncPaymentFromTotals($set, $get);
+                        }),
+
+                    Placeholder::make('due_amount_display')
+                        ->label('Amount Due')
+                        ->live()
+                        ->content(fn (callable $get) =>
+                            'PKR ' . number_format((float) ($get('due_amount') ?? 0), 2)
+                        ),
+
                     Hidden::make('subtotal')->default(0)->dehydrated(),
                     Hidden::make('total_discount')->default(0)->dehydrated(),
                     Hidden::make('total_tax')->default(0)->dehydrated(),
                     Hidden::make('total_amount')->default(0)->dehydrated(),
+                    Hidden::make('due_amount')->default(0)->dehydrated(),
                 ]),
 
             /* ===========================
@@ -905,6 +918,24 @@ class SaleForm
         $set($rootPrefix . 'total_discount', $totalDiscount);
         $set($rootPrefix . 'total_tax', $totalTax);
         $set($rootPrefix . 'total_amount', $subtotal - $totalDiscount + $totalTax);
+        self::syncPaymentFromTotals($set, $get, $rootPrefix);
+    }
+
+    private static function syncPaymentFromTotals(callable $set, callable $get, string $rootPrefix = ''): void
+    {
+        $totalAmount = max(0, (float) ($get($rootPrefix . 'total_amount') ?? 0));
+        $paidValue = $get($rootPrefix . 'paid_amount');
+
+        $paidAmount = $paidValue === null || $paidValue === ''
+            ? $totalAmount
+            : (float) $paidValue;
+
+        $paidAmount = max(0, min($totalAmount, $paidAmount));
+        $dueAmount = max(0, $totalAmount - $paidAmount);
+
+        $set($rootPrefix . 'paid_amount', round($paidAmount, 2));
+        $set($rootPrefix . 'due_amount', round($dueAmount, 2));
+        $set($rootPrefix . 'payment_type', $dueAmount > 0 ? 'credit' : 'cash');
     }
 
     private static function updateLineTotalDisplay(callable $set, callable $get): void
