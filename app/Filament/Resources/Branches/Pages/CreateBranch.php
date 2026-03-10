@@ -3,11 +3,13 @@
 namespace App\Filament\Resources\Branches\Pages;
 
 use App\Filament\Resources\Branches\BranchResource;
+use App\Models\Branch;
 use App\Models\City;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class CreateBranch extends CreateRecord
 {
@@ -17,20 +19,42 @@ class CreateBranch extends CreateRecord
     {
         $user = Filament::auth()->user();
 
-        // Merchant creating branch
         if ($user instanceof \App\Models\Merchant) {
             $data['merchant_id'] = $user->id;
-            return $data;
         }
 
-        // Staff creating branch
         if ($user instanceof User) {
-            $data['merchant_id'] = $user->merchant_id; // ✅ VALID merchant FK
-            return $data;
+            $data['merchant_id'] = $user->merchant_id;
         }
 
         $this->validateCountriesHaveCities();
+
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $existingBranch = Branch::withTrashed()
+            ->where('name', $data['name'] ?? '')
+            ->where('business_id', $data['business_id'] ?? null)
+            ->whereNotNull('deleted_at')
+            ->first();
+
+        if ($existingBranch) {
+            $existingBranch->restore();
+            $existingBranch->fill($data);
+            $existingBranch->save();
+
+            Notification::make()
+                ->title('Branch restored')
+                ->body('A previously deleted branch with this name has been restored.')
+                ->success()
+                ->send();
+
+            return $existingBranch;
+        }
+
+        return static::getModel()::create($data);
     }
 
     protected function validateCountriesHaveCities(): void
@@ -66,7 +90,6 @@ class CreateBranch extends CreateRecord
     {
         $user = Filament::auth()->user();
 
-        // Auto-assign branch to staff
         if ($user instanceof User) {
             $this->record->users()->syncWithoutDetaching([$user->id]);
         }

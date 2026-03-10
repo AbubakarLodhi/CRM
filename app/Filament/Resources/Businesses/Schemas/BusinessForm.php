@@ -33,7 +33,10 @@ class BusinessForm
                     ->live()
                     ->rules([
                         fn ($get) => Rule::unique('businesses', 'name')
-                            ->where('merchant_id', $get('merchant_id'))
+                            ->where(fn ($query) =>
+                                $query->where('merchant_id', $get('merchant_id'))
+                                    ->whereNull('deleted_at')
+                            )
                             ->ignore($get('id')),
                     ])
                     ->afterStateUpdated(function ($state, callable $set, $livewire) {

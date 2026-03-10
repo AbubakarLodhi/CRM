@@ -29,7 +29,10 @@ class BranchForm
                 ->live()
                 ->rules([
                     fn ($get) => Rule::unique('branches', 'name')
-                        ->where('business_id', $get('business_id'))
+                        ->where(fn ($query) =>
+                        $query->where('business_id', $get('business_id'))
+                            ->whereNull('deleted_at')
+                        )
                         ->ignore($get('id')),
                 ])
                 ->afterStateUpdated(function ($state, callable $set, $livewire) {

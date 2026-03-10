@@ -5,10 +5,12 @@ namespace App\Filament\Resources\Businesses\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Businesses\BusinessResource;
+use App\Models\Business;
 use App\Models\City;
 use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Database\Eloquent\Model;
 use Nette\Schema\ValidationException;
 
 class CreateBusiness extends CreateRecord
@@ -26,6 +28,31 @@ class CreateBusiness extends CreateRecord
         $this->validateCountriesHaveCities();
 
         return $data;
+    }
+
+    protected function handleRecordCreation(array $data): Model
+    {
+        $existingBusiness = Business::withTrashed()
+            ->where('name', $data['name'] ?? '')
+            ->where('merchant_id', $data['merchant_id'] ?? null)
+            ->whereNotNull('deleted_at')
+            ->first();
+
+        if ($existingBusiness) {
+            $existingBusiness->restore();
+            $existingBusiness->fill($data);
+            $existingBusiness->save();
+
+            Notification::make()
+                ->title('Business restored')
+                ->body('A previously deleted business with this name has been restored.')
+                ->success()
+                ->send();
+
+            return $existingBusiness;
+        }
+
+        return static::getModel()::create($data);
     }
 
     protected function validateCountriesHaveCities(): void
