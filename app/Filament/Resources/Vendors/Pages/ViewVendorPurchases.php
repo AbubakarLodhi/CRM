@@ -78,16 +78,16 @@ class ViewVendorPurchases extends Page implements HasTable
                     ->date('d/m/Y')
                     ->sortable(),
                 TextColumn::make('total_amount')
-                    ->label('Total')
-                    ->money('PKR')
+                    ->label('Total (PKR)')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->sortable(),
                 TextColumn::make('paid_amount')
-                    ->label('Paid')
-                    ->money('PKR')
+                    ->label('Paid (PKR)')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->sortable(),
                 TextColumn::make('due_amount')
-                    ->label('Due')
-                    ->money('PKR')
+                    ->label('Due (PKR)')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->sortable(),
                 TextColumn::make('payment_type')
                     ->label('Payment')

@@ -401,14 +401,20 @@ class SalesSummary extends Page implements HasTable
             $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
         }
 
-        $grossPaid = (float) (clone $filteredQuery)->sum('paid_amount');
-        $grossDue = (float) (clone $filteredQuery)->sum('due_amount');
-        $returnsTotal = (float) DB::table('sale_returns')
-            ->whereIn('sale_id', $saleIds)
-            ->whereNull('deleted_at')
-            ->sum('total_amount');
-
-        $salesCashEffect = max(0, $grossPaid - max(0, $returnsTotal - $grossDue));
+        $salesCashEffect = (float) DB::table('sales')
+            ->whereIn('id', $saleIds)
+            ->selectRaw("
+                COALESCE(SUM(
+                    COALESCE(
+                        paid_amount,
+                        CASE
+                            WHEN LOWER(COALESCE(payment_type, '')) = 'cash' THEN total_amount
+                            ELSE 0
+                        END
+                    )
+                ), 0) as sales_cash_effect
+            ")
+            ->value('sales_cash_effect');
         $currentTotalFunds = $openingTotalFunds + $salesCashEffect;
 
         // 🚨 HEADERS EXACTLY AS REQUIRED

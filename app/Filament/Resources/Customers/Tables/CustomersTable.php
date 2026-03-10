@@ -38,9 +38,9 @@ class CustomersTable
                     ->searchable(),
 
                 TextColumn::make('total_amount')
-                    ->label('Total Amount')
+                    ->label('Total Amount (PKR)')
                     ->alignRight()
-                    ->money('PKR')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Customer $record) {
                         return (float) Sale::where('customer_id', $record->id)
                             ->sum('total_amount');
@@ -48,18 +48,18 @@ class CustomersTable
                     ->sortable(),
 
                 TextColumn::make('amount_paid')
-                    ->label('Amount Paid')
+                    ->label('Amount Paid (PKR)')
                     ->alignRight()
-                    ->money('PKR')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Customer $record) {
                         return (float) Sale::where('customer_id', $record->id)
                             ->sum('paid_amount');
                     }),
 
                 TextColumn::make('amount_pending')
-                    ->label('Amount Pending')
+                    ->label('Amount Pending (PKR)')
                     ->alignRight()
-                    ->money('PKR')
+                    ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Customer $record) {
                         return (float) Sale::where('customer_id', $record->id)
                             ->sum('due_amount');

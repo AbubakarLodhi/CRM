@@ -377,14 +377,20 @@ class PurchasesSummary extends Page implements HasTable
             $openingTotalFunds = (float) ($merchant?->cash_in_hand ?? 0) + (float) ($merchant?->cash_in_bank ?? 0);
         }
 
-        $grossPaid = (float) (clone $filteredQuery)->sum('paid_amount');
-        $grossDue = (float) (clone $filteredQuery)->sum('due_amount');
-        $returnsTotal = (float) DB::table('purchase_returns')
-            ->whereIn('purchase_id', $purchaseIds)
-            ->whereNull('deleted_at')
-            ->sum('total_amount');
-
-        $purchasesCashEffect = max(0, $grossPaid - max(0, $returnsTotal - $grossDue));
+        $purchasesCashEffect = (float) DB::table('purchases')
+            ->whereIn('id', $purchaseIds)
+            ->selectRaw("
+                COALESCE(SUM(
+                    COALESCE(
+                        paid_amount,
+                        CASE
+                            WHEN LOWER(COALESCE(payment_type, '')) = 'cash' THEN total_amount
+                            ELSE 0
+                        END
+                    )
+                ), 0) as purchases_cash_effect
+            ")
+            ->value('purchases_cash_effect');
         $currentTotalFunds = $openingTotalFunds - $purchasesCashEffect;
 
         return [
