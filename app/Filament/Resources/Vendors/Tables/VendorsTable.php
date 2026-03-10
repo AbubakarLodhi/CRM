@@ -36,6 +36,60 @@ class VendorsTable
                     ->limit(30)
                     ->searchable(),
 
+                TextColumn::make('total_amount')
+                    ->label('Total Amount')
+                    ->alignRight()
+                    ->money('PKR')
+                    ->getStateUsing(function (Vendor $record) {
+
+                        $total = Purchase::where('vendor_id', $record->id)
+                            ->sum('total_amount');
+
+                        $returns = DB::table('purchase_returns')
+                            ->whereIn('purchase_id', Purchase::where('vendor_id', $record->id)->select('id'))
+                            ->sum('total_amount');
+
+                        return $total - $returns;
+                    })
+                    ->sortable(),
+
+                TextColumn::make('amount_paid')
+                    ->label('Amount Paid')
+                    ->alignRight()
+                    ->money('PKR')
+                    ->getStateUsing(function (Vendor $record) {
+
+                        $cashTotal = Purchase::where('vendor_id', $record->id)
+                            ->whereRaw('LOWER(payment_type) = ?', ['cash'])
+                            ->sum('total_amount');
+
+                        $cashReturns = DB::table('purchase_returns')
+                            ->whereIn('purchase_id', Purchase::where('vendor_id', $record->id)
+                                ->whereRaw('LOWER(payment_type) = ?', ['cash'])
+                                ->select('id'))
+                            ->sum('total_amount');
+
+                        return $cashTotal - $cashReturns;
+                    }),
+
+                TextColumn::make('amount_pending')
+                    ->label('Amount Pending')
+                    ->alignRight()
+                    ->money('PKR')
+                    ->getStateUsing(function (Vendor $record) {
+
+                        $creditTotal = Purchase::where('vendor_id', $record->id)
+                            ->whereRaw('LOWER(payment_type) = ?', ['credit'])
+                            ->sum('total_amount');
+
+                        $creditReturns = DB::table('purchase_returns')
+                            ->whereIn('purchase_id', Purchase::where('vendor_id', $record->id)
+                                ->whereRaw('LOWER(payment_type) = ?', ['credit'])
+                                ->select('id'))
+                            ->sum('total_amount');
+
+                        return $creditTotal - $creditReturns;
+                    }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
                     ->toggleable(isToggledHiddenByDefault: true)
