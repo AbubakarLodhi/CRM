@@ -6,13 +6,10 @@ use App\Filament\Resources\Purchases\PurchaseResource;
 use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\Purchase;
 use App\Models\Vendor;
-use Filament\Actions\Action;
 use Filament\Actions\Action as HeaderAction;
-use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
 use Filament\Resources\Pages\Page;
+use Filament\Actions\Action as TableAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -58,8 +55,7 @@ class ViewVendorPurchases extends Page implements HasTable
                 $query = Purchase::query()
                     ->withoutTrashed()
                     ->where('merchant_id', $merchantId)
-                    ->where('vendor_id', $this->record->id)
-                    ->whereHas('items', fn ($q) => $q->where('quantity', '>', 0));
+                    ->where('vendor_id', $this->record->id);
 
                 if ($user instanceof \App\Models\User) {
                     $query->whereHas('items.branch.users', fn ($q) => $q->where('users.id', $user->id));
@@ -72,7 +68,9 @@ class ViewVendorPurchases extends Page implements HasTable
                     ->label('Purchase No.')
                     ->searchable()
                     ->sortable()
-                    ->url(fn (Purchase $record) => PurchaseResource::getUrl('edit', ['record' => $record])),
+                    ->url(fn (Purchase $record) => $record->returns()->exists()
+                        ? PurchaseResource::getUrl('view', ['record' => $record])
+                        : PurchaseResource::getUrl('edit', ['record' => $record])),
                 TextColumn::make('purchase_date')
                     ->label('Date')
                     ->date('d/m/Y')
@@ -93,30 +91,34 @@ class ViewVendorPurchases extends Page implements HasTable
                     ->label('Payment')
                     ->badge()
                     ->formatStateUsing(fn (?string $state) => ucfirst((string) $state)),
+                TextColumn::make('return_status')
+                    ->label('Return')
+                    ->badge()
+                    ->color(fn (string $state) => match ($state) {
+                        'Returned' => 'success',
+                        'Partially Returned' => 'warning',
+                        default => 'gray',
+                    })
+                    ->getStateUsing(function (Purchase $record): string {
+                        if (! $record->returns()->exists()) {
+                            return '-';
+                        }
+
+                        $hasRemaining = $record->items()->where('quantity', '>', 0)->exists();
+
+                        return $hasRemaining ? 'Partially Returned' : 'Returned';
+                    }),
             ])
             ->recordActions([
-                Action::make('open_edit')
-                    ->label('')
-                    ->tooltip('Edit')
+                TableAction::make('open_record')
+                    ->label('Open')
+                    ->tooltip('Open')
                     ->icon('heroicon-o-pencil-square')
-                    ->url(fn (Purchase $record) => PurchaseResource::getUrl('edit', ['record' => $record]))
+                    ->url(fn (Purchase $record) => $record->returns()->exists()
+                        ? PurchaseResource::getUrl('view', ['record' => $record])
+                        : PurchaseResource::getUrl('edit', ['record' => $record]))
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
-                        ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())),
-
-//                EditAction::make('quick_edit')
-//                    ->label('Quick Edit')
-//                    ->icon('heroicon-o-pencil')
-//                    ->slideOver()
-//                    ->visible(fn (Purchase $record) => auth(Filament::getCurrentPanel()->getAuthGuard())
-//                        ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
-//                        && ! $record->returns()->exists())
-//                    ->form([
-//                        DatePicker::make('purchase_date')
-//                            ->required(),
-//                        Textarea::make('notes')
-//                            ->rows(4)
-//                            ->columnSpanFull(),
-//                    ]),
+                        ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->defaultSort('purchase_date', 'desc');
     }

@@ -101,34 +101,25 @@ class PurchaseInfolist
                     ->schema([
                         TextEntry::make('subtotal')
                             ->label('Subtotal')
-                            ->getStateUsing(function ($record) {
-                                $returnedSubtotal = (float) $record->returns()->sum('subtotal');
-
-                                return (float) ($record->subtotal ?? 0) + $returnedSubtotal;
-                            })
                             ->money('PKR'),
 
                         TextEntry::make('discount')
                             ->label('Discount')
                             ->money('PKR')
                             ->getStateUsing(function ($record) {
-                                $currentDiscount = (float) $record->items->sum(function ($item) {
+                                return $record->items->sum(function ($item) {
                                     $lineTotal = (float) ($item->line_total ?? 0);
                                     $discountRate = (float) ($item->discount ?? 0);
 
                                     return $lineTotal * ($discountRate / 100);
                                 });
-
-                                $returnedDiscount = (float) $record->returns()->sum('total_discount');
-
-                                return $currentDiscount + $returnedDiscount;
                             }),
 
                         TextEntry::make('tax')
                             ->label('Tax')
                             ->money('PKR')
                             ->getStateUsing(function ($record) {
-                                $currentTax = (float) $record->items->sum(function ($item) {
+                                return $record->items->sum(function ($item) {
                                     $lineTotal = (float) ($item->line_total ?? 0);
                                     $discountRate = (float) ($item->discount ?? 0);
                                     $taxRate = (float) ($item->tax ?? 0);
@@ -137,19 +128,10 @@ class PurchaseInfolist
 
                                     return $taxableAmount * ($taxRate / 100);
                                 });
-
-                                $returnedTax = (float) $record->returns()->sum('total_tax');
-
-                                return $currentTax + $returnedTax;
                             }),
 
                         TextEntry::make('total_amount')
                             ->label('Total Amount')
-                            ->getStateUsing(function ($record) {
-                                $returnedTotal = (float) $record->returns()->sum('total_amount');
-
-                                return (float) ($record->total_amount ?? 0) + $returnedTotal;
-                            })
                             ->money('PKR')
                             ->weight('bold'),
 
