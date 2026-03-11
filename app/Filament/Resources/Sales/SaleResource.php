@@ -56,11 +56,29 @@ class SaleResource extends Resource
             return false;
         }
 
-        if ($record?->returns()?->exists()) {
+        if (! $record instanceof Sale) {
+            return false;
+        }
+
+        if ($record->returns()->exists() && ! self::hasReturnableItems($record)) {
             return false;
         }
 
         return $user->hasPermissionTo('sales.update', $guard);
+    }
+
+    private static function hasReturnableItems(Sale $sale): bool
+    {
+        foreach ($sale->items as $item) {
+            $itemQty = (int) ($item->quantity ?? 0);
+            $variantQty = (int) $item->variants->sum('quantity');
+
+            if (max($itemQty, $variantQty) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

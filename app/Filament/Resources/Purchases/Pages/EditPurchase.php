@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 class EditPurchase extends EditRecord
 {
     protected static string $resource = PurchaseResource::class;
+    protected bool $isPartiallyReturned = false;
 
 
     public function getTitle(): string
@@ -30,6 +31,8 @@ class EditPurchase extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        $this->isPartiallyReturned = $this->isPartiallyReturnedPurchase();
+
         $data['items'] = $this->record->items->map(fn ($item) => [
             'line_subtotal'      => (float) $item->line_total,
             'discount_amount'    => (float) $item->line_total * ((float) ($item->discount ?? 0) / 100),
@@ -59,6 +62,8 @@ class EditPurchase extends EditRecord
             $data['due_amount'] = round(max(0, $totalAmount - $paidAmount), 2);
         }
 
+        $data['is_partial_return'] = $this->isPartiallyReturned;
+
         return $data;
     }
 
@@ -81,6 +86,23 @@ class EditPurchase extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        if ($this->isPartiallyReturnedPurchase()) {
+            $this->isPartiallyReturned = true;
+
+            $lockedData = [
+                'total_amount' => (float) ($this->record->total_amount ?? 0),
+                'paid_amount' => $data['paid_amount'] ?? $this->record->paid_amount,
+            ];
+
+            self::applyPaymentFields($lockedData);
+
+            return [
+                'paid_amount' => $lockedData['paid_amount'],
+                'due_amount' => $lockedData['due_amount'],
+                'payment_type' => $lockedData['payment_type'],
+            ];
+        }
+
         $items = $data['items'] ?? [];
         unset($data['items']);
         $items = self::normalizeItems($items);
@@ -115,6 +137,10 @@ class EditPurchase extends EditRecord
 
     protected function afterSave(): void
     {
+        if ($this->isPartiallyReturned) {
+            return;
+        }
+
         DB::transaction(function () {
 
             $items = $this->form->getState()['items'] ?? [];
@@ -208,6 +234,24 @@ class EditPurchase extends EditRecord
         $data['paid_amount'] = round($paidAmount, 2);
         $data['due_amount'] = round($dueAmount, 2);
         $data['payment_type'] = $dueAmount > 0 ? 'credit' : 'cash';
+    }
+
+    public function isPartiallyReturnedPurchase(): bool
+    {
+        if (! $this->record?->returns()->exists()) {
+            return false;
+        }
+
+        foreach ($this->record->items as $item) {
+            $itemQty = (int) ($item->quantity ?? 0);
+            $variantQty = (int) $item->variants->sum('quantity');
+
+            if (max($itemQty, $variantQty) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

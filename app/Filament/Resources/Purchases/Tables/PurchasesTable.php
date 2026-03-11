@@ -379,7 +379,7 @@ class PurchasesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
-                && ! $record->returns()->exists()
+                && (! $record->returns()->exists() || self::hasReturnableItems($record))
                 ? PurchaseResource::getUrl('edit', ['record' => $record])
                 : null
             )
@@ -440,7 +440,7 @@ class PurchasesTable
                     ->visible(fn (Purchase $record) =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
-                        && ! $record->returns()->exists()
+                        && (! $record->returns()->exists() || self::hasReturnableItems($record))
                     ),
 
                 DeleteAction::make()

@@ -17,6 +17,9 @@
         $totalTax += $taxAmount;
     }
 
+    $paidAmount = (float) ($sale->paid_amount ?? 0);
+    $remainingAmount = (float) ($sale->due_amount ?? 0);
+
     $settings = $sale->merchant?->settings;
     $normalizeGroups = function (?array $groups): array {
         $groups = is_array($groups) ? $groups : [];
@@ -150,6 +153,26 @@
                             Rs {{ number_format($totalTax, 2) }}
                         </td>
                     </tr>
+
+                    <tr>
+                        <td style="padding:10px 0; color:#475569;">
+                            Paid Amount
+                        </td>
+                        <td style="padding:10px 0; text-align:right;">
+                            Rs {{ number_format($paidAmount, 2) }}
+                        </td>
+                    </tr>
+
+                    @if($remainingAmount > 0)
+                        <tr>
+                            <td style="padding:10px 0; color:#475569;">
+                                Remaining Amount
+                            </td>
+                            <td style="padding:10px 0; text-align:right;">
+                                Rs {{ number_format($remainingAmount, 2) }}
+                            </td>
+                        </tr>
+                    @endif
                     <tr>
                         <td colspan="2" style="padding-top:10px;"></td>
                     </tr>

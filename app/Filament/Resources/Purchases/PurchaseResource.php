@@ -57,11 +57,29 @@ class PurchaseResource extends Resource
             return false;
         }
 
-        if ($record?->returns()?->exists()) {
+        if (! $record instanceof Purchase) {
+            return false;
+        }
+
+        if ($record->returns()->exists() && ! self::hasReturnableItems($record)) {
             return false;
         }
 
         return $user->hasPermissionTo('purchases.update', $guard);
+    }
+
+    private static function hasReturnableItems(Purchase $purchase): bool
+    {
+        foreach ($purchase->items as $item) {
+            $itemQty = (int) ($item->quantity ?? 0);
+            $variantQty = (int) $item->variants->sum('quantity');
+
+            if (max($itemQty, $variantQty) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder

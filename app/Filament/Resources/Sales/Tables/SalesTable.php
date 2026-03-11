@@ -331,7 +331,7 @@ class SalesTable
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
                 ?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
-                && ! $record->returns()->exists()
+                && (! $record->returns()->exists() || self::hasReturnableItems($record))
                 ? SaleResource::getUrl('edit', ['record' => $record])
                 : null
             )
@@ -392,7 +392,7 @@ class SalesTable
                     ->visible(fn (Sale $record) =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
-                        && ! $record->returns()->exists()
+                        && (! $record->returns()->exists() || self::hasReturnableItems($record))
                     ),
 
                 DeleteAction::make()

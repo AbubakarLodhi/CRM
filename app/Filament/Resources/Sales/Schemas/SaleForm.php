@@ -47,7 +47,8 @@ class SaleForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.sale_no');
                                     $livewire->resetErrorBag('data.sale_no');
-                                }),
+                                })
+                                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
 
                             DatePicker::make('sale_date')
                                 ->label('Sale Date')
@@ -58,7 +59,8 @@ class SaleForm
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.sale_date');
                                     $livewire->resetErrorBag('data.sale_date');
-                                }),
+                                })
+                                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
 
                             Select::make('customer_id')
                                 ->label('Customer')
@@ -90,11 +92,16 @@ class SaleForm
                                 ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (
                                     $livewire->resetValidation('data.customer_id') ||
                                     $livewire->resetErrorBag('data.customer_id')
-                                )),
+                                ))
+                                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
 
                             Hidden::make('payment_type')
                                 ->default('cash')
                                 ->dehydrated(true),
+
+                            Hidden::make('is_partial_return')
+                                ->default(false)
+                                ->dehydrated(false),
 
                             Hidden::make('merchant_id')
                                 ->default(fn () => self::merchantId())
@@ -117,7 +124,8 @@ class SaleForm
                                 ->directory('merchants/logos')
                                 ->imagePreviewHeight(140)
                                 ->visible(fn () => ! self::merchantHasLogo())
-                                ->dehydrated(false),
+                                ->dehydrated(false)
+                                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
 
                             View::make('filament.pages.merchant-card')
                                 ->extraAttributes(['class' => 'merchant-logo-center'])
@@ -137,7 +145,9 @@ class SaleForm
                         ->extraAttributes(fn (callable $get) => [
                             'class' => 'discount-mode-toggle left' . (($get('discount_mode') ?? 'percent') === 'percent' ? ' is-active' : ''),
                         ])
-                        ->disabled(fn (callable $get) => ($get('discount_mode') ?? 'percent') === 'percent')
+                        ->disabled(fn (callable $get) =>
+                            (bool) ($get('is_partial_return') ?? false) || ($get('discount_mode') ?? 'percent') === 'percent'
+                        )
                         ->action(function (callable $set, callable $get) {
                             $items = $get('items') ?? [];
 
@@ -163,7 +173,9 @@ class SaleForm
                         ->extraAttributes(fn (callable $get) => [
                             'class' => 'discount-mode-toggle right' . (($get('discount_mode') ?? 'percent') === 'amount' ? ' is-active' : ''),
                         ])
-                        ->disabled(fn (callable $get) => ($get('discount_mode') ?? 'percent') === 'amount')
+                        ->disabled(fn (callable $get) =>
+                            (bool) ($get('is_partial_return') ?? false) || ($get('discount_mode') ?? 'percent') === 'amount'
+                        )
                         ->action(function (callable $set, callable $get) {
                             $items = $get('items') ?? [];
 
@@ -185,6 +197,7 @@ class SaleForm
                             $set('discount_mode', 'amount');
                         }),
                 ])
+                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false))
                 ->schema([
                     Hidden::make('discount_mode')
                         ->default('percent')
@@ -837,7 +850,8 @@ class SaleForm
                 ->schema([
                     Textarea::make('notes')
                         ->maxLength(255)
-                        ->rows(3),
+                        ->rows(3)
+                        ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
                 ]),
             View::make('filament.forms.line-calc-script'),
         ]);

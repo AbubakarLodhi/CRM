@@ -8,6 +8,8 @@
 
         $invoiceNo   = $isSale ? $record->sale_no       : $record->purchase_no;
         $invoiceDate = $isSale ? $record->sale_date     : $record->purchase_date;
+        $paidAmount = (float) ($record->paid_amount ?? 0);
+        $remainingAmount = (float) ($record->due_amount ?? 0);
 
         // Customer for Sale | Vendor for Purchase
         $party = $isSale ? $record->customer : $record->vendor;
@@ -614,6 +616,18 @@
                         <span>Total Tax</span>
                         <span>Rs{{ number_format($totalTax, 2) }}</span>
                     </div>
+
+                    <div>
+                        <span>Paid Amount</span>
+                        <span>Rs{{ number_format($paidAmount, 2) }}</span>
+                    </div>
+
+                    @if($remainingAmount > 0)
+                        <div>
+                            <span>Remaining Amount</span>
+                            <span>Rs{{ number_format($remainingAmount, 2) }}</span>
+                        </div>
+                    @endif
 
                     <div class="grand">
                         <span>Grand Total</span>
