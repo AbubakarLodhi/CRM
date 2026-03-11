@@ -1,5 +1,5 @@
 @php
-    $sale = $sale->loadMissing(['items.product', 'items.variants.variant', 'customer', 'merchant', 'merchant.settings']);
+    $sale = $sale->loadMissing(['items.product', 'items.variants.variant', 'customer', 'merchant', 'merchant.settings', 'payments']);
 
     $totalDiscount = 0;
     $totalTax = 0;
@@ -19,6 +19,12 @@
 
     $paidAmount = (float) ($sale->paid_amount ?? 0);
     $remainingAmount = (float) ($sale->due_amount ?? 0);
+    $paymentHistory = ($sale->payments ?? collect())
+        ->sortBy([
+            ['payment_date', 'asc'],
+            ['created_at', 'asc'],
+        ])
+        ->values();
 
     $settings = $sale->merchant?->settings;
     $normalizeGroups = function (?array $groups): array {
@@ -212,6 +218,30 @@
                     @endforeach
                 </div>
             @endforeach
+        </div>
+    @endif
+
+    @if($paymentHistory->isNotEmpty())
+        <div style="margin-top: 14px; font-size: 12px; color: #475569;">
+            <strong style="color:#0f172a;">Payment History</strong>
+            <table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:12px;">
+                <thead>
+                <tr style="border-bottom:1px solid #e2e8f0; text-align:left;">
+                    <th style="padding:6px 0;">Date</th>
+                    <th style="padding:6px 0;">Type</th>
+                    <th style="padding:6px 0;">Amount</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($paymentHistory as $payment)
+                    <tr style="border-bottom:1px solid #f1f5f9;">
+                        <td style="padding:6px 0;">{{ $payment->payment_date?->format('d/m/Y') ?? '—' }}</td>
+                        <td style="padding:6px 0;">{{ ucfirst((string) ($payment->entry_type ?? 'payment')) }}</td>
+                        <td style="padding:6px 0;">Rs{{ number_format((float) ($payment->amount ?? 0), 2) }}</td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
         </div>
     @endif
 </div>

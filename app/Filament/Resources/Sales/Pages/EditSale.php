@@ -5,16 +5,20 @@ namespace App\Filament\Resources\Sales\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Sales\SaleResource;
+use App\Services\PaymentLedgerService;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class EditSale extends EditRecord
 {
     protected static string $resource = SaleResource::class;
     protected bool $isPartiallyReturned = false;
+    protected float $paymentDelta = 0.0;
+    protected ?string $paymentDate = null;
 
     public function getTitle(): string
     {
@@ -59,6 +63,7 @@ class EditSale extends EditRecord
             $data['due_amount'] = round(max(0, $totalAmount - $paidAmount), 2);
         }
 
+        $data['payment_date'] = now()->toDateString();
         $data['is_partial_return'] = $this->isPartiallyReturned;
 
         return $data;
@@ -82,6 +87,7 @@ class EditSale extends EditRecord
     {
         if ($this->isPartiallyReturnedSale()) {
             $this->isPartiallyReturned = true;
+            $this->preparePaymentDelta($data, (float) ($this->record->total_amount ?? 0));
 
             $lockedData = [
                 'total_amount' => (float) ($this->record->total_amount ?? 0),
@@ -97,8 +103,11 @@ class EditSale extends EditRecord
             ];
         }
 
+        $this->preparePaymentDelta($data);
+
         $items = $data['items'] ?? [];
         unset($data['items']);
+        unset($data['payment_date']);
         $items = self::normalizeItems($items);
 
         $subtotal = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
@@ -130,7 +139,7 @@ class EditSale extends EditRecord
 
     protected function afterSave(): void
     {
-        if ($this->isPartiallyReturned) {
+        if ($this->isPartiallyReturned && $this->paymentDelta <= 0) {
             return;
         }
 
@@ -142,35 +151,37 @@ class EditSale extends EditRecord
             $items = $this->form->getState()['items'] ?? [];
             $items = self::normalizeItems($items);
 
-            $this->record->items()->delete();
+            if (! $this->isPartiallyReturned) {
+                $this->record->items()->delete();
 
-            foreach ($items as $item) {
+                foreach ($items as $item) {
 
-                $branch = \App\Models\Branch::select('id', 'business_id')
-                    ->find($item['branch_id']);
+                    $branch = \App\Models\Branch::select('id', 'business_id')
+                        ->find($item['branch_id']);
 
-                if (! $branch) {
-                    continue;
-                }
+                    if (! $branch) {
+                        continue;
+                    }
 
-                $saleItem = $this->record->items()->create([
-                    'business_id' => $branch->business_id, // ✅ DERIVED
-                    'branch_id'   => $branch->id,
-                    'product_id'  => $item['product_id'],
-                    'quantity'    => $item['quantity'],
-                    'unit_price'  => $item['unit_price'],
-                    'line_total'  => $item['line_total'],
-                    'discount'    => $item['discount'] ?? 0,
-                    'tax'         => $item['tax'] ?? 0,
-                ]);
-
-                if (! empty($item['product_variant_id'])) {
-                    $saleItem->variants()->create([
-                        'product_variant_id' => $item['product_variant_id'],
-                        'quantity'           => $item['quantity'],
-                        'unit_price'         => $item['unit_price'],
-                        'line_total'         => $item['line_total'],
+                    $saleItem = $this->record->items()->create([
+                        'business_id' => $branch->business_id, // ✅ DERIVED
+                        'branch_id'   => $branch->id,
+                        'product_id'  => $item['product_id'],
+                        'quantity'    => $item['quantity'],
+                        'unit_price'  => $item['unit_price'],
+                        'line_total'  => $item['line_total'],
+                        'discount'    => $item['discount'] ?? 0,
+                        'tax'         => $item['tax'] ?? 0,
                     ]);
+
+                    if (! empty($item['product_variant_id'])) {
+                        $saleItem->variants()->create([
+                            'product_variant_id' => $item['product_variant_id'],
+                            'quantity'           => $item['quantity'],
+                            'unit_price'         => $item['unit_price'],
+                            'line_total'         => $item['line_total'],
+                        ]);
+                    }
                 }
             }
 
@@ -185,22 +196,28 @@ class EditSale extends EditRecord
                     ? $user
                     : $user?->merchant;
 
-                if (! $merchant) {
-                    return;
-                }
+                if ($merchant) {
+                    if ($logo = collect($state['merchant_logo'])->first()) {
+                        $merchant->logo()?->delete();
 
-                if ($logo = collect($state['merchant_logo'])->first()) {
-                    $merchant->logo()?->delete();
-
-                    $merchant->logo()->create([
-                        'merchant_id' => $merchant->id,
-                        'type'        => AttachmentType::IMAGE,
-                        'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
-                        'photo_url'   => $logo,
-                    ]);
-                } else {
-                    $merchant->logo()?->delete();
+                        $merchant->logo()->create([
+                            'merchant_id' => $merchant->id,
+                            'type'        => AttachmentType::IMAGE,
+                            'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
+                            'photo_url'   => $logo,
+                        ]);
+                    } else {
+                        $merchant->logo()?->delete();
+                    }
                 }
+            }
+
+            if ($this->paymentDelta > 0) {
+                PaymentLedgerService::recordSalePayment(
+                    $this->record->fresh(),
+                    $this->paymentDelta,
+                    $this->paymentDate,
+                );
             }
         });
     }
@@ -275,5 +292,29 @@ class EditSale extends EditRecord
         }
 
         return false;
+    }
+
+    protected function preparePaymentDelta(array $data, ?float $forcedTotalAmount = null): void
+    {
+        $recordedPaid = $this->record->payments()->sum('amount');
+        if ((float) $recordedPaid <= 0 && ! $this->record->payments()->exists()) {
+            $recordedPaid = (float) ($this->record->paid_amount ?? 0);
+        }
+
+        $totalAmount = $forcedTotalAmount ?? (float) ($data['total_amount'] ?? $this->record->total_amount ?? 0);
+        $desiredPaid = (float) ($data['paid_amount'] ?? $this->record->paid_amount ?? 0);
+        $desiredPaid = max(0, min($totalAmount, $desiredPaid));
+        $delta = round($desiredPaid - (float) $recordedPaid, 2);
+
+        if ($delta < 0) {
+            throw ValidationException::withMessages([
+                'data.paid_amount' => 'Paid amount cannot be reduced because payment history is now tracked in installments.',
+            ]);
+        }
+
+        $this->paymentDelta = $delta;
+        $this->paymentDate = filled($data['payment_date'] ?? null)
+            ? (string) $data['payment_date']
+            : now()->toDateString();
     }
 }

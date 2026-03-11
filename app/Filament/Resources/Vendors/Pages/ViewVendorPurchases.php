@@ -110,6 +110,21 @@ class ViewVendorPurchases extends Page implements HasTable
                     }),
             ])
             ->recordActions([
+                TableAction::make('summary')
+                    ->label('Summary')
+                    ->tooltip('Payment Summary')
+                    ->icon('heroicon-o-document-text')
+                    ->color('info')
+                    ->modalHeading(fn (Purchase $record) => 'Purchase Summary - ' . (string) ($record->purchase_no ?? ''))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalContent(fn (Purchase $record) => view('filament.partials.payment-summary-modal', [
+                        'document' => $record,
+                        'documentType' => 'purchase',
+                    ]))
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())),
+
                 TableAction::make('open_record')
                     ->label('Open')
                     ->tooltip('Open')

@@ -10,6 +10,12 @@
         $invoiceDate = $isSale ? $record->sale_date     : $record->purchase_date;
         $paidAmount = (float) ($record->paid_amount ?? 0);
         $remainingAmount = (float) ($record->due_amount ?? 0);
+        $paymentHistory = ($record->payments ?? collect())
+            ->sortBy([
+                ['payment_date', 'asc'],
+                ['created_at', 'asc'],
+            ])
+            ->values();
 
         // Customer for Sale | Vendor for Purchase
         $party = $isSale ? $record->customer : $record->vendor;
@@ -228,6 +234,23 @@
             margin-top: 32px;
             font-size: 12px;
             color: var(--muted);
+        }
+
+        .payment-history {
+            margin-top: 18px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .payment-history table {
+            margin-top: 8px;
+        }
+
+        .payment-history th,
+        .payment-history td {
+            text-align: left;
+            padding: 8px 6px;
+            border-bottom: 1px solid var(--line);
         }
 
         .contact-us {
@@ -640,6 +663,30 @@
                     <div class="notes">
                         <strong>Notes</strong><br>
                         {{ $record->notes }}
+                    </div>
+                @endif
+
+                @if($paymentHistory->isNotEmpty())
+                    <div class="payment-history">
+                        <strong>Payment History</strong>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($paymentHistory as $payment)
+                                    <tr>
+                                        <td>{{ $payment->payment_date?->format('d/m/Y') ?? '—' }}</td>
+                                        <td>{{ ucfirst((string) ($payment->entry_type ?? 'payment')) }}</td>
+                                        <td>Rs{{ number_format((float) ($payment->amount ?? 0), 2) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 @endif
 

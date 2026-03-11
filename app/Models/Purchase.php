@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Purchase extends Model implements Auditable
 {
@@ -77,6 +78,11 @@ class Purchase extends Model implements Auditable
     public function returns(): HasMany
     {
         return $this->hasMany(PurchaseReturn::class);
+    }
+
+    public function payments(): MorphMany
+    {
+        return $this->morphMany(Payment::class, 'paymentable');
     }
 
     protected static function booted(): void

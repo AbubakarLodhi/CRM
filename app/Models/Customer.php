@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Customer extends Model implements Auditable
 {
@@ -60,6 +61,11 @@ class Customer extends Model implements Auditable
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class, 'city_id');
+    }
+
+    public function payments(): MorphMany
+    {
+        return $this->morphMany(Payment::class, 'party');
     }
 
 }

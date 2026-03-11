@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Purchases\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Purchases\PurchaseResource;
+use App\Services\PaymentLedgerService;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,8 @@ class CreatePurchase extends CreateRecord
             $items = $data['items'] ?? [];
             unset($data['items']);
             $items = self::normalizeItems($items);
+            $paymentDate = $data['payment_date'] ?? null;
+            unset($data['payment_date']);
 
             /* -----------------------------
              | CREATED BY
@@ -72,6 +75,14 @@ class CreatePurchase extends CreateRecord
              | CREATE PURCHASE
              ----------------------------- */
             $purchase = static::getModel()::create($data);
+
+            if ((float) ($data['paid_amount'] ?? 0) > 0) {
+                PaymentLedgerService::recordPurchasePayment(
+                    $purchase,
+                    (float) $data['paid_amount'],
+                    $paymentDate ?? $data['purchase_date'] ?? null
+                );
+            }
 
             /* -----------------------------
              | CREATE ITEMS + VARIANTS ✅

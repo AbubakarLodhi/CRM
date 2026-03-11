@@ -6,6 +6,7 @@ use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Sales\SaleResource;
 use App\Mail\SaleCreatedMailable;
+use App\Services\PaymentLedgerService;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,8 @@ class CreateSale extends CreateRecord
             $items = $data['items'] ?? [];
             unset($data['items']);
             $items = self::normalizeItems($items);
+            $paymentDate = $data['payment_date'] ?? null;
+            unset($data['payment_date']);
 
             /** -------------------------
              * MERCHANT / CREATED BY
@@ -82,6 +85,14 @@ class CreateSale extends CreateRecord
              * CREATE SALE (UNCHANGED)
              * ------------------------- */
             $sale = static::getModel()::create($data);
+
+            if ((float) ($data['paid_amount'] ?? 0) > 0) {
+                PaymentLedgerService::recordSalePayment(
+                    $sale,
+                    (float) $data['paid_amount'],
+                    $paymentDate ?? $data['sale_date'] ?? null
+                );
+            }
 
             /** -------------------------
              * CREATE SALE ITEMS

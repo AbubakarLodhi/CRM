@@ -112,6 +112,21 @@ class ViewCustomerSales extends Page implements HasTable
                     }),
             ])
             ->recordActions([
+                TableAction::make('summary')
+                    ->label('Summary')
+                    ->tooltip('Payment Summary')
+                    ->icon('heroicon-o-document-text')
+                    ->color('info')
+                    ->modalHeading(fn (Sale $record) => 'Sale Summary - ' . (string) ($record->sale_no ?? ''))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalContent(fn (Sale $record) => view('filament.partials.payment-summary-modal', [
+                        'document' => $record,
+                        'documentType' => 'sale',
+                    ]))
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
+                        ->user()?->hasPermissionTo('sales.view', Filament::getCurrentPanel()->getAuthGuard())),
+
                 TableAction::make('open_record')
                     ->label('Open')
                     ->tooltip('Open')

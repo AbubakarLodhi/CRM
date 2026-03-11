@@ -20,6 +20,7 @@ class InvoiceController
                 'items.variants.variant',
                 'items.business.logo',
                 'items.branch',
+                'payments',
             ])->find($id),
 
             'purchase' => Purchase::with([
@@ -29,6 +30,7 @@ class InvoiceController
                 'items.variants.variant',
                 'items.business.logo',
                 'items.branch',
+                'payments',
             ])->find($id),
 
             default => throw new NotFoundHttpException(),
