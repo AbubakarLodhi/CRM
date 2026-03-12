@@ -22,6 +22,7 @@ class MerchantSettingResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Cog8Tooth;
 //    protected static bool $shouldRegisterNavigation = false;
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
 
     protected static ?string $navigationLabel = 'Merchant Settings';
     protected static ?string $modelLabel = 'Merchant Settings';
@@ -30,7 +31,7 @@ class MerchantSettingResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'MerchantSetting';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 5;
 
     public static function canViewAny(): bool
     {

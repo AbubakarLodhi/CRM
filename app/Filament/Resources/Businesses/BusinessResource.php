@@ -23,9 +23,11 @@ class BusinessResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Briefcase;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
+
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 1;
 
     public static function canViewAny(): bool
     {

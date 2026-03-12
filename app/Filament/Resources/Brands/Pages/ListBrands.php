@@ -59,7 +59,7 @@ class ListBrands extends ListRecords
                 Action::make('back')
                     ->color('default')
                     ->label('Back')
-                    ->icon('heroicon-o-arrow-left')
+                    ->icon('heroicon-s-arrow-left')
                     ->visible(fn () => request()->filled('category_id'))
                     ->url(fn () => CategoryResource::getUrl('index', [
                         // 🔑 force sub-category context

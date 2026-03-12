@@ -54,7 +54,7 @@ class ListVariants extends ListRecords
             Action::make('back')
                 ->color('default')
                 ->label('Back')
-                ->icon('heroicon-o-arrow-left')
+                ->icon('heroicon-s-arrow-left')
                 ->visible(fn () => request()->filled('product_id'))
                 ->url(fn () =>
                 ProductResource::getUrl('index', [

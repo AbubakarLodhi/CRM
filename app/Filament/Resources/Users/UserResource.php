@@ -22,12 +22,13 @@ class UserResource extends Resource
     protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::User;
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
     protected static ?string $navigationLabel = 'Staff';
     protected static ?string $modelLabel = 'Staff';
     protected static ?string $pluralModelLabel = 'Staff';
 
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
     protected static ?string $recordTitleAttribute = 'name';
     public static function canViewAny(): bool
     {

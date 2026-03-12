@@ -115,7 +115,7 @@ class ViewCustomerSales extends Page implements HasTable
                 TableAction::make('summary')
                     ->label('Summary')
                     ->tooltip('Payment Summary')
-                    ->icon('heroicon-o-document-text')
+                    ->icon('heroicon-s-document-text')
                     ->color('info')
                     ->modalHeading(fn (Sale $record) => 'Sale Summary - ' . (string) ($record->sale_no ?? ''))
                     ->modalSubmitAction(false)
@@ -130,7 +130,7 @@ class ViewCustomerSales extends Page implements HasTable
                 TableAction::make('open_record')
                     ->label('Open')
                     ->tooltip('Open')
-                    ->icon('heroicon-o-pencil-square')
+                    ->icon('heroicon-s-pencil-square')
                     ->url(fn (Sale $record) => $record->returns()->exists()
                         ? SaleResource::getUrl('view', ['record' => $record])
                         : SaleResource::getUrl('edit', ['record' => $record]))
@@ -145,7 +145,7 @@ class ViewCustomerSales extends Page implements HasTable
         return [
             HeaderAction::make('edit_customer')
                 ->label('Edit Customer')
-                ->icon('heroicon-o-pencil-square')
+                ->icon('heroicon-s-pencil-square')
                 ->url(CustomerResource::getUrl('edit', ['record' => $this->record])),
         ];
     }

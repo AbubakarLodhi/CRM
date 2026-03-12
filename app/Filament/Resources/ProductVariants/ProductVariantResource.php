@@ -21,7 +21,7 @@ class ProductVariantResource extends Resource
 {
     protected static ?string $model = ProductVariant::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquaresPlus;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::SquaresPlus;
     protected static ?string $recordTitleAttribute = 'name';
     protected static string | UnitEnum | null $navigationGroup = 'Inventory';
     protected static ?int $navigationSort = 4;

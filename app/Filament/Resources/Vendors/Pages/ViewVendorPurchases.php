@@ -113,7 +113,7 @@ class ViewVendorPurchases extends Page implements HasTable
                 TableAction::make('summary')
                     ->label('Summary')
                     ->tooltip('Payment Summary')
-                    ->icon('heroicon-o-document-text')
+                    ->icon('heroicon-s-document-text')
                     ->color('info')
                     ->modalHeading(fn (Purchase $record) => 'Purchase Summary - ' . (string) ($record->purchase_no ?? ''))
                     ->modalSubmitAction(false)
@@ -128,7 +128,7 @@ class ViewVendorPurchases extends Page implements HasTable
                 TableAction::make('open_record')
                     ->label('Open')
                     ->tooltip('Open')
-                    ->icon('heroicon-o-pencil-square')
+                    ->icon('heroicon-s-pencil-square')
                     ->url(fn (Purchase $record) => $record->returns()->exists()
                         ? PurchaseResource::getUrl('view', ['record' => $record])
                         : PurchaseResource::getUrl('edit', ['record' => $record]))
@@ -143,7 +143,7 @@ class ViewVendorPurchases extends Page implements HasTable
         return [
             HeaderAction::make('edit_vendor')
                 ->label('Edit Vendor')
-                ->icon('heroicon-o-pencil-square')
+                ->icon('heroicon-s-pencil-square')
                 ->url(VendorResource::getUrl('edit', ['record' => $this->record])),
         ];
     }

@@ -23,11 +23,12 @@ class InvoiceDynamicFieldResource extends Resource
     protected static ?string $slug = 'invoice-templates';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::DocumentText;
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
 
     protected static ?string $navigationLabel = 'Invoice Templates';
     protected static ?string $modelLabel = 'Invoice Template';
     protected static ?string $pluralModelLabel = 'Invoice Templates';
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 7;
 
     public static function canViewAny(): bool
     {

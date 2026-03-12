@@ -330,9 +330,8 @@ class SalesTable
             ->recordUrl(fn (Sale $record) =>
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
-                ?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
-                && (! $record->returns()->exists() || self::hasReturnableItems($record))
-                ? SaleResource::getUrl('edit', ['record' => $record])
+                ?->hasPermissionTo('sales.view', Filament::getCurrentPanel()->getAuthGuard())
+                ? SaleResource::getUrl('view', ['record' => $record])
                 : null
             )
             ->recordActions([
@@ -346,7 +345,7 @@ class SalesTable
                     ),
 
                 Action::make('invoice')
-                    ->icon('heroicon-o-document-text')
+                    ->icon('heroicon-s-document-text')
                     ->color('gray')
                     ->label(' ')
                     ->tooltip('Invoice')
@@ -361,7 +360,7 @@ class SalesTable
 
 
                 Action::make('return_sale')
-                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->icon('heroicon-s-arrow-uturn-left')
                     ->color('danger')
                     ->label(' ')
                     ->tooltip('Return Sale')

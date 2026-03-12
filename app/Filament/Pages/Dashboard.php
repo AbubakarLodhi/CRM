@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Merchant;
 use App\Models\User;
+use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -13,10 +14,13 @@ use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 
 class Dashboard extends BaseDashboard
 {
     use HasFiltersForm;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Home;
 
     public function persistsFiltersInSession(): bool
     {
@@ -114,7 +118,7 @@ class Dashboard extends BaseDashboard
                             ->rule('before_or_equal:today')
                             ->suffixAction(
                                 \Filament\Actions\Action::make('clear_date_from')
-                                    ->icon('heroicon-o-x-mark')
+                                    ->icon('heroicon-s-x-mark')
                                     ->tooltip('Clear date')
                                     ->action(fn (callable $set) => $set('date_from', null))
                             )
@@ -130,7 +134,7 @@ class Dashboard extends BaseDashboard
                             ->rule('after_or_equal:date_from')
                             ->suffixAction(
                                 \Filament\Actions\Action::make('clear_date_to')
-                                    ->icon('heroicon-o-x-mark')
+                                    ->icon('heroicon-s-x-mark')
                                     ->tooltip('Clear date')
                                     ->action(fn (callable $set) => $set('date_to', null))
                             )

@@ -21,11 +21,11 @@ class BranchResource extends Resource
 {
     protected static ?string $model = Branch::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingOffice;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::BuildingOffice;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
 
-
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
 
@@ -107,4 +107,3 @@ class BranchResource extends Resource
         ];
     }
 }
-

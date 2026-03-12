@@ -22,11 +22,11 @@ class ExpenseResource extends Resource
 {
     protected static ?string $model = Expense::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Banknotes;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $recordTitleAttribute = 'expense_no';
 

@@ -40,7 +40,7 @@ class CategoriesTable
             ->recordActions([
                 Action::make('view-subcategories')
                     ->color('secondary')
-                    ->icon('heroicon-o-eye')
+                    ->icon('heroicon-s-eye')
                     ->label('')
                     ->tooltip('View Sub-Categories')
                     ->url(fn (?Category $record) =>
@@ -73,7 +73,7 @@ class CategoriesTable
 
                 Action::make('view-brands')
                     ->color('secondary')
-                    ->icon('heroicon-o-eye')
+                    ->icon('heroicon-s-eye')
                     ->label('')
                     ->tooltip('View Brands')
                     ->url(fn (?Category $record) =>

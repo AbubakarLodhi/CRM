@@ -22,9 +22,11 @@ class NotificationTemplateResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::ChatBubbleBottomCenterText;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
+
     protected static ?string $recordTitleAttribute = 'NotificationTemplate';
 
-    protected static ?int $navigationSort = 9;
+    protected static ?int $navigationSort = 6;
 
     public static function canViewAny(): bool
     {

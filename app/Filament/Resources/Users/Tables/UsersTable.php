@@ -252,7 +252,7 @@ class UsersTable
             ->recordActions([
                 Action::make('manage_payroll')
                     ->color('success')
-                    ->icon('heroicon-o-currency-dollar')
+                    ->icon('heroicon-s-currency-dollar')
                     ->label('')
                     ->tooltip('Manage Payroll')
                     ->url(fn (User $record) => PayrollResource::getUrl('index', ['user_id' => $record->id]))
@@ -271,7 +271,7 @@ class UsersTable
                     }),
                 Action::make('create_payroll')
                     ->color('info')
-                    ->icon('heroicon-o-plus')
+                    ->icon('heroicon-s-plus')
                     ->label('')
                     ->tooltip('Create Payroll')
                     ->url(fn (User $record) => PayrollResource::getUrl('create', ['user_id' => $record->id]))

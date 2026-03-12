@@ -112,7 +112,7 @@ class CustomersTable
             ->recordActions([
                 Action::make('export_customer_sales')
                     ->label('')
-                    ->icon('heroicon-o-arrow-down-tray')
+                    ->icon('heroicon-s-arrow-down-tray')
                     ->color('success')
                     ->tooltip('Export Customer Sales')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())

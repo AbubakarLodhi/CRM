@@ -27,7 +27,7 @@ class StockReport extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArchiveBox;
     protected static string|\UnitEnum|null $navigationGroup = 'Reportings';
     protected static ?int $navigationSort = 1;
     protected static ?string $title = 'Stock Report';
@@ -224,9 +224,9 @@ class StockReport extends Page implements HasTable
                     ->label('Stock')
                     ->badge()
                     ->icon(fn ($state) =>
-                    $state <= 0 ? 'heroicon-o-x-circle'
-                        : ($state <= 10 ? 'heroicon-o-exclamation-triangle'
-                        : 'heroicon-o-check-circle')
+                    $state <= 0 ? 'heroicon-s-x-circle'
+                        : ($state <= 10 ? 'heroicon-s-exclamation-triangle'
+                        : 'heroicon-s-check-circle')
                     )
                     ->color(fn ($state) =>
                     $state <= 0 ? 'danger'
@@ -331,7 +331,7 @@ class StockReport extends Page implements HasTable
         return [
             Action::make('export')
                 ->label('Export to Excel')
-                ->icon('heroicon-o-arrow-down-tray')
+                ->icon('heroicon-s-arrow-down-tray')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
                 ->color('success')
                 ->action(function () {

@@ -23,11 +23,11 @@ class PurchaseResource extends Resource
 {
     protected static ?string $model = Purchase::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingCart;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ShoppingCart;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $recordTitleAttribute = 'purchase_no';
 

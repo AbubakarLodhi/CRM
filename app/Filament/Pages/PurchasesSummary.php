@@ -27,7 +27,7 @@ class PurchasesSummary extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShoppingCart;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ShoppingCart;
     protected static string|\UnitEnum|null $navigationGroup = 'Reportings';
     protected static ?int $navigationSort = 3;
     protected static ?string $title = 'Purchases Summary';
@@ -458,7 +458,7 @@ class PurchasesSummary extends Page implements HasTable
         return [
             Action::make('export')
                 ->label('Export to Excel')
-                ->icon('heroicon-o-arrow-down-tray')
+                ->icon('heroicon-s-arrow-down-tray')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
                 ->color('success')
                 ->action(function () {

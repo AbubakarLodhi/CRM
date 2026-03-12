@@ -23,11 +23,13 @@ class CustomerResource extends Resource
 {
     protected static ?string $model = Customer::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Users;
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
     protected static ?string $recordTitleAttribute = 'Customer';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 3;
 
     public static function canViewAny(): bool
     {

@@ -22,7 +22,7 @@ class PayrollResource extends Resource
 {
     protected static ?string $model = Payroll::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCurrencyDollar;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::CurrencyDollar;
 
     protected static string|\UnitEnum|null $navigationGroup = 'HR Management';
 

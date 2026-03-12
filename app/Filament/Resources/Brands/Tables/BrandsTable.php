@@ -147,7 +147,7 @@ class BrandsTable
                 // View models
                 Action::make('view-models')
                     ->color('secondary')
-                    ->icon('heroicon-o-eye')
+                    ->icon('heroicon-s-eye')
                     ->label('')
                     ->tooltip('View Models')
                     ->url(fn ($record) => BrandModelResource::getUrl('index', [

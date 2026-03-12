@@ -138,7 +138,7 @@ class MerchantsTable
             ->recordActions([
                 Action::make('modules')
                     ->label('')
-                    ->icon('heroicon-o-key')
+                    ->icon('heroicon-s-key')
                     ->tooltip('Manage Permission Modules')
                     ->modalHeading('Enable Modules for Merchant')
                     ->modalSubmitActionLabel('Save')
@@ -193,7 +193,7 @@ class MerchantsTable
 
         Action::make('settings')
                     ->label('')
-                    ->icon('heroicon-o-cog-6-tooth')
+                    ->icon('heroicon-s-cog-6-tooth')
                     ->tooltip('Merchant Settings')
                     ->modalHeading('Merchant Settings')
                     ->modalSubmitActionLabel('Save Settings')

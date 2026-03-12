@@ -24,7 +24,7 @@ class SaleReturnResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'Sale Return';
 

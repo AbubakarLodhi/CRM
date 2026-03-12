@@ -74,7 +74,7 @@
         }
 
         body {
-            font-family: "Georgia", "Times New Roman", serif;
+            font-family: "Helvetica Neue", Arial, "Noto Sans", sans-serif;
             background: var(--bg);
             margin: 0;
             padding: 30px 0;
@@ -474,7 +474,7 @@
             class="btn secondary"
             type="button"
             aria-label="Close"
-            onclick="if (window.opener) { window.close(); } else { window.history.back(); }"
+            onclick="window.location.href = @js($closeUrl ?? url('/'))"
         >
             Close
         </button>

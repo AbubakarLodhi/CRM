@@ -48,7 +48,8 @@ class SaleForm
                                     $livewire->resetValidation('data.sale_no');
                                     $livewire->resetErrorBag('data.sale_no');
                                 })
-                                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
+                                ->disabled()
+                                ->dehydrated(),
 
                             DatePicker::make('sale_date')
                                 ->label('Sale Date')
@@ -77,7 +78,7 @@ class SaleForm
                                 ->required()
                                 ->suffixAction(
                                     Action::make('createCustomer')
-                                        ->icon('heroicon-o-plus')
+                                        ->icon('heroicon-s-plus')
                                         ->tooltip('Create Customer')
                                         ->modalHeading('Create Customer')
                                         ->modalSubmitActionLabel('Create')

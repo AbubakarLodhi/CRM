@@ -47,7 +47,8 @@ class PurchaseForm
                                     $livewire->resetValidation('data.purchase_no');
                                     $livewire->resetErrorBag('data.purchase_no');
                                 })
-                                ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false)),
+                                ->disabled()
+                                ->dehydrated(),
 
                             DatePicker::make('purchase_date')
                                 ->label('Purchase Date')
@@ -73,7 +74,7 @@ class PurchaseForm
                                 ->required()
                                 ->suffixAction(
                                     \Filament\Actions\Action::make('createVendor')
-                                        ->icon('heroicon-o-plus')
+                                        ->icon('heroicon-s-plus')
                                         ->tooltip('Create Vendor')
                                         ->modalHeading('Create Vendor')
                                         ->modalSubmitActionLabel('Create')

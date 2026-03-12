@@ -80,8 +80,8 @@ class BranchesTable
                 IconColumn::make('is_active')
                     ->label('Active')
                     ->boolean()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueIcon('heroicon-s-check-circle')
+                    ->falseIcon('heroicon-s-x-circle')
                     ->trueColor('primary')
                     ->falseColor('danger')
                     ->sortable(),

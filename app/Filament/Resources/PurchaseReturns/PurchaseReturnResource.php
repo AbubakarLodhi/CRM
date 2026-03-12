@@ -18,11 +18,11 @@ class PurchaseReturnResource extends Resource
     protected static ?string $model = PurchaseReturn::class;
 
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArrowUturnLeft;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArrowUturnRight;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 5;
     protected static ?string $recordTitleAttribute = 'PurchaseReturn';
 
     public static function canViewAny(): bool

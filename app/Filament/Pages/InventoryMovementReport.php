@@ -26,7 +26,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
     use InteractsWithTable;
     use InteractsWithForms;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowTrendingUp;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArrowTrendingUp;
     protected static string|\UnitEnum|null $navigationGroup = 'Reportings';
     protected static ?int $navigationSort = 2;
     protected static ?string $title = 'Inventory Movement Report';
@@ -546,7 +546,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         return [
             Action::make('export')
                 ->label('Export to Excel')
-                ->icon('heroicon-o-arrow-down-tray')
+                ->icon('heroicon-s-arrow-down-tray')
                 ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
                 ->color('success')
                 ->action(function () {

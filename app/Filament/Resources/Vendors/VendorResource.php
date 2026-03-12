@@ -21,11 +21,13 @@ class VendorResource extends Resource
 {
     protected static ?string $model = Vendor::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::Users;
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 
     protected static ?string $recordTitleAttribute = 'Vendor';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 6;
 
     public static function canViewAny(): bool
     {

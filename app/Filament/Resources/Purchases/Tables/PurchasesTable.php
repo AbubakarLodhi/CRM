@@ -378,9 +378,8 @@ class PurchasesTable
             ->recordUrl(fn (Purchase $record) =>
             auth(Filament::getCurrentPanel()->getAuthGuard())
                 ->user()
-                ?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
-                && (! $record->returns()->exists() || self::hasReturnableItems($record))
-                ? PurchaseResource::getUrl('edit', ['record' => $record])
+                ?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())
+                ? PurchaseResource::getUrl('view', ['record' => $record])
                 : null
             )
 
@@ -395,7 +394,7 @@ class PurchasesTable
                     ),
 
                 Action::make('invoice')
-                    ->icon('heroicon-o-document-text')
+                    ->icon('heroicon-s-document-text')
                     ->color('gray')
                     ->label(' ')
                     ->tooltip('Invoice')
@@ -409,7 +408,7 @@ class PurchasesTable
                     ),
 
                 Action::make('return_purchase')
-                    ->icon('heroicon-o-arrow-uturn-left')
+                    ->icon('heroicon-s-arrow-uturn-left')
                     ->label(' ')
                     ->color('danger')
                     ->tooltip('Return Purchase')

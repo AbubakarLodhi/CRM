@@ -108,7 +108,7 @@ class VendorsTable
             ->recordActions([
                 Action::make('export_vendor_purchases')
                     ->label('')
-                    ->icon('heroicon-o-arrow-down-tray')
+                    ->icon('heroicon-s-arrow-down-tray')
                     ->color('success')
                     ->tooltip('Export Vendor Purchases')
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())

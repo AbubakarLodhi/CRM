@@ -78,7 +78,27 @@ class InvoiceController
             'dynamicGroups' => $dynamicGroups,
             'previousInvoiceUrl' => $previousInvoiceUrl,
             'nextInvoiceUrl' => $nextInvoiceUrl,
+            'closeUrl' => $this->resolveCloseUrl($type),
         ]);
+    }
+
+    protected function resolveCloseUrl(string $type): string
+    {
+        $resource = $type === 'sale' ? 'sales' : 'purchases';
+
+        if (auth('staff')->check()) {
+            return route("filament.user.resources.{$resource}.index");
+        }
+
+        if (auth('merchant')->check()) {
+            return route("filament.merchant.resources.{$resource}.index");
+        }
+
+        if (\Illuminate\Support\Facades\Route::has("filament.admin.resources.{$resource}.index")) {
+            return route("filament.admin.resources.{$resource}.index");
+        }
+
+        return url('/');
     }
 
     /**
