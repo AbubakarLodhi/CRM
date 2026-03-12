@@ -4,6 +4,7 @@ namespace App\Filament\Widgets;
 
 use App\Models\Merchant;
 use App\Models\Expense;
+use App\Models\Payroll;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\User;
@@ -807,6 +808,7 @@ class ReportsStatsWidget extends Widget
                 'sales_cash_inflow' => 0,
                 'purchases_cash_outflow' => 0,
                 'expenses_outflow' => 0,
+                'payroll_outflow' => 0,
                 'net_cash_movement' => 0,
                 'current_total_funds' => 0,
             ];
@@ -822,17 +824,32 @@ class ReportsStatsWidget extends Widget
         $purchasesQuery = $this->purchaseBaseQuery($user, $merchantId);
         $cashPurchasesAmount = (float) (clone $purchasesQuery)->sum('paid_amount');
         $expenseAmount = (float) (clone $this->expenseBaseQuery($user, $merchantId))->sum('total_amount');
+        $filters = $this->filters();
+        $payrollAmount = (float) Payroll::query()
+            ->where('merchant_id', $merchantId)
+            ->where('status', Payroll::STATUS_PAID)
+            ->when(
+                $filters['date_from'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('payment_date', '>=', $date),
+            )
+            ->when(
+                $filters['date_to'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('payment_date', '<=', $date),
+            )
+            ->sum('net_salary');
 
         $salesCashInflow = $cashSalesAmount;
         $purchasesCashOutflow = $cashPurchasesAmount;
         $expensesOutflow = $expenseAmount;
-        $netCashMovement = $salesCashInflow - $purchasesCashOutflow - $expensesOutflow;
+        $payrollOutflow = $payrollAmount;
+        $netCashMovement = $salesCashInflow - $purchasesCashOutflow - $expensesOutflow - $payrollOutflow;
 
         return [
             'opening_total_funds' => $openingTotalFunds,
             'sales_cash_inflow' => $salesCashInflow,
             'purchases_cash_outflow' => $purchasesCashOutflow,
             'expenses_outflow' => $expensesOutflow,
+            'payroll_outflow' => $payrollOutflow,
             'net_cash_movement' => $netCashMovement,
             'current_total_funds' => $openingTotalFunds + $netCashMovement,
         ];

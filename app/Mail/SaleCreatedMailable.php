@@ -93,6 +93,12 @@ class SaleCreatedMailable extends Mailable implements ShouldQueue
         }
 
         $sale = $this->sale;
+        $payments = ($sale->payments ?? collect())
+            ->sortBy([
+                ['payment_date', 'asc'],
+                ['created_at', 'asc'],
+            ])
+            ->values();
 
         $merchantLogoUrl = null;
         if ($sale->merchant?->logo?->photo_url) {
@@ -115,6 +121,8 @@ class SaleCreatedMailable extends Mailable implements ShouldQueue
             'merchant_phone_no' => $sale->merchant?->phone,
             'merchant_logo_url' => $merchantLogoUrl,
             'payment_type'      => $sale->payment_type,
+            'payment_history_html' => $this->paymentHistoryHtml($payments),
+            'payment_history_text' => $this->paymentHistoryText($payments),
             'invoice_html'      => $this->invoiceHtml->toHtml(),
         ];
 
@@ -135,5 +143,44 @@ class SaleCreatedMailable extends Mailable implements ShouldQueue
         }
 
         return [];
+    }
+
+    private function paymentHistoryHtml(\Illuminate\Support\Collection $payments): string
+    {
+        if ($payments->isEmpty()) {
+            return '<p>No payment history available.</p>';
+        }
+
+        $rows = $payments->map(function ($payment) {
+            $date = $payment->payment_date?->format('d/m/Y') ?? '—';
+            $type = ucfirst((string) ($payment->entry_type ?? 'payment'));
+            $amount = number_format((float) ($payment->amount ?? 0), 2);
+
+            return sprintf(
+                '<tr><td style="padding:6px 0;">%s</td><td style="padding:6px 0;">%s</td><td style="padding:6px 0;text-align:right;">Rs%s</td></tr>',
+                e($date),
+                e($type),
+                e($amount),
+            );
+        })->implode('');
+
+        return '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+            . '<thead><tr><th style="text-align:left;padding:6px 0;">Date</th><th style="text-align:left;padding:6px 0;">Type</th><th style="text-align:right;padding:6px 0;">Amount</th></tr></thead>'
+            . '<tbody>' . $rows . '</tbody></table>';
+    }
+
+    private function paymentHistoryText(\Illuminate\Support\Collection $payments): string
+    {
+        if ($payments->isEmpty()) {
+            return 'No payment history available.';
+        }
+
+        return $payments->map(function ($payment) {
+            $date = $payment->payment_date?->format('d/m/Y') ?? '—';
+            $type = ucfirst((string) ($payment->entry_type ?? 'payment'));
+            $amount = number_format((float) ($payment->amount ?? 0), 2);
+
+            return "{$date} | {$type} | Rs{$amount}";
+        })->implode("\n");
     }
 }

@@ -41,12 +41,12 @@
         @php($returnStats = $this->getSalesReturnStats())
 
         {{-- ========================= --}}
-        {{-- SALES OVERVIEW --}}
+        {{-- SECTION 1: SALES + RETURNS --}}
         {{-- ========================= --}}
         <div class="mb-6">
-            <h2 class="mb-3 text-lg font-semibold">Sales Overview</h2>
+            <h2 class="mb-3 text-lg font-semibold">Sales & Return Overview</h2>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-4">
 
                 <x-filament::card>
                     <div class="flex items-center gap-2 text-sm text-gray-500">
@@ -95,11 +95,6 @@
                 </x-filament::card>
 
             </div>
-        </div>
-
-        <div class="mb-6">
-            <h2 class="mb-3 text-lg font-semibold">Return Overview</h2>
-
             <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
                 <x-filament::card>
                     <div class="flex items-center gap-2 text-sm text-gray-500">
@@ -144,12 +139,12 @@
         </div>
 
         {{-- ========================= --}}
-        {{-- FINANCIAL BREAKDOWN --}}
+        {{-- SECTION 2: FINANCIALS --}}
         {{-- ========================= --}}
         <div class="mb-6">
-            <h2 class="mb-3 text-lg font-semibold">Financial Breakdown</h2>
+            <h2 class="mb-3 text-lg font-semibold">Financial & Funds Impact</h2>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
 
                 <x-filament::card>
                     <div class="text-sm text-gray-500">Subtotal</div>
@@ -173,11 +168,6 @@
                 </x-filament::card>
 
             </div>
-        </div>
-
-        <div class="mb-6">
-            <h2 class="mb-3 text-lg font-semibold">Funds Impact</h2>
-
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <x-filament::card>
                     <div class="text-sm text-gray-500">Opening Total Funds</div>

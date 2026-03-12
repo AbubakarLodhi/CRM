@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use App\Models\Customer;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 
 class SaleForm
 {
@@ -637,7 +638,6 @@ class SaleForm
                                     'max' => 'The tax (%) field must not be greater than 100.',
                                 ])
                                 ->step(0.01)
-                                ->default(16)
                                 ->suffix('%')
                                 ->live(onBlur: true)
                                 ->afterStateHydrated(function ($state, callable $set) {
@@ -812,20 +812,35 @@ class SaleForm
                         'PKR ' . number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
 
-                    TextInput::make('paid_amount')
-                        ->label('Amount Paid')
+                    TextInput::make('current_payment_amount')
+                        ->label('Current Payment')
                         ->numeric()
                         ->default(null)
                         ->minValue(0)
-                        ->maxValue(fn (callable $get) => max(0, (float) ($get('total_amount') ?? 0)))
+                        ->maxValue(fn (callable $get) => max(
+                            0,
+                            (float) ($get('total_amount') ?? 0) - (float) ($get('previous_paid_amount') ?? 0)
+                        ))
                         ->live(onBlur: true)
                         ->afterStateHydrated(function (callable $set, callable $get) {
                             self::syncPaymentFromTotals($set, $get);
                         })
                         ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
-                            $livewire->resetValidation('data.paid_amount');
-                            $livewire->resetErrorBag('data.paid_amount');
+                            $livewire->resetValidation('data.current_payment_amount');
+                            $livewire->resetErrorBag('data.current_payment_amount');
                             self::syncPaymentFromTotals($set, $get);
+                        })
+                        ->rule(function (callable $get) {
+                            return function (string $attribute, $value, \Closure $fail) use ($get): void {
+                                $entered = (float) ($value ?? 0);
+                                $total = max(0, (float) ($get('total_amount') ?? 0));
+                                $previousPaid = max(0, (float) ($get('previous_paid_amount') ?? 0));
+                                $remaining = max(0, round($total - $previousPaid, 2));
+
+                                if ($entered > $remaining) {
+                                    $fail('Current payment cannot exceed the remaining due amount.');
+                                }
+                            };
                         }),
 
                     Placeholder::make('due_amount_display')
@@ -839,6 +854,26 @@ class SaleForm
                     Hidden::make('total_discount')->default(0)->dehydrated(),
                     Hidden::make('total_tax')->default(0)->dehydrated(),
                     Hidden::make('total_amount')->default(0)->dehydrated(),
+                ]),
+
+            Section::make('Payment')
+                ->extraAttributes(['class' => 'blue-section'])
+                ->columns(1)
+                ->columnSpanFull()
+                ->schema([
+                    Placeholder::make('previous_paid_amount_display')
+                        ->label('Already Paid')
+                        ->live()
+                        ->content(fn (callable $get) =>
+                            'PKR ' . number_format((float) ($get('previous_paid_amount') ?? 0), 2)
+                        ),
+
+                    Placeholder::make('payment_history')
+                        ->label('Payment History')
+                        ->content(fn ($record) => self::renderPaymentHistory($record)),
+
+                    Hidden::make('paid_amount')->default(0)->dehydrated(),
+                    Hidden::make('previous_paid_amount')->default(0)->dehydrated(false),
                     Hidden::make('due_amount')->default(0)->dehydrated(),
                 ]),
 
@@ -939,18 +974,70 @@ class SaleForm
     private static function syncPaymentFromTotals(callable $set, callable $get, string $rootPrefix = ''): void
     {
         $totalAmount = max(0, (float) ($get($rootPrefix . 'total_amount') ?? 0));
-        $paidValue = $get($rootPrefix . 'paid_amount');
+        $previousPaid = max(0, (float) ($get($rootPrefix . 'previous_paid_amount') ?? 0));
+        $maxCurrentPayment = max(0, $totalAmount - $previousPaid);
+        $currentPaymentValue = $get($rootPrefix . 'current_payment_amount');
 
-        $paidAmount = $paidValue === null || $paidValue === ''
-            ? $totalAmount
-            : (float) $paidValue;
+        $currentPayment = $currentPaymentValue === null || $currentPaymentValue === ''
+            ? ($previousPaid > 0 ? 0.0 : $totalAmount)
+            : (float) $currentPaymentValue;
 
-        $paidAmount = max(0, min($totalAmount, $paidAmount));
+        $currentPayment = max(0, min($maxCurrentPayment, $currentPayment));
+        $paidAmount = max(0, min($totalAmount, $previousPaid + $currentPayment));
         $dueAmount = max(0, $totalAmount - $paidAmount);
 
+        $set($rootPrefix . 'current_payment_amount', round($currentPayment, 2));
         $set($rootPrefix . 'paid_amount', round($paidAmount, 2));
         $set($rootPrefix . 'due_amount', round($dueAmount, 2));
         $set($rootPrefix . 'payment_type', $dueAmount > 0 ? 'credit' : 'cash');
+    }
+
+    private static function renderPaymentHistory($record): HtmlString
+    {
+        if (! $record || ! method_exists($record, 'payments')) {
+            return new HtmlString('<span class="text-gray-500">No payment history available yet.</span>');
+        }
+
+        $payments = $record->payments()
+            ->orderBy('payment_date')
+            ->orderBy('created_at')
+            ->get(['id', 'payment_date', 'entry_type', 'amount']);
+
+        if ($payments->isEmpty()) {
+            return new HtmlString('<span class="text-gray-500">No payment history available yet.</span>');
+        }
+
+        $rows = $payments->map(function ($payment) {
+            $date = $payment->payment_date?->format('d/m/Y') ?? '—';
+            $type = ucfirst((string) ($payment->entry_type ?? 'payment'));
+            $amount = 'PKR ' . number_format((float) ($payment->amount ?? 0), 2);
+
+            $actionButton = '';
+            if ((float) ($payment->amount ?? 0) > 0 && (string) ($payment->entry_type ?? 'payment') === 'payment') {
+                $actionButton = '<button type="button" wire:click="reversePayment(\'' . e((string) $payment->id) . '\')"'
+                    . ' style="padding:2px 8px;border:1px solid #ef4444;border-radius:6px;color:#b91c1c;background:#fff;">-</button>';
+            }
+
+            return '<tr>'
+                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">' . e($date) . '</td>'
+                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">' . e($type) . '</td>'
+                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">' . e($amount) . '</td>'
+                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">' . $actionButton . '</td>'
+                . '</tr>';
+        })->implode('');
+
+        $html = '<div style="overflow:auto;">'
+            . '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+            . '<thead><tr>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;">Date</th>'
+            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;">Type</th>'
+            . '<th style="text-align:right;padding:6px 8px;border-bottom:1px solid #d1d5db;">Amount</th>'
+            . '<th style="text-align:center;padding:6px 8px;border-bottom:1px solid #d1d5db;">Action</th>'
+            . '</tr></thead><tbody>'
+            . $rows
+            . '</tbody></table></div>';
+
+        return new HtmlString($html);
     }
 
     private static function updateLineTotalDisplay(callable $set, callable $get): void

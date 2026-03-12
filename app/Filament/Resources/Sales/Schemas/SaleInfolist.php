@@ -15,6 +15,7 @@ class SaleInfolist
         return $schema
             ->components([
                 Section::make('Sale Information')
+                    ->extraAttributes(['class' => 'blue-section'])
                     ->columns(3)
                     ->columnSpanFull()
                     ->schema([
@@ -67,6 +68,7 @@ class SaleInfolist
                     ]),
 
                 Section::make('Sale Items')
+                    ->extraAttributes(['class' => 'line-items-section'])
                     ->columnSpanFull()
                     ->schema([
                         RepeatableEntry::make('items')
@@ -100,6 +102,7 @@ class SaleInfolist
                     ]),
 
                 Section::make('Summary')
+                    ->extraAttributes(['class' => 'blue-section'])
                     ->columns(6)
                     ->columnSpanFull()
                     ->schema([
@@ -149,7 +152,39 @@ class SaleInfolist
                             ->color(fn ($state) => (float) $state > 0 ? 'warning' : null),
                     ]),
 
+                Section::make('Payment')
+                    ->extraAttributes(['class' => 'blue-section'])
+                    ->columns(1)
+                    ->columnSpanFull()
+                    ->schema([
+                        TextEntry::make('paid_amount')
+                            ->label('Already Paid')
+                            ->money('PKR'),
+
+                        RepeatableEntry::make('payment_history')
+                            ->label('Payment History')
+                            ->getStateUsing(fn ($record) => ($record->payments ?? collect())
+                                ->sortBy([
+                                    ['payment_date', 'asc'],
+                                    ['created_at', 'asc'],
+                                ])
+                                ->values())
+                            ->schema([
+                                TextEntry::make('payment_date')
+                                    ->label('Date')
+                                    ->date('d/m/Y'),
+                                TextEntry::make('entry_type')
+                                    ->label('Type')
+                                    ->formatStateUsing(fn (?string $state) => ucfirst((string) ($state ?? 'payment'))),
+                                TextEntry::make('amount')
+                                    ->label('Amount')
+                                    ->money('PKR'),
+                            ])
+                            ->columns(3),
+                    ]),
+
                 Section::make('Notes')
+                    ->extraAttributes(['class' => 'blue-section'])
                     ->columnSpanFull()
                     ->schema([
                         TextEntry::make('notes')

@@ -5,12 +5,17 @@ namespace App\Filament\Resources\Sales\Pages;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Sales\SaleResource;
+use App\Mail\SaleCreatedMailable;
+use App\Models\Payment;
 use App\Services\PaymentLedgerService;
 use Filament\Actions\DeleteAction;
+use Filament\Notifications\Notification;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class EditSale extends EditRecord
@@ -19,6 +24,7 @@ class EditSale extends EditRecord
     protected bool $isPartiallyReturned = false;
     protected float $paymentDelta = 0.0;
     protected ?string $paymentDate = null;
+    protected string $paymentEntryType = 'payment';
 
     public function getTitle(): string
     {
@@ -33,6 +39,7 @@ class EditSale extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $this->isPartiallyReturned = $this->isPartiallyReturnedSale();
+        $recordedPaid = $this->getRecordedPaidAmount();
 
         $data['items'] = $this->record->items->map(fn ($item) => [
             'line_subtotal'      => (float) $item->line_total,
@@ -49,18 +56,13 @@ class EditSale extends EditRecord
             'tax'                => $item->tax ?? 0,
         ])->toArray();
 
-        if (! array_key_exists('paid_amount', $data) || $data['paid_amount'] === null) {
-            $totalAmount = (float) ($data['total_amount'] ?? 0);
-            $paidAmount = strtolower((string) ($data['payment_type'] ?? 'cash')) === 'cash'
-                ? $totalAmount
-                : 0;
-            $data['paid_amount'] = round($paidAmount, 2);
-        }
+        $data['previous_paid_amount'] = $recordedPaid;
+        $data['current_payment_amount'] = 0;
+        $data['paid_amount'] = $recordedPaid;
 
         if (! array_key_exists('due_amount', $data) || $data['due_amount'] === null) {
             $totalAmount = (float) ($data['total_amount'] ?? 0);
-            $paidAmount = (float) ($data['paid_amount'] ?? 0);
-            $data['due_amount'] = round(max(0, $totalAmount - $paidAmount), 2);
+            $data['due_amount'] = round(max(0, $totalAmount - $recordedPaid), 2);
         }
 
         $data['payment_date'] = now()->toDateString();
@@ -87,11 +89,13 @@ class EditSale extends EditRecord
     {
         if ($this->isPartiallyReturnedSale()) {
             $this->isPartiallyReturned = true;
-            $this->preparePaymentDelta($data, (float) ($this->record->total_amount ?? 0));
+            $totalAmount = (float) ($this->record->total_amount ?? 0);
+            $this->preparePaymentDelta($data, $totalAmount);
+            $recordedPaid = $this->getRecordedPaidAmount();
 
             $lockedData = [
-                'total_amount' => (float) ($this->record->total_amount ?? 0),
-                'paid_amount' => $data['paid_amount'] ?? $this->record->paid_amount,
+                'total_amount' => $totalAmount,
+                'paid_amount' => $recordedPaid + $this->paymentDelta,
             ];
 
             self::applyPaymentFields($lockedData);
@@ -104,9 +108,10 @@ class EditSale extends EditRecord
         }
 
         $this->preparePaymentDelta($data);
-
         $items = $data['items'] ?? [];
+        $currentPaymentAmount = (float) ($data['current_payment_amount'] ?? 0);
         unset($data['items']);
+        unset($data['current_payment_amount']);
         unset($data['payment_date']);
         $items = self::normalizeItems($items);
 
@@ -132,6 +137,10 @@ class EditSale extends EditRecord
 
         $data['subtotal']     = $subtotal;
         $data['total_amount'] = $subtotal - $totalDiscount + $totalTax;
+        $data['current_payment_amount'] = $currentPaymentAmount;
+        $this->preparePaymentDelta($data, (float) $data['total_amount']);
+        unset($data['current_payment_amount']);
+        $data['paid_amount'] = $this->getRecordedPaidAmount() + $this->paymentDelta;
         self::applyPaymentFields($data);
 
         return $data;
@@ -139,7 +148,9 @@ class EditSale extends EditRecord
 
     protected function afterSave(): void
     {
-        if ($this->isPartiallyReturned && $this->paymentDelta <= 0) {
+        $shouldNotifyCustomer = $this->paymentDelta != 0.0;
+
+        if ($this->isPartiallyReturned && $this->paymentDelta == 0.0) {
             return;
         }
 
@@ -212,14 +223,19 @@ class EditSale extends EditRecord
                 }
             }
 
-            if ($this->paymentDelta > 0) {
+            if ($this->paymentDelta != 0.0) {
                 PaymentLedgerService::recordSalePayment(
                     $this->record->fresh(),
                     $this->paymentDelta,
                     $this->paymentDate,
+                    $this->paymentEntryType,
                 );
             }
         });
+
+        if ($shouldNotifyCustomer) {
+            $this->sendPaymentSyncEmail();
+        }
     }
 
     private static function normalizeItems(array $items): array
@@ -296,25 +312,85 @@ class EditSale extends EditRecord
 
     protected function preparePaymentDelta(array $data, ?float $forcedTotalAmount = null): void
     {
-        $recordedPaid = $this->record->payments()->sum('amount');
-        if ((float) $recordedPaid <= 0 && ! $this->record->payments()->exists()) {
-            $recordedPaid = (float) ($this->record->paid_amount ?? 0);
-        }
+        $recordedPaid = $this->getRecordedPaidAmount();
+        $totalAmount = max(0, $forcedTotalAmount ?? (float) ($data['total_amount'] ?? $this->record->total_amount ?? 0));
+        $currentPayment = max(0, (float) ($data['current_payment_amount'] ?? 0));
+        $desiredPaid = max(0, min($totalAmount, $recordedPaid + $currentPayment));
+        $delta = round($desiredPaid - $recordedPaid, 2);
 
-        $totalAmount = $forcedTotalAmount ?? (float) ($data['total_amount'] ?? $this->record->total_amount ?? 0);
-        $desiredPaid = (float) ($data['paid_amount'] ?? $this->record->paid_amount ?? 0);
-        $desiredPaid = max(0, min($totalAmount, $desiredPaid));
-        $delta = round($desiredPaid - (float) $recordedPaid, 2);
-
-        if ($delta < 0) {
+        if ($desiredPaid < 0 || $desiredPaid > $totalAmount) {
             throw ValidationException::withMessages([
-                'data.paid_amount' => 'Paid amount cannot be reduced because payment history is now tracked in installments.',
+                'data.current_payment_amount' => 'Current payment cannot exceed the remaining amount.',
             ]);
         }
 
         $this->paymentDelta = $delta;
+        $this->paymentEntryType = 'payment';
         $this->paymentDate = filled($data['payment_date'] ?? null)
             ? (string) $data['payment_date']
             : now()->toDateString();
+    }
+
+    private function getRecordedPaidAmount(): float
+    {
+        $recordedPaid = (float) $this->record->payments()->sum('amount');
+
+        if ($recordedPaid <= 0 && ! $this->record->payments()->exists()) {
+            $recordedPaid = (float) ($this->record->paid_amount ?? 0);
+        }
+
+        return round(max(0, $recordedPaid), 2);
+    }
+
+    public function reversePayment(string $paymentId): void
+    {
+        $payment = $this->record->payments()
+            ->whereKey($paymentId)
+            ->first();
+
+        if (! $payment instanceof Payment || (float) ($payment->amount ?? 0) <= 0 || $payment->entry_type !== 'payment') {
+            Notification::make()
+                ->danger()
+                ->title('Invalid payment selected for reversal.')
+                ->send();
+            return;
+        }
+
+        $payment->delete();
+        PaymentLedgerService::syncSaleTotals($this->record->fresh());
+
+        $this->record = $this->record->fresh(['items.variants', 'payments']);
+        $this->form->fill($this->mutateFormDataBeforeFill($this->record->attributesToArray()));
+
+        Notification::make()
+            ->success()
+            ->title('Payment deleted.')
+            ->send();
+    }
+
+    private function sendPaymentSyncEmail(): void
+    {
+        $sale = $this->record->fresh(['customer', 'merchant.settings', 'payments']);
+        $customerEmail = $sale?->customer?->email;
+
+        if (! $customerEmail) {
+            return;
+        }
+
+        try {
+            $mailable = new SaleCreatedMailable($sale);
+
+            if (! $mailable->hasTemplate()) {
+                return;
+            }
+
+            Mail::to($customerEmail)->queue($mailable);
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to queue sale payment sync email.', [
+                'sale_id' => $sale?->id,
+                'customer_id' => $sale?->customer_id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 }

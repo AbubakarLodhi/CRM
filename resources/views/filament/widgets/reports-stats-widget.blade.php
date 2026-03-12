@@ -32,7 +32,7 @@
         $leaders = $leaders ?? ['customers' => [], 'vendors' => [], 'variants' => []];
         $credit = $credit ?? ['receivable_total' => 0, 'payable_total' => 0, 'top_customers' => [], 'top_vendors' => []];
         $expenses = $expenses ?? ['total_expenses' => 0, 'total_amount' => 0, 'avg_expense' => 0];
-        $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'expenses_outflow' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
+        $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'expenses_outflow' => 0, 'payroll_outflow' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
             'sales' => array_map(fn ($value) => $barMax > 0 ? (int) round(($value / $barMax) * 100) : 0, $salesSeries),
@@ -167,6 +167,10 @@
                         <div class="flex items-center justify-between">
                             <span>Expenses Out</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['expenses_outflow'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Payroll Out</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['payroll_outflow'], 2) }}</span>
                         </div>
                     </div>
                 </div>
