@@ -83,6 +83,8 @@ class MerchantPanelProvider extends PanelProvider
                         'danger' => Color::generatePalette($settings->danger_color ?? '#DC2626'),
                         'warning' => Color::generatePalette($settings->warning_color ?? '#FACC15'),
                         'default' => Color::generatePalette($settings->default_color ?? '#E5E7EB'),
+                        'sidebarPrimary' => $settings?->primary_color,
+                        'sidebarSecondary' => $settings?->secondary_color,
                     ]);
                 })
             ->navigationGroups([

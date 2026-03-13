@@ -1,4 +1,8 @@
 <style>
+    @php
+        $hasSidebarTheme = filled($sidebarPrimary ?? null) && filled($sidebarSecondary ?? null);
+    @endphp
+
     body.fi-panel-merchant {
         @foreach ($primary as $shade => $value)
             --primary-{{ $shade }}: {{ $value }};
@@ -29,6 +33,12 @@
             --default-{{ $shade }}: {{ $value }};
             --fi-color-default-{{ $shade }}: {{ $value }};
         @endforeach
+
+        @if ($hasSidebarTheme)
+            --zgn-sidebar-blue: {{ $primary[600] ?? $sidebarPrimary }};
+            --zgn-sidebar-green: {{ $secondary[600] ?? $sidebarSecondary }};
+            --zgn-sidebar-teal: {{ $secondary[400] ?? ($secondary[500] ?? $sidebarSecondary) }};
+        @endif
     }
 
 
