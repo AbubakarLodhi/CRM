@@ -7,6 +7,7 @@ use App\Enums\AttachmentType;
 use App\Filament\Resources\Purchases\PurchaseResource;
 use App\Models\Payment;
 use App\Services\PaymentLedgerService;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Actions\ViewAction;
@@ -309,6 +310,37 @@ class EditPurchase extends EditRecord
         }
 
         return round(max(0, $recordedPaid), 2);
+    }
+
+    public function confirmReversePayment(string $paymentId): void
+    {
+        $this->mountAction('reversePayment', [
+            'paymentId' => $paymentId,
+        ]);
+    }
+
+    public function reversePaymentAction(): Action
+    {
+        return Action::make('reversePayment')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete payment history entry?')
+            ->modalDescription('This will remove this payment entry from payment history.')
+            ->modalSubmitActionLabel('Delete')
+            ->action(function (array $arguments): void {
+                $paymentId = (string) ($arguments['paymentId'] ?? '');
+
+                if ($paymentId === '') {
+                    Notification::make()
+                        ->danger()
+                        ->title('Invalid payment selected for reversal.')
+                        ->send();
+
+                    return;
+                }
+
+                $this->reversePayment($paymentId);
+            });
     }
 
     public function reversePayment(string $paymentId): void

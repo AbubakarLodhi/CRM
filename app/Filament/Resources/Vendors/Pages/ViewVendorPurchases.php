@@ -68,9 +68,7 @@ class ViewVendorPurchases extends Page implements HasTable
                     ->label('Purchase No.')
                     ->searchable()
                     ->sortable()
-                    ->url(fn (Purchase $record) => $record->returns()->exists()
-                        ? PurchaseResource::getUrl('view', ['record' => $record])
-                        : PurchaseResource::getUrl('edit', ['record' => $record])),
+                    ->url(fn (Purchase $record) => PurchaseResource::getUrl('view', ['record' => $record])),
                 TextColumn::make('purchase_date')
                     ->label('Date')
                     ->date('d/m/Y')
@@ -129,9 +127,7 @@ class ViewVendorPurchases extends Page implements HasTable
                     ->label('Open')
                     ->tooltip('Open')
                     ->icon('heroicon-s-pencil-square')
-                    ->url(fn (Purchase $record) => $record->returns()->exists()
-                        ? PurchaseResource::getUrl('view', ['record' => $record])
-                        : PurchaseResource::getUrl('edit', ['record' => $record]))
+                    ->url(fn (Purchase $record) => PurchaseResource::getUrl('view', ['record' => $record]))
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())),
             ])

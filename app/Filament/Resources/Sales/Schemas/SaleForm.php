@@ -1014,7 +1014,7 @@ class SaleForm
 
             $actionButton = '';
             if ((float) ($payment->amount ?? 0) > 0 && (string) ($payment->entry_type ?? 'payment') === 'payment') {
-                $actionButton = '<button type="button" wire:click="reversePayment(\'' . e((string) $payment->id) . '\')"'
+                $actionButton = '<button type="button" wire:click="confirmReversePayment(\'' . e((string) $payment->id) . '\')"'
                     . ' style="padding:2px 8px;border:1px solid #ef4444;border-radius:6px;color:#b91c1c;background:#fff;">-</button>';
             }
 

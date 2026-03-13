@@ -20,7 +20,7 @@ class SaleReturnResource extends Resource
 {
     protected static ?string $model = SaleReturn::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArrowUturnLeft;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArrowUturnRight;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Procurement';
 

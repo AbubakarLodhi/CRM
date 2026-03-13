@@ -70,9 +70,7 @@ class ViewCustomerSales extends Page implements HasTable
                     ->label('Sale No.')
                     ->searchable()
                     ->sortable()
-                    ->url(fn (Sale $record) => $record->returns()->exists()
-                        ? SaleResource::getUrl('view', ['record' => $record])
-                        : SaleResource::getUrl('edit', ['record' => $record])),
+                    ->url(fn (Sale $record) => SaleResource::getUrl('view', ['record' => $record])),
                 TextColumn::make('sale_date')
                     ->label('Date')
                     ->date('d/m/Y')
@@ -131,9 +129,7 @@ class ViewCustomerSales extends Page implements HasTable
                     ->label('Open')
                     ->tooltip('Open')
                     ->icon('heroicon-s-pencil-square')
-                    ->url(fn (Sale $record) => $record->returns()->exists()
-                        ? SaleResource::getUrl('view', ['record' => $record])
-                        : SaleResource::getUrl('edit', ['record' => $record]))
+                    ->url(fn (Sale $record) => SaleResource::getUrl('view', ['record' => $record]))
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('sales.view', Filament::getCurrentPanel()->getAuthGuard())),
             ])

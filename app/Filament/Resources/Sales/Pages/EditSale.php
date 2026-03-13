@@ -8,6 +8,7 @@ use App\Filament\Resources\Sales\SaleResource;
 use App\Mail\SaleCreatedMailable;
 use App\Models\Payment;
 use App\Services\PaymentLedgerService;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Actions\ViewAction;
@@ -208,7 +209,12 @@ class EditSale extends EditRecord
                     : $user?->merchant;
 
                 if ($merchant) {
-                    if ($logo = collect($state['merchant_logo'])->first()) {
+                    $logo = collect((array) ($state['merchant_logo'] ?? []))
+                        ->filter()
+                        ->first();
+
+                    // Only update logo when a new upload is explicitly provided.
+                    if ($logo) {
                         $merchant->logo()?->delete();
 
                         $merchant->logo()->create([
@@ -217,8 +223,6 @@ class EditSale extends EditRecord
                             'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
                             'photo_url'   => $logo,
                         ]);
-                    } else {
-                        $merchant->logo()?->delete();
                     }
                 }
             }
@@ -340,6 +344,37 @@ class EditSale extends EditRecord
         }
 
         return round(max(0, $recordedPaid), 2);
+    }
+
+    public function confirmReversePayment(string $paymentId): void
+    {
+        $this->mountAction('reversePayment', [
+            'paymentId' => $paymentId,
+        ]);
+    }
+
+    public function reversePaymentAction(): Action
+    {
+        return Action::make('reversePayment')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading('Delete payment history entry?')
+            ->modalDescription('This will remove this payment entry from payment history.')
+            ->modalSubmitActionLabel('Delete')
+            ->action(function (array $arguments): void {
+                $paymentId = (string) ($arguments['paymentId'] ?? '');
+
+                if ($paymentId === '') {
+                    Notification::make()
+                        ->danger()
+                        ->title('Invalid payment selected for reversal.')
+                        ->send();
+
+                    return;
+                }
+
+                $this->reversePayment($paymentId);
+            });
     }
 
     public function reversePayment(string $paymentId): void
