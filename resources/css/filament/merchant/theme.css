@@ -374,6 +374,33 @@
     color: #ffffff;
 }
 
+.dark .fi-main-sidebar {
+    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    border-inline-end: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.dark .fi-main-sidebar .fi-sidebar-header-ctn,
+.dark .fi-main-sidebar .fi-sidebar-header,
+.dark .fi-main-sidebar .fi-sidebar-footer {
+    background: transparent;
+}
+
+.dark .fi-main-sidebar .fi-sidebar-group-label {
+    color: #94a3b8;
+}
+
+.dark .fi-main-sidebar .fi-sidebar-item-btn {
+    background: transparent;
+}
+
+.dark .fi-main-sidebar .fi-sidebar-item-icon {
+    color: #94a3b8;
+}
+
+.dark .fi-main-sidebar .fi-sidebar-item-label {
+    color: #e2e8f0;
+}
+
 .fi-ta-ctn .fi-ta-header,
 .fi-ta-ctn .fi-ta-header-toolbar {
     position: relative;
@@ -395,6 +422,27 @@
 
 .fi-ta-ctn .fi-ta-header-ctn .fi-input-wrp {
     background-color: rgba(255, 255, 255, 0.95);
+}
+
+.fi-ta-ctn .fi-ta-header-ctn .fi-input-wrp .fi-icon {
+    color: #64748b;
+}
+
+.dark .fi-ta-ctn .fi-ta-header-ctn .fi-input-wrp {
+    background-color: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.dark .fi-ta-ctn .fi-ta-header-ctn .fi-input {
+    color: #e2e8f0;
+}
+
+.dark .fi-ta-ctn .fi-ta-header-ctn .fi-input::placeholder {
+    color: #94a3b8;
+}
+
+.dark .fi-ta-ctn .fi-ta-header-ctn .fi-input-wrp .fi-icon {
+    color: #cbd5e1;
 }
 
 .dark .stats-dashboard svg text {
