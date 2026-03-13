@@ -258,6 +258,121 @@
     color: #94a3b8 !important;
 }
 
+/* --------------------------------------------
+ | Sidebar: blue-green modern CRM theme
+ |---------------------------------------------
+ */
+:root {
+    --zgn-sidebar-blue: #0d6efd;
+    --zgn-sidebar-green: #0bb783;
+    --zgn-sidebar-teal: #1bc5bd;
+    --zgn-sidebar-icon: #7a7a7a;
+    --zgn-sidebar-text: #334155;
+    --zgn-sidebar-header: #475569;
+}
+
+.fi-main-sidebar {
+    background: linear-gradient(180deg, #fbfcfe 0%, #f3f5f8 100%);
+    border-inline-end: 1px solid #e8edf3;
+}
+
+.fi-main-sidebar .fi-sidebar-nav {
+    padding: 10px 10px 12px;
+}
+
+.fi-main-sidebar .fi-sidebar-nav-groups {
+    gap: 6px;
+}
+
+.fi-main-sidebar .fi-sidebar-group {
+    margin-top: 8px;
+}
+
+.fi-main-sidebar .fi-sidebar-group:first-child {
+    margin-top: 0;
+}
+
+.fi-main-sidebar .fi-sidebar-group-btn {
+    padding: 6px 10px;
+}
+
+.fi-main-sidebar .fi-sidebar-group-label {
+    color: var(--zgn-sidebar-header);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.fi-main-sidebar .fi-sidebar-item {
+    margin: 4px 0;
+}
+
+.fi-main-sidebar .fi-sidebar-item-btn {
+    position: relative;
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.fi-main-sidebar .fi-sidebar-item-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--zgn-sidebar-blue) 0%, var(--zgn-sidebar-green) 60%, var(--zgn-sidebar-teal) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.fi-main-sidebar .fi-sidebar-item-icon,
+.fi-main-sidebar .fi-sidebar-item-label {
+    position: relative;
+    z-index: 1;
+    transition: color 0.3s ease;
+}
+
+.fi-main-sidebar .fi-sidebar-item-icon {
+    color: var(--zgn-sidebar-icon);
+}
+
+.fi-main-sidebar .fi-sidebar-item-label {
+    color: var(--zgn-sidebar-text);
+}
+
+.fi-main-sidebar .fi-sidebar-item-btn:hover::before,
+.fi-main-sidebar .fi-sidebar-item-btn:focus-visible::before {
+    opacity: 0.14;
+}
+
+.fi-main-sidebar .fi-sidebar-item-btn:hover {
+    box-shadow: 0 8px 22px -18px rgba(12, 117, 141, 0.65);
+}
+
+.fi-main-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-icon,
+.fi-main-sidebar .fi-sidebar-item-btn:focus-visible .fi-sidebar-item-icon {
+    color: var(--zgn-sidebar-green);
+}
+
+.fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-btn,
+.fi-main-sidebar .fi-sidebar-item.fi-sidebar-item-has-active-child-items > .fi-sidebar-item-btn {
+    background: linear-gradient(135deg, var(--zgn-sidebar-blue) 0%, var(--zgn-sidebar-green) 62%, var(--zgn-sidebar-teal) 100%);
+    box-shadow: 0 12px 26px -18px rgba(11, 183, 131, 0.8);
+}
+
+.fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-btn::before,
+.fi-main-sidebar .fi-sidebar-item.fi-sidebar-item-has-active-child-items > .fi-sidebar-item-btn::before {
+    opacity: 0;
+}
+
+.fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-icon,
+.fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-label,
+.fi-main-sidebar .fi-sidebar-item.fi-sidebar-item-has-active-child-items > .fi-sidebar-item-btn .fi-sidebar-item-icon,
+.fi-main-sidebar .fi-sidebar-item.fi-sidebar-item-has-active-child-items > .fi-sidebar-item-btn .fi-sidebar-item-label {
+    color: #ffffff;
+}
+
 .dark .stats-dashboard svg text {
     fill: #cbd5f5;
 }
