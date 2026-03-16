@@ -49,8 +49,8 @@ class PurchaseItem extends Model implements Auditable
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'line_total' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'tax' => 'decimal:2',
+        'discount' => 'decimal:6',
+        'tax' => 'decimal:6',
     ];
 
     /**

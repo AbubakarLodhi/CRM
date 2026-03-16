@@ -150,17 +150,21 @@ class PurchaseForm
                             $items = $get('items') ?? [];
 
                             foreach ($items as &$item) {
-                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
-                                $discountRate = (float) ($item['discount'] ?? 0);
-                                $discountAmount = $lineTotal * ($discountRate / 100);
-                                $taxableAmount = $lineTotal - $discountAmount;
-                                $taxRate = (float) ($item['tax'] ?? 0);
-                                $taxAmount = $taxableAmount * ($taxRate / 100);
+                                $lineSubtotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
+                                $discountAmountInput = (float) ($item['discount_amount'] ?? 0);
+                                $discountAmount = min(max(0, $discountAmountInput), $lineSubtotal);
+                                $discountRate = $lineSubtotal > 0 ? ($discountAmount / $lineSubtotal) * 100 : 0;
+                                $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+                                $taxAmountInput = (float) ($item['tax_amount'] ?? 0);
+                                $taxAmount = min(max(0, $taxAmountInput), $lineSubtotal);
+                                $taxRate = $taxableAmount > 0 ? ($taxAmount / $taxableAmount) * 100 : 0;
 
-                                $item['line_subtotal'] = $lineTotal;
-                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
+                                $item['line_subtotal'] = $lineSubtotal;
+                                $item['discount'] = round(min(100, $discountRate), 6);
+                                $item['tax'] = round(min(100, $taxRate), 6);
                                 $item['discount_amount'] = round($discountAmount, 2);
                                 $item['tax_amount'] = round($taxAmount, 2);
+                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
                             }
 
                             $set('items', $items);
@@ -178,17 +182,21 @@ class PurchaseForm
                             $items = $get('items') ?? [];
 
                             foreach ($items as &$item) {
-                                $lineTotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
-                                $discountRate = (float) ($item['discount'] ?? 0);
-                                $discountAmount = $lineTotal * ($discountRate / 100);
-                                $taxableAmount = $lineTotal - $discountAmount;
-                                $taxRate = (float) ($item['tax'] ?? 0);
-                                $taxAmount = $taxableAmount * ($taxRate / 100);
+                                $lineSubtotal = (float) ($item['line_subtotal'] ?? $item['line_total'] ?? 0);
+                                $discountAmountInput = (float) ($item['discount_amount'] ?? 0);
+                                $discountAmount = min(max(0, $discountAmountInput), $lineSubtotal);
+                                $discountRate = $lineSubtotal > 0 ? ($discountAmount / $lineSubtotal) * 100 : 0;
+                                $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+                                $taxAmountInput = (float) ($item['tax_amount'] ?? 0);
+                                $taxAmount = min(max(0, $taxAmountInput), $lineSubtotal);
+                                $taxRate = $taxableAmount > 0 ? ($taxAmount / $taxableAmount) * 100 : 0;
 
-                                $item['line_subtotal'] = $lineTotal;
-                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
+                                $item['line_subtotal'] = $lineSubtotal;
+                                $item['discount'] = round(min(100, $discountRate), 6);
+                                $item['tax'] = round(min(100, $taxRate), 6);
                                 $item['discount_amount'] = round($discountAmount, 2);
                                 $item['tax_amount'] = round($taxAmount, 2);
+                                $item['line_total'] = round($taxableAmount + $taxAmount, 2);
                             }
 
                             $set('items', $items);
@@ -566,16 +574,17 @@ class PurchaseForm
                                     $set('line_subtotal', $unit * $qty);
 
                                     if (($get('../../discount_mode') ?? 'percent') === 'amount') {
-                                        $lineTotal = (float) ($get('unit_price') ?? 0);
+                                        $lineSubtotal = (float) ($get('line_subtotal') ?? ($unit * $qty));
                                         $discountAmount = (float) ($get('discount_amount') ?? 0);
                                         $taxAmount = (float) ($get('tax_amount') ?? 0);
 
-                                        $discountRate = $lineTotal > 0 ? ($discountAmount / $lineTotal) * 100 : 0;
-                                        $taxableAmount = $lineTotal - ($lineTotal * ($discountRate / 100));
+                                        $discountAmount = min(max(0, $discountAmount), $lineSubtotal);
+                                        $discountRate = $lineSubtotal > 0 ? ($discountAmount / $lineSubtotal) * 100 : 0;
+                                        $taxableAmount = max(0, $lineSubtotal - $discountAmount);
                                         $taxRate = $taxableAmount > 0 ? ($taxAmount / $taxableAmount) * 100 : 0;
 
-                                        $set('discount', round($discountRate, 2));
-                                        $set('tax', round($taxRate, 2));
+                                        $set('discount', round(min(100, $discountRate), 6));
+                                        $set('tax', round(min(100, $taxRate), 6));
                                     }
 
                                     self::updateLineTotalDisplay($set, $get);
@@ -782,8 +791,8 @@ class PurchaseForm
                                 }
 
                                 $item['line_subtotal'] = $lineSubtotal;
-                                $item['discount'] = round(min(100, $discountRate), 2);
-                                $item['tax'] = round(min(100, $taxRate), 2);
+                                $item['discount'] = round(min(100, $discountRate), 6);
+                                $item['tax'] = round(min(100, $taxRate), 6);
                                 $item['discount_amount'] = round($discountAmount, 2);
                                 $item['tax_amount'] = round($taxAmount, 2);
                                 $item['line_total'] = round($taxableAmount + $taxAmount, 2);
@@ -1077,7 +1086,7 @@ class PurchaseForm
         if ($discountMode === 'amount' && $lineSubtotal > 0) {
             $discountAmountInput = min(max(0, $discountAmountInput), $lineSubtotal);
             $discountRate = ($discountAmountInput / $lineSubtotal) * 100;
-            $set('discount', round(min(100, $discountRate), 2));
+            $set('discount', round(min(100, $discountRate), 6));
         }
 
         $discountAmount = $lineSubtotal * ($discountRate / 100);
@@ -1086,13 +1095,18 @@ class PurchaseForm
         if ($discountMode === 'amount' && $taxableLine > 0) {
             $taxAmountInput = min(max(0, $taxAmountInput), $lineSubtotal);
             $taxRate = ($taxAmountInput / $taxableLine) * 100;
-            $set('tax', round(min(100, $taxRate), 2));
+            $set('tax', round(min(100, $taxRate), 6));
         }
 
         $taxAmount = $discountMode === 'amount'
             ? $taxAmountInput
             : ($taxableLine * ($taxRate / 100));
         $lineTotal = $taxableLine + $taxAmount;
+
+        if ($discountMode !== 'amount') {
+            $set('discount_amount', round($discountAmount, 2));
+            $set('tax_amount', round($taxAmount, 2));
+        }
 
         $set('line_total', round($lineTotal, 2));
     }

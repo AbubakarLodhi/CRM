@@ -272,8 +272,8 @@ class EditSale extends EditRecord
             $taxRate = max(0, min(100, $taxRate));
 
             $item['line_total'] = $lineTotal;
-            $item['discount'] = round($discountRate, 2);
-            $item['tax'] = round($taxRate, 2);
+            $item['discount'] = round($discountRate, 6);
+            $item['tax'] = round($taxRate, 6);
         }
 
         return $items;

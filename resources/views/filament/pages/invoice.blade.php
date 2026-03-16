@@ -19,6 +19,12 @@
 
         // Customer for Sale | Vendor for Purchase
         $party = $isSale ? $record->customer : $record->vendor;
+        $formatPercent = function (float $value): string {
+            $formatted = number_format($value, 2, '.', '');
+            $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+            return ($formatted === '' ? '0' : $formatted) . '%';
+        };
         $totalDiscount = 0;
         $totalTax = 0;
         $totalDiscountPercent = 0;
@@ -603,8 +609,8 @@
                             <td>Rs{{ number_format($item->unit_price, 2) }}</td>
                             <td>{{ $item->quantity }}</td>
                             <td>Rs{{ number_format($item->line_total, 2) }}</td>
-                            <td>{{ number_format((float) ($item->discount ?? 0), 2) }}%</td>
-                            <td>{{ number_format((float) ($item->tax ?? 0), 2) }}%</td>
+                            <td>{{ $formatPercent((float) ($item->discount ?? 0)) }}</td>
+                            <td>{{ $formatPercent((float) ($item->tax ?? 0)) }}</td>
                             @php
                                 $lineTotal = (float) ($item->line_total ?? 0);
                                 $discountRate = (float) ($item->discount ?? 0);
