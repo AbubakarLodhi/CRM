@@ -125,6 +125,8 @@ class BranchesTable
                         modifyQueryUsing: function (Builder $query) {
                             $user = Filament::auth()->user();
 
+                            $query->withoutTrashed();
+
                             if ($user instanceof \App\Models\Merchant) {
                                 $query->where('merchant_id', $user->id);
                             }

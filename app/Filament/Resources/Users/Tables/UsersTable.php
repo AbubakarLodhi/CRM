@@ -185,6 +185,7 @@ class UsersTable
 
                         // Staff → only assigned businesses
                         return $user->businesses()
+                            ->whereNull('businesses.deleted_at')
                             ->orderBy('businesses.name')
                             ->pluck('businesses.name', 'businesses.id')
                             ->toArray();
@@ -219,6 +220,7 @@ class UsersTable
 
                         // Staff → only assigned branches
                         return $user->branches()
+                            ->whereNull('branches.deleted_at')
                             ->orderBy('branches.name')
                             ->pluck('branches.name', 'branches.id')
                             ->toArray();

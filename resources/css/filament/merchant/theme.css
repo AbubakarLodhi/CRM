@@ -420,6 +420,10 @@
     color: #ffffff;
 }
 
+.fi-ta-ctn .fi-ta-header-ctn .fi-ac-btn-group .fi-icon {
+    color: #334155;
+}
+
 .fi-ta-ctn .fi-ta-header-ctn .fi-input-wrp {
     background-color: rgba(255, 255, 255, 0.95);
 }
@@ -443,6 +447,10 @@
 
 .dark .fi-ta-ctn .fi-ta-header-ctn .fi-input-wrp .fi-icon {
     color: #cbd5e1;
+}
+
+.dark .fi-ta-ctn .fi-ta-header-ctn .fi-ac-btn-group .fi-icon {
+    color: #e2e8f0;
 }
 
 .dark .stats-dashboard svg text {

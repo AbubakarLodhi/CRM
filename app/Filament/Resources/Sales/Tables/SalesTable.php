@@ -206,7 +206,25 @@ class SalesTable
             ->filters([
 
                 SelectFilter::make('customer_id')
-                    ->relationship('activeCustomer', 'name')
+                    ->relationship(
+                        'activeCustomer',
+                        'name',
+                        modifyQueryUsing: function (Builder $query) {
+                            $user = Filament::auth()->user();
+
+                            $merchantId = match (true) {
+                                $user instanceof \App\Models\Merchant => $user->id,
+                                $user instanceof \App\Models\User     => $user->merchant_id,
+                                default                               => null,
+                            };
+
+                            $query->withoutTrashed();
+
+                            if ($merchantId) {
+                                $query->where('merchant_id', $merchantId);
+                            }
+                        }
+                    )
                     ->label('Customer')
                     ->searchable()
                     ->preload(),
