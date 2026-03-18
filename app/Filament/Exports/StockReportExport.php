@@ -38,6 +38,7 @@ class StockReportExport implements
             'Product',
             'Variant',
             'SKU',
+            'Last Updated',
             'Purchased',
             'Sold',
             'Stock',
@@ -55,6 +56,7 @@ class StockReportExport implements
             $variant->product?->name,
             $variant->name,
             $variant->sku,
+            $variant->last_updated,
             (float) $variant->total_purchased,
             (float) $variant->total_sold,
             (float) $variant->current_stock,
@@ -76,14 +78,14 @@ class StockReportExport implements
                 $endRow   = $this->rowCount + 1;
                 $totalRow = $endRow + 1;
 
-                $event->sheet->setCellValue("C{$totalRow}", 'TOTAL');
+                $event->sheet->setCellValue("D{$totalRow}", 'TOTAL');
 
-                $event->sheet->setCellValue("D{$totalRow}", $this->totals['purchased'] ?? 0);
-                $event->sheet->setCellValue("E{$totalRow}", $this->totals['sold'] ?? 0);
-                $event->sheet->setCellValue("F{$totalRow}", $this->totals['stock'] ?? 0);
+                $event->sheet->setCellValue("E{$totalRow}", $this->totals['purchased'] ?? 0);
+                $event->sheet->setCellValue("F{$totalRow}", $this->totals['sold'] ?? 0);
+                $event->sheet->setCellValue("G{$totalRow}", $this->totals['stock'] ?? 0);
 
                 $event->sheet
-                    ->getStyle("C{$totalRow}:F{$totalRow}")
+                    ->getStyle("D{$totalRow}:G{$totalRow}")
                     ->getFont()
                     ->setBold(true);
 

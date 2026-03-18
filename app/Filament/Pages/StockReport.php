@@ -159,6 +159,94 @@ class StockReport extends Page implements HasTable
         return '(' . $this->purchasedExpression($userId) . ' - ' . $this->soldExpression($userId) . ')';
     }
 
+    protected function lastUpdatedExpression(?string $userId = null): string
+    {
+        $branchId = $this->getBranchFilterValue();
+        ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
+
+        $purchaseUserScope = '';
+        $saleUserScope = '';
+        if ($userId) {
+            $safeUserId = addslashes($userId);
+            $purchaseUserScope = "
+                AND pi.branch_id IN (
+                    SELECT branch_id
+                    FROM branch_users
+                    WHERE user_id = '{$safeUserId}'
+                )
+            ";
+            $saleUserScope = "
+                AND si.branch_id IN (
+                    SELECT branch_id
+                    FROM branch_users
+                    WHERE user_id = '{$safeUserId}'
+                )
+            ";
+        }
+
+        $purchaseBranchScope = $branchId
+            ? " AND pi.branch_id = '" . addslashes($branchId) . "'"
+            : '';
+
+        $saleBranchScope = $branchId
+            ? " AND si.branch_id = '" . addslashes($branchId) . "'"
+            : '';
+
+        $purchaseFromScope = $fromDate
+            ? " AND p.purchase_date >= '" . addslashes((string) $fromDate) . "'"
+            : '';
+
+        $purchaseToScope = $toDate
+            ? " AND p.purchase_date <= '" . addslashes((string) $toDate) . "'"
+            : '';
+
+        $saleFromScope = $fromDate
+            ? " AND s.sale_date >= '" . addslashes((string) $fromDate) . "'"
+            : '';
+
+        $saleToScope = $toDate
+            ? " AND s.sale_date <= '" . addslashes((string) $toDate) . "'"
+            : '';
+
+        return "
+            NULLIF(
+                GREATEST(
+                    COALESCE(
+                        (
+                            SELECT MAX(p.purchase_date)
+                            FROM purchase_item_variants piv
+                            JOIN purchase_items pi ON pi.id = piv.purchase_item_id
+                            JOIN purchases p ON p.id = pi.purchase_id
+                            WHERE piv.product_variant_id = product_variants.id
+                              AND p.deleted_at IS NULL
+                              {$purchaseUserScope}
+                              {$purchaseBranchScope}
+                              {$purchaseFromScope}
+                              {$purchaseToScope}
+                        ),
+                        '1970-01-01'
+                    ),
+                    COALESCE(
+                        (
+                            SELECT MAX(s.sale_date)
+                            FROM sale_item_variants siv
+                            JOIN sale_items si ON si.id = siv.sale_item_id
+                            JOIN sales s ON s.id = si.sale_id
+                            WHERE siv.product_variant_id = product_variants.id
+                              AND s.deleted_at IS NULL
+                              {$saleUserScope}
+                              {$saleBranchScope}
+                              {$saleFromScope}
+                              {$saleToScope}
+                        ),
+                        '1970-01-01'
+                    )
+                ),
+                '1970-01-01'
+            )
+        ";
+    }
+
     /* ============================================================
      |  TABLE (CORRECT AS-IS)
      ============================================================ */
@@ -203,6 +291,11 @@ class StockReport extends Page implements HasTable
                             ? $this->stockExpression($user->id) . ' as current_stock'
                             : $this->stockExpression() . ' as current_stock'
                     )
+                    ->selectRaw(
+                        $user instanceof \App\Models\User
+                            ? $this->lastUpdatedExpression($user->id) . ' as last_updated'
+                            : $this->lastUpdatedExpression() . ' as last_updated'
+                    )
             )
             ->columns([
                 TextColumn::make('product.name')
@@ -215,6 +308,11 @@ class StockReport extends Page implements HasTable
                     ->label('Variant')
                     ->description(fn ($record) => $record->sku)
                     ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('last_updated')
+                    ->label('Last Updated')
+                    ->date('Y-m-d')
                     ->sortable(),
 
                 TextColumn::make('total_purchased')->label('Purchased')->numeric()->sortable(),
