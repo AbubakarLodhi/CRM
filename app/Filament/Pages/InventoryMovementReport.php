@@ -145,6 +145,12 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                     ->searchable()
                     ->sortable(),
 
+                TextColumn::make('created_by')
+                    ->label('Created By')
+                    ->toggleable()
+                    ->searchable()
+                    ->sortable(),
+
                 TextColumn::make('product_name')
                     ->label('Product')
                     ->searchable()
@@ -207,6 +213,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         $purchaseRows = \App\Models\Purchase::query()
             ->withoutTrashed()
             ->with([
+                'createdBy',
                 'items.variants.variant.product',
                 'items.business.users',
                 'items.branch.users',
@@ -247,6 +254,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'date'          => $purchase->purchase_date,
                             'type'          => 'Purchase',
                             'reference'     => $purchase->purchase_no,
+                            'created_by'    => $purchase->createdBy?->name ?? '-',
 
                             // PRODUCT (BLUEPRINT)
                             'product_name'  => $product->name,
@@ -273,6 +281,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
         $saleRows = \App\Models\Sale::query()
             ->withoutTrashed()
             ->with([
+                'createdBy',
                 'items.variants.variant.product',
                 'items.business.users',
                 'items.branch.users',
@@ -313,6 +322,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'date'          => $sale->sale_date,
                             'type'          => 'Sale',
                             'reference'     => $sale->sale_no,
+                            'created_by'    => $sale->createdBy?->name ?? '-',
 
                             'product_name'  => $product->name,
                             'variant_name'  => $variant->name,
@@ -372,6 +382,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'date'          => $return->return_date,
                             'type'          => 'Sale Return',
                             'reference'     => $return->return_no,
+                            'created_by'    => '-',
                             'product_name'  => $product?->name ?? '-',
                             'variant_name'  => '-',
                             'product_sku'   => '-',
@@ -394,6 +405,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'date'          => $return->return_date,
                             'type'          => 'Sale Return',
                             'reference'     => $return->return_no,
+                            'created_by'    => '-',
                             'product_name'  => $product?->name ?? '-',
                             'variant_name'  => $variant?->name ?? '-',
                             'product_sku'   => $variant?->sku ?? '-',
@@ -448,6 +460,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'date'          => $return->return_date,
                             'type'          => 'Purchase Return',
                             'reference'     => $return->return_no,
+                            'created_by'    => '-',
                             'product_name'  => $product?->name ?? '-',
                             'variant_name'  => '-',
                             'product_sku'   => '-',
@@ -470,6 +483,7 @@ class InventoryMovementReport extends Page implements HasTable, HasForms
                             'date'          => $return->return_date,
                             'type'          => 'Purchase Return',
                             'reference'     => $return->return_no,
+                            'created_by'    => '-',
                             'product_name'  => $product?->name ?? '-',
                             'variant_name'  => $variant?->name ?? '-',
                             'product_sku'   => $variant?->sku ?? '-',

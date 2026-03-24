@@ -12,10 +12,13 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 class VendorsTable
@@ -111,9 +114,21 @@ class VendorsTable
                     ->icon('heroicon-s-arrow-down-tray')
                     ->color('success')
                     ->tooltip('Export Vendor Purchases')
+                    ->modalHeading('Export Vendor Purchases')
+                    ->schema([
+                        Select::make('format')
+                            ->label('Export Format')
+                            ->options([
+                                'excel' => 'Excel (.xlsx)',
+                                'pdf'   => 'PDF (.pdf)',
+                            ])
+                            ->default('excel')
+                            ->required()
+                            ->native(false),
+                    ])
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
-                    ->action(function (Vendor $record) {
+                    ->action(function (array $data, Vendor $record) {
                         $user = Filament::auth()->user();
 
                         $merchantId = match (true) {
@@ -170,11 +185,33 @@ class VendorsTable
                         $totals['amount_pending'] = (float) (clone $baseQuery)->sum('due_amount');
                         $totals['amount_paid'] = (float) (clone $baseQuery)->sum('paid_amount');
 
-                        $filename = 'vendor-purchases-' . ($record->name ?? 'vendor') . '-' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+                        $safeName = Str::slug($record->name ?? 'vendor');
+                        $timestamp = now()->format('Y-m-d_H-i-s');
+                        $format = $data['format'] ?? 'excel';
+
+                        if ($format === 'pdf') {
+                            $purchases = (clone $exportQuery)
+                                ->orderByDesc('purchase_date')
+                                ->get();
+
+                            $pdfContent = Pdf::loadView('exports.vendor-purchases-pdf', [
+                                'vendor' => $record,
+                                'purchases' => $purchases,
+                                'totals' => $totals,
+                            ])
+                                ->setPaper('a4', 'landscape')
+                                ->output();
+
+                            return response()->streamDownload(
+                                fn () => print($pdfContent),
+                                "vendor-purchases-{$safeName}-{$timestamp}.pdf",
+                                ['Content-Type' => 'application/pdf']
+                            );
+                        }
 
                         return Excel::download(
                             new VendorPurchasesExport($exportQuery, $totals),
-                            $filename
+                            "vendor-purchases-{$safeName}-{$timestamp}.xlsx"
                         );
                     }),
 

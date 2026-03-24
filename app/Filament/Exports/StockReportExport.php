@@ -56,7 +56,9 @@ class StockReportExport implements
             $variant->product?->name,
             $variant->name,
             $variant->sku,
-            $variant->last_updated,
+            $variant->last_updated
+                ? \Illuminate\Support\Carbon::parse($variant->last_updated)->format('d/m/Y')
+                : '—',
             (float) $variant->total_purchased,
             (float) $variant->total_sold,
             (float) $variant->current_stock,

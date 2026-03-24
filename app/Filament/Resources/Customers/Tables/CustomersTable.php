@@ -12,11 +12,14 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CustomersTable
@@ -115,9 +118,21 @@ class CustomersTable
                     ->icon('heroicon-s-arrow-down-tray')
                     ->color('success')
                     ->tooltip('Export Customer Sales')
+                    ->modalHeading('Export Customer Sales')
+                    ->schema([
+                        Select::make('format')
+                            ->label('Export Format')
+                            ->options([
+                                'excel' => 'Excel (.xlsx)',
+                                'pdf'   => 'PDF (.pdf)',
+                            ])
+                            ->default('excel')
+                            ->required()
+                            ->native(false),
+                    ])
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
-                    ->action(function (Customer $record) {
+                    ->action(function (array $data, Customer $record) {
                         $user = Filament::auth()->user();
 
                         $merchantId = match (true) {
@@ -192,11 +207,33 @@ class CustomersTable
                         $totals['amount_pending'] = (float) (clone $baseQuery)->sum('due_amount');
                         $totals['amount_paid'] = (float) (clone $baseQuery)->sum('paid_amount');
 
-                        $filename = 'customer-sales-' . ($record->name ?? 'customer') . '-' . now()->format('Y-m-d_H-i-s') . '.xlsx';
+                        $safeName = Str::slug($record->name ?? 'customer');
+                        $timestamp = now()->format('Y-m-d_H-i-s');
+                        $format = $data['format'] ?? 'excel';
+
+                        if ($format === 'pdf') {
+                            $sales = (clone $exportQuery)
+                                ->orderByDesc('sale_date')
+                                ->get();
+
+                            $pdfContent = Pdf::loadView('exports.customer-sales-pdf', [
+                                'customer' => $record,
+                                'sales' => $sales,
+                                'totals' => $totals,
+                            ])
+                                ->setPaper('a4', 'landscape')
+                                ->output();
+
+                            return response()->streamDownload(
+                                fn () => print($pdfContent),
+                                "customer-sales-{$safeName}-{$timestamp}.pdf",
+                                ['Content-Type' => 'application/pdf']
+                            );
+                        }
 
                         return Excel::download(
                             new CustomerSalesExport($exportQuery, $totals),
-                            $filename
+                            "customer-sales-{$safeName}-{$timestamp}.xlsx"
                         );
                     }),
                 EditAction::make()

@@ -312,7 +312,7 @@ class StockReport extends Page implements HasTable
 
                 TextColumn::make('last_updated')
                     ->label('Last Updated')
-                    ->date('Y-m-d')
+                    ->date('d/m/Y')
                     ->sortable(),
 
                 TextColumn::make('total_purchased')->label('Purchased')->numeric()->sortable(),
