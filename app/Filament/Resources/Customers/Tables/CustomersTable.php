@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Customers\Tables;
 
 use App\Filament\Exports\CustomerSalesExport;
 use App\Filament\Resources\Customers\CustomerResource;
+use App\Models\CashFlow;
 use App\Models\Customer;
 use App\Models\Sale;
 use Filament\Actions\Action;
@@ -229,10 +230,27 @@ class CustomersTable
                             ->orderBy('sale_date')
                             ->orderBy('created_at')
                             ->get();
-                        $totals = CustomerSalesExport::calculateTotals($sales);
+                        $cashFlows = CashFlow::query()
+                            ->withoutTrashed()
+                            ->where('merchant_id', $merchantId)
+                            ->where('party_type', Customer::class)
+                            ->where('party_id', $record->id)
+                            ->when(
+                                filled($data['date_from'] ?? null),
+                                fn ($q) => $q->whereDate('flow_date', '>=', $data['date_from'])
+                            )
+                            ->when(
+                                filled($data['date_to'] ?? null),
+                                fn ($q) => $q->whereDate('flow_date', '<=', $data['date_to'])
+                            )
+                            ->with(['party', 'merchant'])
+                            ->orderBy('flow_date')
+                            ->orderBy('created_at')
+                            ->get();
+                        $totals = CustomerSalesExport::calculateTotals($sales, $cashFlows);
 
                         if ($format === 'pdf') {
-                            $rows = CustomerSalesExport::buildStatementRows($sales, $selectedColumns);
+                            $rows = CustomerSalesExport::buildStatementRows($sales, $cashFlows, $selectedColumns);
 
                             $pdfContent = Pdf::loadView('exports.customer-sales-pdf', [
                                 'customer' => $record,
@@ -254,7 +272,7 @@ class CustomersTable
                         }
 
                         return Excel::download(
-                            new CustomerSalesExport($sales, $totals, $selectedColumns),
+                            new CustomerSalesExport($sales, $cashFlows, $totals, $selectedColumns),
                             "customer-sales-{$safeName}-{$timestamp}.xlsx"
                         );
                     }),

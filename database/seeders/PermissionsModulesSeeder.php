@@ -33,6 +33,7 @@ class PermissionsModulesSeeder extends Seeder
             'sales' => 'Sales',
             'purchases' => 'Purchases',
             'expenses' => 'Expenses',
+            'cash_flows' => 'Cash Flows',
             'audits' => 'Audits',
             'reports' => 'Reports',
             'payrolls'=>'Payrolls',

@@ -68,4 +68,9 @@ class Customer extends Model implements Auditable
         return $this->morphMany(Payment::class, 'party');
     }
 
+    public function cashFlows(): MorphMany
+    {
+        return $this->morphMany(CashFlow::class, 'party');
+    }
+
 }

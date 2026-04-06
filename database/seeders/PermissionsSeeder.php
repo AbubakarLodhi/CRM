@@ -36,6 +36,7 @@ class PermissionsSeeder extends Seeder
             'sales' => ['view', 'create', 'update', 'delete'],
             'purchases' => ['view', 'create', 'update', 'delete'],
             'expenses' => ['view', 'create', 'update', 'delete'],
+            'cash_flows' => ['view', 'create', 'update', 'delete'],
             'audits' => ['view', 'create', 'update', 'delete'],
             'payrolls' => ['view', 'create', 'update', 'delete'],
             'invoice_templates' => ['view', 'create', 'update', 'delete'],

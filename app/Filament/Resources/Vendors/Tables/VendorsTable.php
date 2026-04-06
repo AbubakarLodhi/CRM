@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Vendors\Tables;
 
 use App\Filament\Exports\VendorPurchasesExport;
 use App\Filament\Resources\Vendors\VendorResource;
+use App\Models\CashFlow;
 use App\Models\Vendor;
 use App\Models\Purchase;
 use Filament\Actions\Action;
@@ -219,10 +220,27 @@ class VendorsTable
                             ->orderBy('purchase_date')
                             ->orderBy('created_at')
                             ->get();
-                        $totals = VendorPurchasesExport::calculateTotals($purchases);
+                        $cashFlows = CashFlow::query()
+                            ->withoutTrashed()
+                            ->where('merchant_id', $merchantId)
+                            ->where('party_type', Vendor::class)
+                            ->where('party_id', $record->id)
+                            ->when(
+                                filled($data['date_from'] ?? null),
+                                fn ($q) => $q->whereDate('flow_date', '>=', $data['date_from'])
+                            )
+                            ->when(
+                                filled($data['date_to'] ?? null),
+                                fn ($q) => $q->whereDate('flow_date', '<=', $data['date_to'])
+                            )
+                            ->with(['party', 'merchant'])
+                            ->orderBy('flow_date')
+                            ->orderBy('created_at')
+                            ->get();
+                        $totals = VendorPurchasesExport::calculateTotals($purchases, $cashFlows);
 
                         if ($format === 'pdf') {
-                            $rows = VendorPurchasesExport::buildStatementRows($purchases, $selectedColumns);
+                            $rows = VendorPurchasesExport::buildStatementRows($purchases, $cashFlows, $selectedColumns);
 
                             $pdfContent = Pdf::loadView('exports.vendor-purchases-pdf', [
                                 'vendor' => $record,
@@ -244,7 +262,7 @@ class VendorsTable
                         }
 
                         return Excel::download(
-                            new VendorPurchasesExport($purchases, $totals, $selectedColumns),
+                            new VendorPurchasesExport($purchases, $cashFlows, $totals, $selectedColumns),
                             "vendor-purchases-{$safeName}-{$timestamp}.xlsx"
                         );
                     }),

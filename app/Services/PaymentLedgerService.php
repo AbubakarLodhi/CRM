@@ -17,6 +17,7 @@ class PaymentLedgerService
         string $entryType = 'payment',
         ?string $notes = null,
         ?string $referenceNo = null,
+        ?string $method = null,
     ): ?Payment {
         $amount = round($amount, 2);
         if ($amount == 0.0) {
@@ -31,6 +32,7 @@ class PaymentLedgerService
             'entry_type' => $entryType,
             'amount' => $amount,
             'payment_date' => self::normalizeDate($paymentDate),
+            'method' => filled($method) ? trim((string) $method) : null,
             'reference_no' => self::resolveReferenceNo($referenceNo, $sale),
             'notes' => $notes,
             'created_by' => self::resolveCreatorId($sale->created_by),
@@ -48,6 +50,7 @@ class PaymentLedgerService
         string $entryType = 'payment',
         ?string $notes = null,
         ?string $referenceNo = null,
+        ?string $method = null,
     ): ?Payment {
         $amount = round($amount, 2);
         if ($amount == 0.0) {
@@ -62,6 +65,7 @@ class PaymentLedgerService
             'entry_type' => $entryType,
             'amount' => $amount,
             'payment_date' => self::normalizeDate($paymentDate),
+            'method' => filled($method) ? trim((string) $method) : null,
             'reference_no' => self::resolveReferenceNo($referenceNo, $purchase),
             'notes' => $notes,
             'created_by' => self::resolveCreatorId($purchase->created_by),

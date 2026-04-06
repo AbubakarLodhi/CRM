@@ -19,6 +19,7 @@ class VendorPurchasesExport implements
 
     public function __construct(
         protected Collection $purchases,
+        protected Collection $cashFlows,
         protected array $totals = [],
         protected array $selectedColumns = [],
     ) {}
@@ -56,9 +57,9 @@ class VendorPurchasesExport implements
         return self::headingsFor($this->selectedColumns);
     }
 
-    public static function buildStatementRows(Collection $purchases, array $selectedColumns = []): array
+    public static function buildStatementRows(Collection $purchases, Collection $cashFlows, array $selectedColumns = []): array
     {
-        $entries = self::buildChronologicalEntries($purchases);
+        $entries = self::buildChronologicalEntries($purchases, $cashFlows);
         $runningBalance = 0.0;
         $selected = self::normalizeSelectedColumns($selectedColumns);
         $rows = [];
@@ -90,9 +91,9 @@ class VendorPurchasesExport implements
         return $rows;
     }
 
-    public static function calculateTotals(Collection $purchases): array
+    public static function calculateTotals(Collection $purchases, Collection $cashFlows): array
     {
-        $entries = self::buildChronologicalEntries($purchases);
+        $entries = self::buildChronologicalEntries($purchases, $cashFlows);
         $totalDebits = round((float) collect($entries)->sum('debit'), 2);
         $totalCredits = round((float) collect($entries)->sum('credit'), 2);
 
@@ -105,7 +106,7 @@ class VendorPurchasesExport implements
 
     public function array(): array
     {
-        $rows = self::buildStatementRows($this->purchases, $this->selectedColumns);
+        $rows = self::buildStatementRows($this->purchases, $this->cashFlows, $this->selectedColumns);
         $this->rowCount = count($rows);
 
         return $rows;
@@ -119,7 +120,7 @@ class VendorPurchasesExport implements
         return $selected;
     }
 
-    protected static function buildChronologicalEntries(Collection $purchases): array
+    protected static function buildChronologicalEntries(Collection $purchases, Collection $cashFlows): array
     {
         $entries = [];
 
@@ -203,6 +204,41 @@ class VendorPurchasesExport implements
             }
         }
 
+        foreach ($cashFlows as $cashFlow) {
+            $amount = round((float) ($cashFlow->amount ?? 0), 2);
+            if ($amount == 0.0) {
+                continue;
+            }
+
+            // Vendor statement rule:
+            // Outflow to vendor reduces payable -> credit
+            // Inflow from vendor increases payable -> debit
+            $isCredit = (string) ($cashFlow->direction ?? '') === 'out';
+            $flowType = ucfirst((string) ($cashFlow->flow_type ?? 'Cash Flow'));
+            $direction = $isCredit ? 'Out' : 'In';
+
+            $entries[] = [
+                'date' => ($cashFlow->flow_date ?? $cashFlow->created_at)->copy()->startOfDay(),
+                'created_at' => $cashFlow->created_at,
+                'debit' => $isCredit ? 0.0 : $amount,
+                'credit' => $isCredit ? $amount : 0.0,
+                'description' => self::cashFlowDescription($flowType, $direction, $cashFlow->reference_no, $cashFlow->method),
+                'extras' => [
+                    'party_name' => (string) ($cashFlow->party?->name ?? '-'),
+                    'merchant' => (string) ($cashFlow->merchant?->name ?? '-'),
+                    'branch' => '-',
+                    'payment_type' => 'Cash Flow',
+                    'paid_amount' => $isCredit ? $amount : 0.0,
+                    'due_amount' => '-',
+                    'items_count' => '-',
+                    'subtotal' => '-',
+                    'discount' => '-',
+                    'tax' => '-',
+                    'total_amount' => $amount,
+                ],
+            ];
+        }
+
         usort($entries, function (array $a, array $b): int {
             $dateCompare = $a['date']->timestamp <=> $b['date']->timestamp;
             if ($dateCompare !== 0) {
@@ -252,6 +288,21 @@ class VendorPurchasesExport implements
         }
 
         $parts[] = 'against invoice ' . (string) ($purchaseNo ?? '-');
+
+        return implode(' ', $parts);
+    }
+
+    protected static function cashFlowDescription(string $flowType, string $direction, ?string $reference, ?string $method): string
+    {
+        $parts = ['Cash Flow - ' . $flowType . ' (' . $direction . ')'];
+
+        if (filled($reference)) {
+            $parts[] = '- Ref: ' . $reference;
+        }
+
+        if (filled($method)) {
+            $parts[] = '- Method: ' . $method;
+        }
 
         return implode(' ', $parts);
     }

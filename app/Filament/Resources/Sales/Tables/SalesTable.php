@@ -6,6 +6,7 @@ use App\Filament\Resources\Sales\SaleResource;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Sale;
+use App\Services\CreditSettlementService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -13,6 +14,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
@@ -376,6 +378,49 @@ class SalesTable
                             ->user()?->hasPermissionTo('sales.view', Filament::getCurrentPanel()->getAuthGuard())
                     ),
 
+                Action::make('adjust_credits')
+                    ->icon('heroicon-s-arrows-right-left')
+                    ->color('success')
+                    ->label(' ')
+                    ->tooltip('Adjust Credits')
+                    ->requiresConfirmation()
+                    ->modalHeading('Adjust Sale Credits')
+                    ->modalDescription(function (Sale $record): string {
+                        $due = round(max(0, (float) ($record->due_amount ?? 0)), 2);
+                        $available = self::availableCustomerCredits($record);
+                        $settle = round(min($due, $available), 2);
+
+                        return 'Due: PKR ' . number_format($due, 2)
+                            . ' | Available credits: PKR ' . number_format($available, 2)
+                            . ' | This action will settle: PKR ' . number_format($settle, 2);
+                    })
+                    ->action(function (Sale $record): void {
+                        $settledAmount = CreditSettlementService::settleSaleUsingCashFlow($record);
+
+                        if ($settledAmount <= 0) {
+                            Notification::make()
+                                ->warning()
+                                ->title('No adjustment made')
+                                ->body('No available credits or no due amount found.')
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Credits adjusted')
+                            ->body('Settled PKR ' . number_format($settledAmount, 2) . ' against this sale.')
+                            ->send();
+                    })
+                    ->visible(fn (Sale $record): bool =>
+                        (float) ($record->due_amount ?? 0) > 0
+                        && (string) ($record->payment_type ?? '') === 'credit'
+                        && self::availableCustomerCredits($record) > 0
+                        && auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('sales.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
+
 
                 Action::make('return_sale')
                     ->icon('heroicon-s-arrow-uturn-left')
@@ -638,6 +683,11 @@ class SalesTable
         }
 
         return false;
+    }
+
+    private static function availableCustomerCredits(Sale $sale): float
+    {
+        return CreditSettlementService::customerAvailableCredit($sale);
     }
 
 

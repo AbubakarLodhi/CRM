@@ -26,6 +26,7 @@ class RolesSeeder extends Seeder
                 'sales.*',
                 'purchases.*',
                 'expenses.*',
+                'cash_flows.*',
                 'audits.*',
                 'payrolls.*',
                 'businesses.*',

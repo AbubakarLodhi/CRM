@@ -7,6 +7,7 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Purchase;
 use App\Models\Vendor;
+use App\Services\CreditSettlementService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -21,6 +22,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -407,6 +409,49 @@ class PurchasesTable
                             ->user()?->hasPermissionTo('purchases.view', Filament::getCurrentPanel()->getAuthGuard())
                     ),
 
+                Action::make('adjust_credits')
+                    ->icon('heroicon-s-arrows-right-left')
+                    ->color('success')
+                    ->label(' ')
+                    ->tooltip('Adjust Credits')
+                    ->requiresConfirmation()
+                    ->modalHeading('Adjust Purchase Credits')
+                    ->modalDescription(function (Purchase $record): string {
+                        $due = round(max(0, (float) ($record->due_amount ?? 0)), 2);
+                        $available = self::availableVendorCredits($record);
+                        $settle = round(min($due, $available), 2);
+
+                        return 'Due: PKR ' . number_format($due, 2)
+                            . ' | Available credits: PKR ' . number_format($available, 2)
+                            . ' | This action will settle: PKR ' . number_format($settle, 2);
+                    })
+                    ->action(function (Purchase $record): void {
+                        $settledAmount = CreditSettlementService::settlePurchaseUsingCashFlow($record);
+
+                        if ($settledAmount <= 0) {
+                            Notification::make()
+                                ->warning()
+                                ->title('No adjustment made')
+                                ->body('No available credits or no due amount found.')
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Credits adjusted')
+                            ->body('Settled PKR ' . number_format($settledAmount, 2) . ' against this purchase.')
+                            ->send();
+                    })
+                    ->visible(fn (Purchase $record): bool =>
+                        (float) ($record->due_amount ?? 0) > 0
+                        && (string) ($record->payment_type ?? '') === 'credit'
+                        && self::availableVendorCredits($record) > 0
+                        && auth(Filament::getCurrentPanel()->getAuthGuard())
+                            ->user()?->hasPermissionTo('purchases.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ),
+
                 Action::make('return_purchase')
                     ->icon('heroicon-s-arrow-uturn-left')
                     ->label(' ')
@@ -662,5 +707,10 @@ class PurchasesTable
         }
 
         return false;
+    }
+
+    private static function availableVendorCredits(Purchase $purchase): float
+    {
+        return CreditSettlementService::vendorAvailableCredit($purchase);
     }
 }
