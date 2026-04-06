@@ -21,6 +21,7 @@ use App\Models\Customer;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\ValidationException;
 
 class SaleForm
 {
@@ -86,9 +87,27 @@ class SaleForm
                                         ->modalWidth('lg')
                                         ->model(Customer::class)
                                         ->form(CustomerForm::components())
-                                        ->action(fn (array $data, callable $set) =>
-                                        $set('customer_id', Customer::create($data)->id)
-                                        )
+                                        ->action(function (array $data, callable $set): void {
+                                            $email = $data['email'] ?? null;
+
+                                            if (filled($email)) {
+                                                $normalizedEmail = mb_strtolower(trim((string) $email));
+
+                                                $alreadyExists = Customer::query()
+                                                    ->where('merchant_id', $data['merchant_id'])
+                                                    ->whereNull('deleted_at')
+                                                    ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+                                                    ->exists();
+
+                                                if ($alreadyExists) {
+                                                    throw ValidationException::withMessages([
+                                                        'email' => 'Customer with this email already exists. Kindly use another email.',
+                                                    ]);
+                                                }
+                                            }
+
+                                            $set('customer_id', Customer::create($data)->id);
+                                        })
                                 )
                                 ->live()
                                 ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (

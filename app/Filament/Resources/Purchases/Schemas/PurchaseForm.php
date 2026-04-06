@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Vendor;
 use App\Filament\Resources\Vendors\Schemas\VendorForm;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\ValidationException;
 
 class PurchaseForm
 {
@@ -82,9 +83,27 @@ class PurchaseForm
                                         ->modalWidth('lg')
                                         ->model(Vendor::class)
                                         ->form(VendorForm::components())
-                                        ->action(fn (array $data, callable $set) =>
-                                        $set('vendor_id', Vendor::create($data)->id)
-                                        )
+                                        ->action(function (array $data, callable $set): void {
+                                            $email = $data['email'] ?? null;
+
+                                            if (filled($email)) {
+                                                $normalizedEmail = mb_strtolower(trim((string) $email));
+
+                                                $alreadyExists = Vendor::query()
+                                                    ->where('merchant_id', $data['merchant_id'])
+                                                    ->whereNull('deleted_at')
+                                                    ->whereRaw('LOWER(email) = ?', [$normalizedEmail])
+                                                    ->exists();
+
+                                                if ($alreadyExists) {
+                                                    throw ValidationException::withMessages([
+                                                        'email' => 'Vendor with this email already exists. Kindly use another email.',
+                                                    ]);
+                                                }
+                                            }
+
+                                            $set('vendor_id', Vendor::create($data)->id);
+                                        })
                                 )
                                 ->live()
                                 ->afterStateUpdated(fn ($_, $__, $___, $livewire) => (
