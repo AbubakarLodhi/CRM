@@ -12,14 +12,17 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
+
 use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Grid;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
 class CustomersTable
@@ -120,15 +123,30 @@ class CustomersTable
                     ->tooltip('Export Customer Sales')
                     ->modalHeading('Export Customer Sales')
                     ->schema([
-                        Select::make('format')
-                            ->label('Export Format')
-                            ->options([
-                                'excel' => 'Excel (.xlsx)',
-                                'pdf'   => 'PDF (.pdf)',
-                            ])
-                            ->default('excel')
-                            ->required()
-                            ->native(false),
+                        Grid::make(2)
+                            ->schema([
+                                Select::make('format')
+                                    ->label('Export Format')
+                                    ->options([
+                                        'excel' => 'Excel (.xlsx)',
+                                        'pdf'   => 'PDF (.pdf)',
+                                    ])
+                                    ->default('excel')
+                                    ->required()
+                                    ->native(false),
+                                DatePicker::make('date_from')
+                                    ->label('From Date')
+                                    ->native(false),
+                                Select::make('columns')
+                                    ->label('Columns')
+                                    ->multiple()
+                                    ->searchable()
+                                    ->native(false)
+                                    ->options(fn () => ['__all__' => 'Select All'] + CustomerSalesExport::selectableColumns()),
+                                DatePicker::make('date_to')
+                                    ->label('To Date')
+                                    ->native(false),
+                            ]),
                     ])
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
@@ -146,6 +164,14 @@ class CustomersTable
                             ->where('customer_id', $record->id)
                             ->when($merchantId, fn ($q) =>
                                 $q->where('merchant_id', $merchantId)
+                            )
+                            ->when(
+                                filled($data['date_from'] ?? null),
+                                fn ($q) => $q->whereDate('sale_date', '>=', $data['date_from'])
+                            )
+                            ->when(
+                                filled($data['date_to'] ?? null),
+                                fn ($q) => $q->whereDate('sale_date', '<=', $data['date_to'])
                             );
 
                         if ($user instanceof \App\Models\User) {
@@ -163,63 +189,59 @@ class CustomersTable
                             ->with([
                                 'merchant',
                                 'customer',
+                                'items.product',
                                 'items.branch',
+                                'items.variants.variant',
                                 'returns',
+                                'payments',
                             ]);
-
-                        $saleIds = (clone $baseQuery)->select('sales.id');
-
-                        $totals = [
-                            'items_count' => (int) DB::table('sale_items')
-                                ->whereIn('sale_id', $saleIds)
-                                ->count(),
-
-                            'quantity' => (float) DB::table('sale_item_variants as sv')
-                                ->join('sale_items as si', 'si.id', '=', 'sv.sale_item_id')
-                                ->whereIn('si.sale_id', $saleIds)
-                                ->sum('sv.quantity'),
-
-                            'subtotal' => (float) (clone $baseQuery)->sum('subtotal'),
-                            'discount' => (float) DB::table('sale_items')
-                                ->whereIn('sale_id', $saleIds)
-                                ->sum(DB::raw('line_total * (discount / 100.0)')),
-
-                            'tax' => (float) DB::table('sale_items')
-                                ->whereIn('sale_id', $saleIds)
-                                ->sum(DB::raw('(line_total - (line_total * (discount / 100.0))) * (tax / 100.0)')),
-                            'total'    => (float) (clone $baseQuery)->sum('total_amount'),
-                        ];
-                        $returnTotals = DB::table('sale_returns')
-                            ->whereIn('sale_id', $saleIds)
-                            ->whereNull('deleted_at')
-                            ->selectRaw('COALESCE(SUM(subtotal), 0) as subtotal')
-                            ->selectRaw('COALESCE(SUM(total_discount), 0) as total_discount')
-                            ->selectRaw('COALESCE(SUM(total_tax), 0) as total_tax')
-                            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
-                            ->first();
-
-                        $totals['subtotal'] += (float) ($returnTotals->subtotal ?? 0);
-                        $totals['discount'] += (float) ($returnTotals->total_discount ?? 0);
-                        $totals['tax'] += (float) ($returnTotals->total_tax ?? 0);
-                        $totals['total'] += (float) ($returnTotals->total_amount ?? 0);
-
-                        $totals['total_amount'] = (float) $totals['total'];
-                        $totals['amount_pending'] = (float) (clone $baseQuery)->sum('due_amount');
-                        $totals['amount_paid'] = (float) (clone $baseQuery)->sum('paid_amount');
 
                         $safeName = Str::slug($record->name ?? 'customer');
                         $timestamp = now()->format('Y-m-d_H-i-s');
                         $format = $data['format'] ?? 'excel';
+                        $selectedColumns = is_array($data['columns'] ?? null)
+                            ? array_values($data['columns'])
+                            : [];
+                        if (in_array('__all__', $selectedColumns, true)) {
+                            $selectedColumns = array_keys(CustomerSalesExport::selectableColumns());
+                        }
+                        $merchantLogoDataUri = null;
+                        if ($merchantId && extension_loaded('gd')) {
+                            $merchant = \App\Models\Merchant::query()
+                                ->with('logo')
+                                ->find($merchantId);
+                            $logoPath = $merchant?->logo?->photo_url;
+
+                            if (filled($logoPath) && Storage::disk('public')->exists($logoPath)) {
+                                try {
+                                    $absolutePath = Storage::disk('public')->path($logoPath);
+                                    $contents = file_get_contents($absolutePath);
+                                    if ($contents !== false) {
+                                        $mime = mime_content_type($absolutePath) ?: 'image/png';
+                                        $merchantLogoDataUri = 'data:' . $mime . ';base64,' . base64_encode($contents);
+                                    }
+                                } catch (\Throwable) {
+                                    $merchantLogoDataUri = null;
+                                }
+                            }
+                        }
+                        $sales = (clone $exportQuery)
+                            ->orderBy('sale_date')
+                            ->orderBy('created_at')
+                            ->get();
+                        $totals = CustomerSalesExport::calculateTotals($sales);
 
                         if ($format === 'pdf') {
-                            $sales = (clone $exportQuery)
-                                ->orderByDesc('sale_date')
-                                ->get();
+                            $rows = CustomerSalesExport::buildStatementRows($sales, $selectedColumns);
 
                             $pdfContent = Pdf::loadView('exports.customer-sales-pdf', [
                                 'customer' => $record,
-                                'sales' => $sales,
+                                'headings' => CustomerSalesExport::headingsFor($selectedColumns),
+                                'rows' => $rows,
                                 'totals' => $totals,
+                                'merchantLogoDataUri' => $merchantLogoDataUri,
+                                'dateFrom' => $data['date_from'] ?? null,
+                                'dateTo' => $data['date_to'] ?? null,
                             ])
                                 ->setPaper('a4', 'landscape')
                                 ->output();
@@ -232,7 +254,7 @@ class CustomersTable
                         }
 
                         return Excel::download(
-                            new CustomerSalesExport($exportQuery, $totals),
+                            new CustomerSalesExport($sales, $totals, $selectedColumns),
                             "customer-sales-{$safeName}-{$timestamp}.xlsx"
                         );
                     }),
