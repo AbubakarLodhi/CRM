@@ -251,7 +251,7 @@ class VendorsTable
                                 'dateFrom' => $data['date_from'] ?? null,
                                 'dateTo' => $data['date_to'] ?? null,
                             ])
-                                ->setPaper('a4', 'landscape')
+                                ->setPaper('a4', 'portrait')
                                 ->output();
 
                             return response()->streamDownload(

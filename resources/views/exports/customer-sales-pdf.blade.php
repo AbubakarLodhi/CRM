@@ -4,101 +4,111 @@
     <meta charset="UTF-8">
     <title>Customer Statement Export</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #111827; }
+        @page { margin: 18px 20px; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 9.5px; color: #1f2937; margin: 0; }
+        .sheet { width: 78%; margin: 0 auto; }
         h2 { margin: 0 0 4px 0; font-size: 18px; }
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
         .header-table td { border: none; padding: 0; vertical-align: top; }
         .logo-cell { text-align: right; }
         .logo { max-width: 120px; max-height: 60px; }
-        .meta { margin: 0 0 10px 0; font-size: 10px; color: #4b5563; }
+        .meta { margin: 0 0 10px 0; font-size: 9.5px; color: #374151; }
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-        th, td { border: 1px solid #d1d5db; padding: 5px; vertical-align: top; }
-        th { background: #f3f4f6; text-align: left; font-size: 9px; }
+        .statement-table { table-layout: fixed; }
+        .statement-table th:nth-child(1),
+        .statement-table td:nth-child(1) { width: 12%; }
+        .statement-table th:nth-child(2),
+        .statement-table td:nth-child(2) { width: 34%; }
+        .statement-table td:nth-child(2) { word-break: break-word; line-height: 1.25; }
+        th, td { border: 1px solid #4b5563; padding: 5px; vertical-align: top; color: #1f2937; }
+        th { background: #f3f4f6; text-align: left; font-size: 8.5px; color: #111827; }
         td.num { text-align: right; white-space: nowrap; }
-        .summary { margin-top: 12px; width: 36%; margin-left: auto; }
-        .summary td { border: 1px solid #d1d5db; padding: 6px; }
+        .summary { margin-top: 12px; width: 42%; margin-left: auto; }
+        .summary td { border: 1px solid #4b5563; padding: 6px; color: #1f2937; }
         .summary td:last-child { text-align: right; }
         .bold { font-weight: 700; }
     </style>
 </head>
 <body>
-<table class="header-table">
-    <tr>
-        <td><h2>Statement</h2></td>
-        <td class="logo-cell">
-            @if(!empty($merchantLogoDataUri))
-                <img class="logo" src="{{ $merchantLogoDataUri }}" alt="Merchant Logo">
-            @endif
-        </td>
-    </tr>
-</table>
-<p class="meta">
-    Customer: {{ $customer->name ?? 'N/A' }} |
-    @if(!empty($dateFrom))
-        From: {{ \Illuminate\Support\Carbon::parse($dateFrom)->format('d/m/Y') }} |
-    @endif
-    @if(!empty($dateTo))
-        To: {{ \Illuminate\Support\Carbon::parse($dateTo)->format('d/m/Y') }} |
-    @endif
-    Exported: {{ now()->format('d/m/Y H:i') }}
-</p>
-
-<table>
-    <thead>
-    <tr>
-        @foreach($headings as $heading)
-            <th>{{ $heading }}</th>
-        @endforeach
-    </tr>
-    </thead>
-    <tbody>
-    @forelse($rows as $row)
+<div class="sheet">
+    <table class="header-table">
         <tr>
-            @foreach($row as $index => $value)
-                @php
-                    $heading = strtolower((string) ($headings[$index] ?? ''));
-                    $isNumeric = in_array($heading, ['debit', 'credit', 'balance'], true)
-                        || str_contains($heading, 'amount')
-                        || in_array($heading, ['subtotal', 'discount', 'tax'], true);
-                @endphp
-                <td class="{{ $isNumeric ? 'num' : '' }}">
+            <td><h2>Statement</h2></td>
+            <td class="logo-cell">
+                @if(!empty($merchantLogoDataUri))
+                    <img class="logo" src="{{ $merchantLogoDataUri }}" alt="Merchant Logo">
+                @endif
+            </td>
+        </tr>
+    </table>
+    <p class="meta">
+        Customer: {{ $customer->name ?? 'N/A' }} |
+        @if(!empty($dateFrom))
+            From: {{ \Illuminate\Support\Carbon::parse($dateFrom)->format('d/m/Y') }} |
+        @endif
+        @if(!empty($dateTo))
+            To: {{ \Illuminate\Support\Carbon::parse($dateTo)->format('d/m/Y') }} |
+        @endif
+        Exported: {{ now()->format('d/m/Y H:i') }}
+    </p>
+
+    <table class="statement-table">
+        <thead>
+        <tr>
+            @foreach($headings as $heading)
+                <th>{{ $heading }}</th>
+            @endforeach
+        </tr>
+        </thead>
+        <tbody>
+        @forelse($rows as $row)
+            <tr>
+                @foreach($row as $index => $value)
                     @php
-                        $displayValue = $value;
+                        $heading = strtolower((string) ($headings[$index] ?? ''));
+                        $isNumeric = in_array($heading, ['debit', 'credit', 'balance'], true)
+                            || str_contains($heading, 'amount')
+                            || in_array($heading, ['subtotal', 'discount', 'tax'], true);
+                    @endphp
+                    <td class="{{ $isNumeric ? 'num' : '' }}">
+                        @php
+                            $displayValue = $value;
                         if ($isNumeric) {
                             if (is_numeric($value)) {
                                 $num = (float) $value;
                                 $displayValue = abs($num) < 0.01 ? '' : number_format($num, 2);
                             }
                         }
-                    @endphp
-                    {{ $displayValue }}
-                </td>
-            @endforeach
-        </tr>
-    @empty
-        <tr>
-            <td colspan="{{ max(count($headings), 1) }}">No records found.</td>
-        </tr>
-    @endforelse
-    </tbody>
-</table>
+                        @endphp
+                        {{ $displayValue }}
+                    </td>
+                @endforeach
+            </tr>
+        @empty
+            <tr>
+                <td colspan="{{ max(count($headings), 1) }}">No records found.</td>
+            </tr>
+        @endforelse
+        </tbody>
+    </table>
 
-@php
-    $closingBalance = (float) ($totals['closing_balance'] ?? 0);
-@endphp
-<table class="summary">
-    <tr>
-        <td class="bold">Total debits</td>
-        <td>{{ number_format((float) ($totals['total_debits'] ?? 0), 2) }}</td>
-    </tr>
-    <tr>
-        <td class="bold">Total credits</td>
-        <td>{{ number_format((float) ($totals['total_credits'] ?? 0), 2) }}</td>
-    </tr>
-    <tr>
-        <td class="bold">Closing balance</td>
-        <td>{{ number_format($closingBalance, 2) }}</td>
-    </tr>
-</table>
+    @php
+        $closingBalance = (float) ($totals['closing_balance'] ?? 0);
+    @endphp
+    <table class="summary">
+        <tr>
+            <td class="bold">Total debits</td>
+            <td>{{ number_format((float) ($totals['total_debits'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Total credits</td>
+            <td>{{ number_format((float) ($totals['total_credits'] ?? 0), 2) }}</td>
+        </tr>
+        <tr>
+            <td class="bold">Closing balance</td>
+            <td>{{ number_format($closingBalance, 2) }}</td>
+        </tr>
+    </table>
+</div>
 </body>
 </html>
