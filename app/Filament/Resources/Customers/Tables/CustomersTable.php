@@ -13,6 +13,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 
 use Filament\Forms\Components\Select;
@@ -49,8 +50,7 @@ class CustomersTable
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Customer $record) {
-                        return (float) Sale::where('customer_id', $record->id)
-                            ->sum('total_amount');
+                        return self::customerLedgerTotals($record)['total_amount'];
                     })
                     ->sortable(),
 
@@ -59,8 +59,7 @@ class CustomersTable
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Customer $record) {
-                        return (float) Sale::where('customer_id', $record->id)
-                            ->sum('paid_amount');
+                        return self::customerLedgerTotals($record)['amount_paid'];
                     }),
 
                 TextColumn::make('amount_pending')
@@ -68,8 +67,7 @@ class CustomersTable
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Customer $record) {
-                        return (float) Sale::where('customer_id', $record->id)
-                            ->sum('due_amount');
+                        return self::customerLedgerTotals($record)['amount_pending'];
                     }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
@@ -285,14 +283,97 @@ class CustomersTable
                     ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
+                    ->before(function (DeleteAction $action, ?Customer $record) {
+                        if (! $record) {
+                            return;
+                        }
+
+                        $hasOutstandingCredit = Sale::query()
+                            ->withoutTrashed()
+                            ->where('customer_id', $record->id)
+                            ->where('due_amount', '>', 0)
+                            ->exists();
+
+                        if ($hasOutstandingCredit) {
+                            Notification::make()
+                                ->title('Cannot delete customer')
+                                ->body('This customer has outstanding credit sales. Clear pending dues first.')
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('customers.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
+                        ->before(function (DeleteBulkAction $action, $records) {
+                            $customerIds = collect($records)->pluck('id')->filter()->values();
+
+                            if ($customerIds->isEmpty()) {
+                                return;
+                            }
+
+                            $hasOutstandingCredit = Sale::query()
+                                ->withoutTrashed()
+                                ->whereIn('customer_id', $customerIds)
+                                ->where('due_amount', '>', 0)
+                                ->exists();
+
+                            if ($hasOutstandingCredit) {
+                                Notification::make()
+                                    ->title('Cannot delete customers')
+                                    ->body('One or more selected customers have outstanding credit sales.')
+                                    ->danger()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        })
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('customers.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    protected static function customerLedgerTotals(Customer $record): array
+    {
+        static $cache = [];
+
+        $cacheKey = (string) $record->id;
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $salesQuery = Sale::query()
+            ->withoutTrashed()
+            ->where('customer_id', $record->id)
+            ->where('merchant_id', $record->merchant_id);
+
+        $salesDebits = round((float) (clone $salesQuery)->sum('total_amount'), 2);
+        $salesCredits = round((float) (clone $salesQuery)->sum('paid_amount'), 2);
+
+        $cashFlowQuery = CashFlow::query()
+            ->withoutTrashed()
+            ->where('merchant_id', $record->merchant_id)
+            ->where('party_type', Customer::class)
+            ->where('party_id', $record->id);
+
+        // Customer statement rules:
+        // - flow direction "in" reduces receivable (credit)
+        // - flow direction "out" increases receivable (debit)
+        $cashFlowDebits = round((float) (clone $cashFlowQuery)->where('direction', 'out')->sum('amount'), 2);
+        $cashFlowCredits = round((float) (clone $cashFlowQuery)->where('direction', 'in')->sum('amount'), 2);
+
+        $totalDebits = round($salesDebits + $cashFlowDebits, 2);
+        $totalCredits = round($salesCredits + $cashFlowCredits, 2);
+
+        return $cache[$cacheKey] = [
+            'total_amount' => $totalDebits,
+            'amount_paid' => $totalCredits,
+            'amount_pending' => round($totalDebits - $totalCredits, 2),
+        ];
     }
 }

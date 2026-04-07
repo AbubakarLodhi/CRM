@@ -13,6 +13,7 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
@@ -47,8 +48,7 @@ class VendorsTable
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Vendor $record) {
-                        return Purchase::where('vendor_id', $record->id)
-                            ->sum('total_amount');
+                        return self::vendorLedgerTotals($record)['total_amount'];
                     })
                     ->sortable(),
 
@@ -57,8 +57,7 @@ class VendorsTable
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Vendor $record) {
-                        return (float) Purchase::where('vendor_id', $record->id)
-                            ->sum('paid_amount');
+                        return self::vendorLedgerTotals($record)['amount_paid'];
                     }),
 
                 TextColumn::make('amount_pending')
@@ -66,8 +65,7 @@ class VendorsTable
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Vendor $record) {
-                        return (float) Purchase::where('vendor_id', $record->id)
-                            ->sum('due_amount');
+                        return self::vendorLedgerTotals($record)['amount_pending'];
                     }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
@@ -277,14 +275,97 @@ class VendorsTable
                     ->color('danger')
                     ->label('')
                     ->tooltip('Delete')
+                    ->before(function (DeleteAction $action, ?Vendor $record) {
+                        if (! $record) {
+                            return;
+                        }
+
+                        $hasOutstandingCredit = Purchase::query()
+                            ->withoutTrashed()
+                            ->where('vendor_id', $record->id)
+                            ->where('due_amount', '>', 0)
+                            ->exists();
+
+                        if ($hasOutstandingCredit) {
+                            Notification::make()
+                                ->title('Cannot delete vendor')
+                                ->body('This vendor has outstanding credit purchases. Clear pending dues first.')
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }
+                    })
                     ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('vendors.delete', Filament::getCurrentPanel()->getAuthGuard())),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
+                        ->before(function (DeleteBulkAction $action, $records) {
+                            $vendorIds = collect($records)->pluck('id')->filter()->values();
+
+                            if ($vendorIds->isEmpty()) {
+                                return;
+                            }
+
+                            $hasOutstandingCredit = Purchase::query()
+                                ->withoutTrashed()
+                                ->whereIn('vendor_id', $vendorIds)
+                                ->where('due_amount', '>', 0)
+                                ->exists();
+
+                            if ($hasOutstandingCredit) {
+                                Notification::make()
+                                    ->title('Cannot delete vendors')
+                                    ->body('One or more selected vendors have outstanding credit purchases.')
+                                    ->danger()
+                                    ->send();
+
+                                $action->halt();
+                            }
+                        })
                         ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('vendors.delete', Filament::getCurrentPanel()->getAuthGuard())),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');
+    }
+
+    protected static function vendorLedgerTotals(Vendor $record): array
+    {
+        static $cache = [];
+
+        $cacheKey = (string) $record->id;
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $purchaseQuery = Purchase::query()
+            ->withoutTrashed()
+            ->where('vendor_id', $record->id)
+            ->where('merchant_id', $record->merchant_id);
+
+        $purchaseDebits = round((float) (clone $purchaseQuery)->sum('total_amount'), 2);
+        $purchaseCredits = round((float) (clone $purchaseQuery)->sum('paid_amount'), 2);
+
+        $cashFlowQuery = CashFlow::query()
+            ->withoutTrashed()
+            ->where('merchant_id', $record->merchant_id)
+            ->where('party_type', Vendor::class)
+            ->where('party_id', $record->id);
+
+        // Vendor statement rules:
+        // - flow direction "out" reduces payable (credit)
+        // - flow direction "in" increases payable (debit)
+        $cashFlowDebits = round((float) (clone $cashFlowQuery)->where('direction', 'in')->sum('amount'), 2);
+        $cashFlowCredits = round((float) (clone $cashFlowQuery)->where('direction', 'out')->sum('amount'), 2);
+
+        $totalDebits = round($purchaseDebits + $cashFlowDebits, 2);
+        $totalCredits = round($purchaseCredits + $cashFlowCredits, 2);
+
+        return $cache[$cacheKey] = [
+            'total_amount' => $totalDebits,
+            'amount_paid' => $totalCredits,
+            'amount_pending' => round($totalDebits - $totalCredits, 2),
+        ];
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -21,6 +22,7 @@ class CashFlow extends Model
         'merchant_id',
         'party_type',
         'party_id',
+        'settlement_for_id',
         'flow_type',
         'direction',
         'amount',
@@ -50,5 +52,32 @@ class CashFlow extends Model
     {
         return $this->morphTo();
     }
-}
 
+    public function settlementFor(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'settlement_for_id');
+    }
+
+    public function settlements(): HasMany
+    {
+        return $this->hasMany(self::class, 'settlement_for_id');
+    }
+
+    public function expectedPrimaryDirection(): string
+    {
+        if ($this->party_type === Customer::class) {
+            return $this->flow_type === 'loan' ? 'out' : 'in';
+        }
+
+        if ($this->party_type === Vendor::class) {
+            return $this->flow_type === 'loan' ? 'in' : 'out';
+        }
+
+        return 'in';
+    }
+
+    public function isPrimaryTransaction(): bool
+    {
+        return $this->settlement_for_id === null && $this->direction === $this->expectedPrimaryDirection();
+    }
+}

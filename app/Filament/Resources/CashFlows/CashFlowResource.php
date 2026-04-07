@@ -59,7 +59,9 @@ class CashFlowResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where('merchant_id', $merchantId);
+        return $query
+            ->where('merchant_id', $merchantId)
+            ->whereNull('settlement_for_id');
     }
 
     public static function form(Schema $schema): Schema
@@ -86,4 +88,3 @@ class CashFlowResource extends Resource
         ];
     }
 }
-
