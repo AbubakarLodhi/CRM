@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Customer Statement Export</title>
+    @php
+        $columnCount = count($headings ?? []);
+        $isCompact = $columnCount > 10;
+        $isUltraCompact = $columnCount > 14;
+    @endphp
     <style>
         @page { margin: 18px 20px; }
         body { font-family: DejaVu Sans, sans-serif; font-size: 9.5px; color: #1f2937; margin: 0; }
-        .sheet { width: 78%; margin: 0 auto; }
+        .sheet { width: 100%; margin: 0 auto; }
         h2 { margin: 0 0 4px 0; font-size: 18px; }
         .header-table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
         .header-table td { border: none; padding: 0; vertical-align: top; }
@@ -16,10 +21,11 @@
         table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .statement-table { table-layout: fixed; }
         .statement-table th:nth-child(1),
-        .statement-table td:nth-child(1) { width: 12%; }
+        .statement-table td:nth-child(1) { width: 10%; }
         .statement-table th:nth-child(2),
-        .statement-table td:nth-child(2) { width: 34%; }
-        .statement-table td:nth-child(2) { word-break: break-word; line-height: 1.25; }
+        .statement-table td:nth-child(2) { width: 30%; }
+        .statement-table th,
+        .statement-table td { word-break: break-word; overflow-wrap: anywhere; line-height: 1.25; }
         th, td { border: 1px solid #4b5563; padding: 5px; vertical-align: top; color: #1f2937; }
         th { background: #f3f4f6; text-align: left; font-size: 8.5px; color: #111827; }
         td.num { text-align: right; white-space: nowrap; }
@@ -27,9 +33,26 @@
         .summary td { border: 1px solid #4b5563; padding: 6px; color: #1f2937; }
         .summary td:last-child { text-align: right; }
         .bold { font-weight: 700; }
+
+        body.compact .statement-table th:nth-child(1),
+        body.compact .statement-table td:nth-child(1) { width: 8%; }
+        body.compact .statement-table th:nth-child(2),
+        body.compact .statement-table td:nth-child(2) { width: 20%; }
+        body.compact th,
+        body.compact td { padding: 3px; }
+        body.compact th { font-size: 7.4px; }
+        body.compact td { font-size: 7.2px; }
+        body.compact td.num { white-space: normal; }
+        body.compact .summary { width: 48%; }
+
+        body.ultra-compact th,
+        body.ultra-compact td { padding: 2px; }
+        body.ultra-compact th { font-size: 6.8px; }
+        body.ultra-compact td { font-size: 6.6px; }
+        body.ultra-compact .summary { width: 52%; }
     </style>
 </head>
-<body>
+<body class="{{ $isUltraCompact ? 'ultra-compact' : ($isCompact ? 'compact' : '') }}">
 <div class="sheet">
     <table class="header-table">
         <tr>

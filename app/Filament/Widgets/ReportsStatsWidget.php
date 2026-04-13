@@ -60,6 +60,10 @@ class ReportsStatsWidget extends Widget
         return [
             'business_id' => $this->pageFilters['business_id'] ?? null,
             'branch_id' => $this->pageFilters['branch_id'] ?? null,
+            'product_variant_ids' => collect($this->pageFilters['product_variant_ids'] ?? [])
+                ->filter(fn ($id) => filled($id))
+                ->values()
+                ->all(),
             'date_from' => $this->pageFilters['date_from'] ?? null,
             'date_to' => $this->pageFilters['date_to'] ?? null,
         ];
@@ -90,6 +94,12 @@ class ReportsStatsWidget extends Widget
                 $filters['branch_id'],
                 fn (EloquentBuilder $query, $branchId) => $query->whereHas('items', fn ($q) =>
                     $q->where('sale_items.branch_id', $branchId)
+                ),
+            )
+            ->when(
+                ! empty($filters['product_variant_ids']),
+                fn (EloquentBuilder $query) => $query->whereHas('items.variants', fn ($q) =>
+                    $q->whereIn('sale_item_variants.product_variant_id', $filters['product_variant_ids'])
                 ),
             )
             ->when(
@@ -136,6 +146,12 @@ class ReportsStatsWidget extends Widget
                 $filters['branch_id'],
                 fn (EloquentBuilder $query, $branchId) => $query->whereHas('items', fn ($q) =>
                     $q->where('purchase_items.branch_id', $branchId)
+                ),
+            )
+            ->when(
+                ! empty($filters['product_variant_ids']),
+                fn (EloquentBuilder $query) => $query->whereHas('items.variants', fn ($q) =>
+                    $q->whereIn('purchase_item_variants.product_variant_id', $filters['product_variant_ids'])
                 ),
             )
             ->when(
@@ -403,6 +419,8 @@ class ReportsStatsWidget extends Widget
     protected function getStockStats(): array
     {
         [$user, $merchantId] = $this->authContext();
+        $filters = $this->filters();
+        $selectedVariantIds = collect($filters['product_variant_ids'] ?? []);
 
         $variantIds = collect();
 
@@ -446,6 +464,10 @@ class ReportsStatsWidget extends Widget
                     ->where('is_active', true)
                     ->pluck('id');
             }
+        }
+
+        if ($selectedVariantIds->isNotEmpty()) {
+            $variantIds = $variantIds->intersect($selectedVariantIds)->values();
         }
 
         if ($variantIds->isEmpty()) {

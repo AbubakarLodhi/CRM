@@ -4,7 +4,6 @@ namespace App\Filament\Pages;
 
 use App\Filament\Exports\StockReportExport;
 use App\Models\Branch;
-use App\Models\Product;
 use App\Models\ProductVariant;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -39,15 +38,33 @@ class StockReport extends Page implements HasTable
      |  EXPRESSIONS — USED ONLY FOR TABLE ROWS
      ============================================================ */
 
-    protected function getBranchFilterValue(): ?string
+    protected function getBranchFilterValues(): array
     {
-        $state = $this->getTableFilterState('branch_id');
+        $state = $this->getTableFilterState('branch_ids');
 
-        $branchId = is_array($state)
-            ? ($state['value'] ?? null)
-            : $state;
+        $branchIds = is_array($state)
+            ? ($state['values'] ?? [])
+            : [];
 
-        return filled($branchId) ? (string) $branchId : null;
+        return collect($branchIds)
+            ->filter(fn ($id) => filled($id))
+            ->map(fn ($id) => (string) $id)
+            ->values()
+            ->all();
+    }
+
+    protected function buildBranchInScope(string $column, array $branchIds): string
+    {
+        if (empty($branchIds)) {
+            return '';
+        }
+
+        $quotedIds = array_map(
+            fn ($id) => "'" . addslashes((string) $id) . "'",
+            $branchIds
+        );
+
+        return " AND {$column} IN (" . implode(', ', $quotedIds) . ')';
     }
 
     protected function getDateRangeFilterValues(): array
@@ -62,7 +79,7 @@ class StockReport extends Page implements HasTable
 
     protected function purchasedExpression(?string $userId = null): string
     {
-        $branchId = $this->getBranchFilterValue();
+        $branchIds = $this->getBranchFilterValues();
         ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
 
         $userScope = '';
@@ -77,9 +94,7 @@ class StockReport extends Page implements HasTable
             ";
         }
 
-        $branchScope = $branchId
-            ? " AND pi.branch_id = '" . addslashes($branchId) . "'"
-            : '';
+        $branchScope = $this->buildBranchInScope('pi.branch_id', $branchIds);
 
         $fromScope = $fromDate
             ? " AND p.purchase_date >= '" . addslashes((string) $fromDate) . "'"
@@ -109,7 +124,7 @@ class StockReport extends Page implements HasTable
 
     protected function soldExpression(?string $userId = null): string
     {
-        $branchId = $this->getBranchFilterValue();
+        $branchIds = $this->getBranchFilterValues();
         ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
 
         $userScope = '';
@@ -124,9 +139,7 @@ class StockReport extends Page implements HasTable
             ";
         }
 
-        $branchScope = $branchId
-            ? " AND si.branch_id = '" . addslashes($branchId) . "'"
-            : '';
+        $branchScope = $this->buildBranchInScope('si.branch_id', $branchIds);
 
         $fromScope = $fromDate
             ? " AND s.sale_date >= '" . addslashes((string) $fromDate) . "'"
@@ -159,9 +172,83 @@ class StockReport extends Page implements HasTable
         return '(' . $this->purchasedExpression($userId) . ' - ' . $this->soldExpression($userId) . ')';
     }
 
+    protected function stockValueExpression(?string $userId = null): string
+    {
+        $branchIds = $this->getBranchFilterValues();
+        ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
+
+        $userScope = '';
+        if ($userId) {
+            $safeUserId = addslashes($userId);
+            $userScope = "
+                AND pi.branch_id IN (
+                    SELECT branch_id
+                    FROM branch_users
+                    WHERE user_id = '{$safeUserId}'
+                )
+            ";
+        }
+
+        $branchScope = $this->buildBranchInScope('pi.branch_id', $branchIds);
+
+        $fromScope = $fromDate
+            ? " AND p.purchase_date >= '" . addslashes((string) $fromDate) . "'"
+            : '';
+
+        $toScope = $toDate
+            ? " AND p.purchase_date <= '" . addslashes((string) $toDate) . "'"
+            : '';
+
+        $soldExpr = $this->soldExpression($userId);
+
+        return "
+            COALESCE(
+                (
+                    WITH purchase_lots AS (
+                        SELECT
+                            piv.id,
+                            COALESCE(piv.quantity, 0)::numeric AS lot_qty,
+                            COALESCE(piv.unit_price, 0)::numeric AS lot_unit_price,
+                            SUM(COALESCE(piv.quantity, 0)) OVER (
+                                ORDER BY piv.created_at ASC, p.purchase_date ASC, piv.id ASC
+                            )::numeric AS running_qty
+                        FROM purchase_item_variants piv
+                        JOIN purchase_items pi ON pi.id = piv.purchase_item_id
+                        JOIN purchases p ON p.id = pi.purchase_id
+                        WHERE piv.product_variant_id = product_variants.id
+                          AND p.deleted_at IS NULL
+                          {$userScope}
+                          {$branchScope}
+                          {$fromScope}
+                          {$toScope}
+                    )
+                    SELECT
+                        GREATEST(
+                            COALESCE(SUM(purchase_lots.lot_qty * purchase_lots.lot_unit_price), 0)
+                            - COALESCE(
+                                SUM(
+                                    GREATEST(
+                                        LEAST(
+                                            purchase_lots.lot_qty,
+                                            GREATEST(({$soldExpr})::numeric, 0) - (purchase_lots.running_qty - purchase_lots.lot_qty)
+                                        ),
+                                        0
+                                    ) * purchase_lots.lot_unit_price
+                                ),
+                                0
+                            ),
+                            0
+                        )
+                    FROM purchase_lots
+                ),
+                0
+            )
+        ";
+    }
+
     protected function lastUpdatedExpression(?string $userId = null): string
     {
-        $branchId = $this->getBranchFilterValue();
+        $branchIds = $this->getBranchFilterValues();
         ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
 
         $purchaseUserScope = '';
@@ -184,13 +271,8 @@ class StockReport extends Page implements HasTable
             ";
         }
 
-        $purchaseBranchScope = $branchId
-            ? " AND pi.branch_id = '" . addslashes($branchId) . "'"
-            : '';
-
-        $saleBranchScope = $branchId
-            ? " AND si.branch_id = '" . addslashes($branchId) . "'"
-            : '';
+        $purchaseBranchScope = $this->buildBranchInScope('pi.branch_id', $branchIds);
+        $saleBranchScope = $this->buildBranchInScope('si.branch_id', $branchIds);
 
         $purchaseFromScope = $fromDate
             ? " AND p.purchase_date >= '" . addslashes((string) $fromDate) . "'"
@@ -296,6 +378,11 @@ class StockReport extends Page implements HasTable
                             ? $this->lastUpdatedExpression($user->id) . ' as last_updated'
                             : $this->lastUpdatedExpression() . ' as last_updated'
                     )
+                    ->selectRaw(
+                        $user instanceof \App\Models\User
+                            ? $this->stockValueExpression($user->id) . ' as total_amount'
+                            : $this->stockValueExpression() . ' as total_amount'
+                    )
             )
             ->columns([
                 TextColumn::make('product.name')
@@ -332,6 +419,11 @@ class StockReport extends Page implements HasTable
                     )
                     ->sortable(),
 
+                TextColumn::make('total_amount')
+                    ->label('Total Amount')
+                    ->money('PKR')
+                    ->sortable(),
+
                 TextColumn::make('purchase_price')->label('Cost')->money('PKR')->toggleable(),
                 TextColumn::make('selling_price')->label('Sale')->money('PKR')->toggleable(),
 
@@ -341,39 +433,11 @@ class StockReport extends Page implements HasTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('product_id')
-                    ->label('Product')
-                    ->options(function () use ($user, $merchantId) {
-                        if (! $merchantId) {
-                            return [];
-                        }
-
-                        $query = Product::query()
-                            ->withoutTrashed()
-                            ->where('merchant_id', $merchantId);
-
-                        if ($user instanceof \App\Models\User) {
-                            $query->whereHas('branches.users', fn ($q) =>
-                                $q->where('users.id', $user->id)
-                            );
-                        }
-
-                        return $query
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray();
-                    })
-                    ->query(fn (Builder $query, array $data) =>
-                        filled($data['value'])
-                            ? $query->where('product_variants.product_id', $data['value'])
-                            : null
-                    )
-                    ->searchable()
-                    ->preload(),
-
-                SelectFilter::make('branch_id')
+                SelectFilter::make('branch_ids')
                     ->label('Branch')
+                    ->multiple()
                     ->searchable()
+                    ->preload()
                     ->options(function () use ($user, $merchantId) {
                         if (! $merchantId) {
                             return [];
@@ -395,13 +459,76 @@ class StockReport extends Page implements HasTable
                             ->toArray();
                     })
                     ->query(function (Builder $query, array $data) {
-                        if (empty($data['value'])) {
+                        if (empty($data['values'])) {
                             return;
                         }
 
                         $query->whereHas('product.branches', fn (Builder $q) =>
-                            $q->where('branches.id', $data['value'])
+                            $q->whereIn('branches.id', $data['values'])
+                                ->whereNull('branches.deleted_at')
                         );
+                    }),
+
+                SelectFilter::make('product_variant_ids')
+                    ->label('Product Variant')
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->options(function () use ($user, $merchantId) {
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = ProductVariant::query()
+                            ->withoutTrashed()
+                            ->where('product_variants.merchant_id', $merchantId)
+                            ->where('product_variants.is_active', true)
+                            ->join('products', 'products.id', '=', 'product_variants.product_id')
+                            ->whereNull('products.deleted_at')
+                            ->select([
+                                'product_variants.id',
+                                'product_variants.name',
+                                'product_variants.sku',
+                                'products.name as product_name',
+                            ]);
+
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('product.branches.users', fn ($u) =>
+                                $u->where('users.id', $user->id)
+                            );
+
+                            $query->whereHas('product.branches', fn ($b) =>
+                                $b->whereNull('branches.deleted_at')
+                            );
+                        }
+
+                        $selectedBranchIds = $this->getBranchFilterValues();
+                        if (! empty($selectedBranchIds)) {
+                            $query->whereHas('product.branches', fn ($b) =>
+                                $b->whereIn('branches.id', $selectedBranchIds)
+                                    ->whereNull('branches.deleted_at')
+                            );
+                        }
+
+                        return $query
+                            ->orderBy('products.name')
+                            ->orderBy('product_variants.name')
+                            ->get()
+                            ->mapWithKeys(fn (ProductVariant $variant) => [
+                                $variant->id => trim(
+                                    ($variant->product_name ? $variant->product_name . ' - ' : '')
+                                    . ($variant->name ?: ($variant->sku ?: (string) $variant->id))
+                                    . ($variant->sku ? ' (' . $variant->sku . ')' : '')
+                                ),
+                            ])
+                            ->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+
+                        $query->whereIn('product_variants.id', $data['values']);
                     }),
 
                 Filter::make('movement_date_range')
@@ -468,7 +595,7 @@ class StockReport extends Page implements HasTable
     public function getTopStats(): array
     {
         $user = Filament::auth()->user();
-        $branchId = $this->getBranchFilterValue();
+        $branchIds = $this->getBranchFilterValues();
         ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
         $staffBranchIds = $user instanceof \App\Models\User
             ? $user->branches()->pluck('branches.id')
@@ -483,7 +610,7 @@ class StockReport extends Page implements HasTable
                 ->join('sales as s', 's.id', '=', 'si.sale_id')
                 ->whereIn('si.branch_id', $staffBranchIds)
                 ->whereNull('s.deleted_at')
-                ->when($branchId, fn ($q) => $q->where('si.branch_id', $branchId))
+                ->when(! empty($branchIds), fn ($q) => $q->whereIn('si.branch_id', $branchIds))
                 ->when($fromDate, fn ($q) => $q->whereDate('s.sale_date', '>=', $fromDate))
                 ->when($toDate, fn ($q) => $q->whereDate('s.sale_date', '<=', $toDate))
                 ->pluck('sv.product_variant_id');
@@ -493,7 +620,7 @@ class StockReport extends Page implements HasTable
                 ->join('purchases as p', 'p.id', '=', 'pi.purchase_id')
                 ->whereIn('pi.branch_id', $staffBranchIds)
                 ->whereNull('p.deleted_at')
-                ->when($branchId, fn ($q) => $q->where('pi.branch_id', $branchId))
+                ->when(! empty($branchIds), fn ($q) => $q->whereIn('pi.branch_id', $branchIds))
                 ->when($fromDate, fn ($q) => $q->whereDate('p.purchase_date', '>=', $fromDate))
                 ->when($toDate, fn ($q) => $q->whereDate('p.purchase_date', '<=', $toDate))
                 ->pluck('pv.product_variant_id');
@@ -521,7 +648,7 @@ class StockReport extends Page implements HasTable
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereIn('pi.branch_id', $staffBranchIds)
             )
-            ->when($branchId, fn ($q) => $q->where('pi.branch_id', $branchId))
+            ->when(! empty($branchIds), fn ($q) => $q->whereIn('pi.branch_id', $branchIds))
             ->when($fromDate, fn ($q) => $q->whereDate('p.purchase_date', '>=', $fromDate))
             ->when($toDate, fn ($q) => $q->whereDate('p.purchase_date', '<=', $toDate))
             ->sum('piv.quantity');
@@ -538,7 +665,7 @@ class StockReport extends Page implements HasTable
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereIn('si.branch_id', $staffBranchIds)
             )
-            ->when($branchId, fn ($q) => $q->where('si.branch_id', $branchId))
+            ->when(! empty($branchIds), fn ($q) => $q->whereIn('si.branch_id', $branchIds))
             ->when($fromDate, fn ($q) => $q->whereDate('s.sale_date', '>=', $fromDate))
             ->when($toDate, fn ($q) => $q->whereDate('s.sale_date', '<=', $toDate))
             ->sum('siv.quantity');
@@ -546,6 +673,14 @@ class StockReport extends Page implements HasTable
         $netSoldQty = $totalSoldQty;
 
         $availableStock = $netPurchasedQty - $netSoldQty;
+
+        /* TOTAL AMOUNT (sum of table total_amount column) */
+        $totalAmountRow = DB::query()
+            ->fromSub($this->getFilteredTableQueryWithoutPagination(), 'stock')
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
+            ->first();
+
+        $totalAmount = (float) ($totalAmountRow->total_amount ?? 0);
 
         /* REVENUE */
         $totalRevenue = DB::table('sale_item_variants as siv')
@@ -556,7 +691,7 @@ class StockReport extends Page implements HasTable
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereIn('si.branch_id', $staffBranchIds)
             )
-            ->when($branchId, fn ($q) => $q->where('si.branch_id', $branchId))
+            ->when(! empty($branchIds), fn ($q) => $q->whereIn('si.branch_id', $branchIds))
             ->when($fromDate, fn ($q) => $q->whereDate('s.sale_date', '>=', $fromDate))
             ->when($toDate, fn ($q) => $q->whereDate('s.sale_date', '<=', $toDate))
             ->sum('siv.line_total');
@@ -573,7 +708,7 @@ class StockReport extends Page implements HasTable
             ->when($user instanceof \App\Models\User, fn ($q) =>
             $q->whereIn('pi.branch_id', $staffBranchIds)
             )
-            ->when($branchId, fn ($q) => $q->where('pi.branch_id', $branchId))
+            ->when(! empty($branchIds), fn ($q) => $q->whereIn('pi.branch_id', $branchIds))
             ->when($fromDate, fn ($q) => $q->whereDate('p.purchase_date', '>=', $fromDate))
             ->when($toDate, fn ($q) => $q->whereDate('p.purchase_date', '<=', $toDate))
             ->sum(DB::raw('piv.quantity * pv.purchase_price'));
@@ -585,6 +720,7 @@ class StockReport extends Page implements HasTable
             'total_purchased_qty' => (float) $netPurchasedQty,
             'total_sold_qty'      => (float) $netSoldQty,
             'available_stock'     => (float) $availableStock,
+            'total_amount'        => (float) $totalAmount,
             'total_revenue'       => (float) $netRevenue,
             'avg_selling_price'   => $netSoldQty > 0 ? round($netRevenue / $netSoldQty, 2) : 0,
             'avg_buying_price'    => $netPurchasedQty > 0 ? round($netBuyingCost / $netPurchasedQty, 2) : 0,

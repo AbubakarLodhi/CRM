@@ -249,17 +249,19 @@ class CustomersTable
 
                         if ($format === 'pdf') {
                             $rows = CustomerSalesExport::buildStatementRows($sales, $cashFlows, $selectedColumns);
+                            $headings = CustomerSalesExport::headingsFor($selectedColumns);
+                            $paperOrientation = count($headings) > 10 ? 'landscape' : 'portrait';
 
                             $pdfContent = Pdf::loadView('exports.customer-sales-pdf', [
                                 'customer' => $record,
-                                'headings' => CustomerSalesExport::headingsFor($selectedColumns),
+                                'headings' => $headings,
                                 'rows' => $rows,
                                 'totals' => $totals,
                                 'merchantLogoDataUri' => $merchantLogoDataUri,
                                 'dateFrom' => $data['date_from'] ?? null,
                                 'dateTo' => $data['date_to'] ?? null,
                             ])
-                                ->setPaper('a4', 'portrait')
+                                ->setPaper('a4', $paperOrientation)
                                 ->output();
 
                             return response()->streamDownload(

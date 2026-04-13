@@ -118,40 +118,14 @@
                     </div>
                 </x-filament::card>
 
-                {{-- Avg Selling Price --}}
+                {{-- Total Amount --}}
                 <x-filament::card>
                     <div class="flex items-center gap-2 text-sm text-gray-500">
-                        <x-heroicon-o-tag class="h-4 w-4 text-sky-500" />
-                        <span>Avg Selling Price</span>
+                        <x-heroicon-o-calculator class="h-4 w-4 text-primary-500" />
+                        <span>Total Amount</span>
                     </div>
-                    <div class="mt-1 text-2xl font-semibold text-sky-700 report-stat-value">
-                        PKR {{ number_format($stats['avg_selling_price'], 2) }}
-                    </div>
-                </x-filament::card>
-
-                {{-- Avg Buying Price --}}
-                <x-filament::card>
-                    <div class="flex items-center gap-2 text-sm text-gray-500">
-                        <x-heroicon-o-shopping-cart class="h-4 w-4 text-amber-500" />
-                        <span>Avg Buying Price</span>
-                    </div>
-                    <div class="mt-1 text-2xl font-semibold text-amber-700 report-stat-value">
-                        PKR {{ number_format($stats['avg_buying_price'], 2) }}
-                    </div>
-                </x-filament::card>
-
-                {{-- Avg Profit --}}
-                @php($profit = $stats['avg_selling_price'] - $stats['avg_buying_price'])
-
-                <x-filament::card>
-                    <div class="flex items-center gap-2 text-sm text-gray-500">
-                        <x-heroicon-o-chart-bar
-                            class="h-4 w-4 {{ $profit < 0 ? 'text-danger-500' : 'text-emerald-500' }}"
-                        />
-                        <span>Avg Profit / Item</span>
-                    </div>
-                    <div class="mt-1 text-2xl font-semibold {{ $profit < 0 ? 'text-danger-600' : 'text-emerald-600' }} report-stat-value">
-                        PKR {{ number_format($profit, 2) }}
+                    <div class="mt-1 text-2xl font-semibold text-primary-700 report-stat-value">
+                        PKR {{ number_format($stats['total_amount'] ?? 0, 2) }}
                     </div>
                 </x-filament::card>
 

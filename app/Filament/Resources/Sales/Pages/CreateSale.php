@@ -6,6 +6,7 @@ use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Sales\SaleResource;
 use App\Mail\SaleCreatedMailable;
+use App\Models\Sale;
 use App\Services\PaymentLedgerService;
 use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class CreateSale extends CreateRecord
 {
@@ -170,7 +172,16 @@ class CreateSale extends CreateRecord
 
     protected function afterCreate(): void
     {
-        $sale = $this->record;
+        $sale = $this->record->fresh(['customer']);
+        if (! $sale) {
+            return;
+        }
+
+        $this->queueSaleCreatedEmail($sale);
+    }
+
+    private function queueSaleCreatedEmail(Sale $sale): void
+    {
         $customerEmail = $sale->customer?->email;
 
         if (! $customerEmail) {
@@ -182,34 +193,44 @@ class CreateSale extends CreateRecord
             return;
         }
 
-        $mailable = new SaleCreatedMailable($sale);
+        try {
+            $mailable = new SaleCreatedMailable($sale);
 
-        if (! $mailable->hasTemplate()) {
-            Log::info('SaleCreated email skipped: no active template found.', [
+            if (! $mailable->hasTemplate()) {
+                Log::info('SaleCreated email skipped: no active template found.', [
+                    'sale_id' => $sale->id,
+                    'merchant_id' => $sale->merchant_id,
+                    'customer_id' => $sale->customer_id,
+                ]);
+                return;
+            }
+
+            Log::info('SaleCreated email sending.', [
                 'sale_id' => $sale->id,
                 'merchant_id' => $sale->merchant_id,
                 'customer_id' => $sale->customer_id,
+                'to' => $customerEmail,
+                'template_id' => $mailable->template?->id,
             ]);
-            return;
+
+            Mail::to($customerEmail)->queue($mailable);
+
+            Log::info('SaleCreated email queued.', [
+                'sale_id' => $sale->id,
+                'merchant_id' => $sale->merchant_id,
+                'customer_id' => $sale->customer_id,
+                'to' => $customerEmail,
+                'template_id' => $mailable->template?->id,
+            ]);
+        } catch (Throwable $exception) {
+            Log::error('SaleCreated email queueing failed.', [
+                'sale_id' => $sale->id,
+                'merchant_id' => $sale->merchant_id,
+                'customer_id' => $sale->customer_id,
+                'to' => $customerEmail,
+                'error' => $exception->getMessage(),
+            ]);
         }
-
-        Log::info('SaleCreated email sending.', [
-            'sale_id' => $sale->id,
-            'merchant_id' => $sale->merchant_id,
-            'customer_id' => $sale->customer_id,
-            'to' => $customerEmail,
-            'template_id' => $mailable->template?->id,
-        ]);
-
-        Mail::to($customerEmail)->queue($mailable);
-
-        Log::info('SaleCreated email sent.', [
-            'sale_id' => $sale->id,
-            'merchant_id' => $sale->merchant_id,
-            'customer_id' => $sale->customer_id,
-            'to' => $customerEmail,
-            'template_id' => $mailable->template?->id,
-        ]);
     }
 
     private static function normalizeItems(array $items): array

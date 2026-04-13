@@ -239,17 +239,19 @@ class VendorsTable
 
                         if ($format === 'pdf') {
                             $rows = VendorPurchasesExport::buildStatementRows($purchases, $cashFlows, $selectedColumns);
+                            $headings = VendorPurchasesExport::headingsFor($selectedColumns);
+                            $paperOrientation = count($headings) > 10 ? 'landscape' : 'portrait';
 
                             $pdfContent = Pdf::loadView('exports.vendor-purchases-pdf', [
                                 'vendor' => $record,
-                                'headings' => VendorPurchasesExport::headingsFor($selectedColumns),
+                                'headings' => $headings,
                                 'rows' => $rows,
                                 'totals' => $totals,
                                 'merchantLogoDataUri' => $merchantLogoDataUri,
                                 'dateFrom' => $data['date_from'] ?? null,
                                 'dateTo' => $data['date_to'] ?? null,
                             ])
-                                ->setPaper('a4', 'portrait')
+                                ->setPaper('a4', $paperOrientation)
                                 ->output();
 
                             return response()->streamDownload(
