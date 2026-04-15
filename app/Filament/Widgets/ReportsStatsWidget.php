@@ -34,6 +34,7 @@ class ReportsStatsWidget extends Widget
             'purchases' => $this->getPurchaseStats(),
             'expenses' => $this->getExpenseStats(),
             'funds' => $this->getFundStats(),
+            'profitLoss' => $this->getProfitLossStats(),
             'stock' => $this->getStockStats(),
             'returns' => $this->getReturnStats(),
             'trend' => $this->getTrendData(),
@@ -790,6 +791,141 @@ class ReportsStatsWidget extends Widget
                 'total_amount' => $purchaseReturnsTotalAmount,
                 'total_quantity' => $purchaseReturnsQuantity,
             ],
+        ];
+    }
+
+    protected function getProfitLossStats(): array
+    {
+        [$user, $merchantId] = $this->authContext();
+
+        if (! $merchantId) {
+            return [
+                'gross_profit' => 0,
+                'net_sales' => 0,
+                'net_purchases' => 0,
+                'sales_total' => 0,
+                'sales_returns' => 0,
+                'purchases_total' => 0,
+                'purchase_returns' => 0,
+                'expenses' => 0,
+                'payrolls' => 0,
+                'net_profit' => 0,
+                'cash_in_hand' => 0,
+                'cash_in_bank' => 0,
+                'cash_pool' => 0,
+                'cash_flow_receivable' => 0,
+                'cash_flow_payable' => 0,
+                'business_health' => 0,
+            ];
+        }
+
+        $salesQuery = $this->salesBaseQuery($user, $merchantId);
+        $purchaseQuery = $this->purchaseBaseQuery($user, $merchantId);
+
+        $saleIds = (clone $salesQuery)->pluck('sales.id');
+        $purchaseIds = (clone $purchaseQuery)->pluck('purchases.id');
+
+        $salesTotal = $saleIds->isEmpty()
+            ? 0
+            : (float) (clone $salesQuery)->sum('total_amount');
+
+        $purchasesTotal = $purchaseIds->isEmpty()
+            ? 0
+            : (float) (clone $purchaseQuery)->sum('total_amount');
+
+        $salesReturns = $saleIds->isEmpty()
+            ? 0
+            : (float) DB::table('sale_returns')
+                ->whereIn('sale_id', $saleIds)
+                ->whereNull('deleted_at')
+                ->sum('total_amount');
+
+        $purchaseReturns = $purchaseIds->isEmpty()
+            ? 0
+            : (float) DB::table('purchase_returns')
+                ->whereIn('purchase_id', $purchaseIds)
+                ->whereNull('deleted_at')
+                ->sum('total_amount');
+
+        $netSales = $salesTotal - $salesReturns;
+        $netPurchases = $purchasesTotal - $purchaseReturns;
+        $grossProfit = $netSales - $netPurchases;
+        $filters = $this->filters();
+
+        $expenses = (float) (clone $this->expenseBaseQuery($user, $merchantId))->sum('total_amount');
+
+        $payrolls = (float) Payroll::query()
+            ->where('merchant_id', $merchantId)
+            ->where('status', Payroll::STATUS_PAID)
+            ->when(
+                $filters['date_from'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('payment_date', '>=', $date),
+            )
+            ->when(
+                $filters['date_to'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('payment_date', '<=', $date),
+            )
+            ->sum('net_salary');
+
+        $cashFlowBalances = CashFlow::query()
+            ->withoutTrashed()
+            ->where('merchant_id', $merchantId)
+            ->whereIn('flow_type', ['loan', 'advance'])
+            ->where(function (EloquentBuilder $query): void {
+                $query->whereNull('settlement_for_id')
+                    ->orWhereExists(function ($subQuery): void {
+                        $subQuery
+                            ->selectRaw('1')
+                            ->from('cash_flows as original_cash_flows')
+                            ->whereColumn('original_cash_flows.id', 'cash_flows.settlement_for_id')
+                            ->whereNull('original_cash_flows.deleted_at');
+                    });
+            })
+            ->when(
+                $filters['date_from'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('flow_date', '>=', $date),
+            )
+            ->when(
+                $filters['date_to'],
+                fn (EloquentBuilder $query, $date) => $query->whereDate('flow_date', '<=', $date),
+            )
+            ->select('flow_type')
+            ->selectRaw("
+                COALESCE(SUM(
+                    CASE
+                        WHEN settlement_for_id IS NULL THEN amount
+                        ELSE -amount
+                    END
+                ), 0) as balance
+            ")
+            ->groupBy('flow_type')
+            ->pluck('balance', 'flow_type');
+
+        $merchant = Merchant::query()->find($merchantId);
+        $cashInHand = (float) ($merchant?->cash_in_hand ?? 0);
+        $cashInBank = (float) ($merchant?->cash_in_bank ?? 0);
+        $cashPool = $cashInHand + $cashInBank;
+        $cashFlowReceivable = (float) ($cashFlowBalances['loan'] ?? 0);
+        $cashFlowPayable = (float) ($cashFlowBalances['advance'] ?? 0);
+        $netProfit = $grossProfit - $expenses - $payrolls;
+
+        return [
+            'gross_profit' => $grossProfit,
+            'net_sales' => $netSales,
+            'net_purchases' => $netPurchases,
+            'sales_total' => $salesTotal,
+            'sales_returns' => $salesReturns,
+            'purchases_total' => $purchasesTotal,
+            'purchase_returns' => $purchaseReturns,
+            'expenses' => $expenses,
+            'payrolls' => $payrolls,
+            'net_profit' => $netProfit,
+            'cash_in_hand' => $cashInHand,
+            'cash_in_bank' => $cashInBank,
+            'cash_pool' => $cashPool,
+            'cash_flow_receivable' => $cashFlowReceivable,
+            'cash_flow_payable' => $cashFlowPayable,
+            'business_health' => $cashPool - $netProfit + $cashFlowReceivable - $cashFlowPayable,
         ];
     }
 

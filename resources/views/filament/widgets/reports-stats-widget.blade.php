@@ -33,6 +33,7 @@
         $credit = $credit ?? ['receivable_total' => 0, 'payable_total' => 0, 'top_customers' => [], 'top_vendors' => []];
         $expenses = $expenses ?? ['total_expenses' => 0, 'total_amount' => 0, 'avg_expense' => 0];
         $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'expenses_outflow' => 0, 'payroll_outflow' => 0, 'cash_flow_net' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
+        $profitLoss = $profitLoss ?? ['gross_profit' => 0, 'net_profit' => 0, 'business_health' => 0, 'net_sales' => 0, 'net_purchases' => 0, 'expenses' => 0, 'payrolls' => 0, 'cash_in_hand' => 0, 'cash_flow_receivable' => 0, 'cash_flow_payable' => 0, 'sales_returns' => 0, 'purchase_returns' => 0];
         $filterPeriodLabel = $filterPeriodLabel ?? 'All time';
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
@@ -49,7 +50,7 @@
         }
     @endphp
 
-    <div class="space-y-6 stats-dashboard" x-data="{ showSales: true, showPurchases: true, toggle(which) { if (which === 'sales') { this.showSales = !this.showSales; if (!this.showSales && !this.showPurchases) this.showPurchases = true; } if (which === 'purchases') { this.showPurchases = !this.showPurchases; if (!this.showPurchases && !this.showSales) this.showSales = true; } } }">
+    <div class="space-y-6 stats-dashboard" x-data="{ showSales: true, showPurchases: true, profitLossMetric: 'business_health', toggle(which) { if (which === 'sales') { this.showSales = !this.showSales; if (!this.showSales && !this.showPurchases) this.showPurchases = true; } if (which === 'purchases') { this.showPurchases = !this.showPurchases; if (!this.showPurchases && !this.showSales) this.showSales = true; } } }">
         <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
             <div class="flex items-center justify-between">
                 <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Overview</p>
@@ -88,6 +89,52 @@
                         <div class="flex items-center justify-between">
                             <span>Quantity Bought</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($purchases['total_items_quantity'], 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-lime-50 to-white p-5 shadow-sm ring-1 ring-lime-100 stats-panel dark:bg-slate-900 dark:ring-lime-900/50">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Profit Loss</p>
+                        <select
+                            x-model="profitLossMetric"
+                            class="rounded-full border-0 bg-lime-50 px-3 py-1 text-xs font-semibold text-lime-700 shadow-none ring-0 focus:ring-2 focus:ring-lime-200 dark:bg-lime-900/40 dark:text-lime-200"
+                            aria-label="Profit Loss headline metric"
+                        >
+                            <option value="business_health">Health</option>
+                            <option value="gross_profit">Gross Profit</option>
+                            <option value="net_profit">Net Profit</option>
+                            <option value="net_sales">Net Sales</option>
+                            <option value="net_purchases">Net Purchases</option>
+                        </select>
+                    </div>
+                    <p class="mt-4 text-2xl font-semibold">
+                        <span x-show="profitLossMetric === 'business_health'" class="{{ ($profitLoss['business_health'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['business_health'] ?? 0, 2) }}</span>
+                        <span x-show="profitLossMetric === 'gross_profit'" class="{{ ($profitLoss['gross_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['gross_profit'] ?? 0, 2) }}</span>
+                        <span x-show="profitLossMetric === 'net_profit'" class="{{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
+                        <span x-show="profitLossMetric === 'net_sales'" class="{{ ($profitLoss['net_sales'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_sales'] ?? 0, 2) }}</span>
+                        <span x-show="profitLossMetric === 'net_purchases'" class="{{ ($profitLoss['net_purchases'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_purchases'] ?? 0, 2) }}</span>
+                    </p>
+                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                        <div class="flex items-center justify-between">
+                            <span>Gross Profit</span>
+                            <span class="font-medium {{ ($profitLoss['gross_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['gross_profit'] ?? 0, 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Net Profit</span>
+                            <span class="font-medium {{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Business Health</span>
+                            <span class="font-medium {{ ($profitLoss['business_health'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['business_health'] ?? 0, 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Net Sales</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">PKR {{ number_format($profitLoss['net_sales'] ?? 0, 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Net Purchases</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">PKR {{ number_format($profitLoss['net_purchases'] ?? 0, 2) }}</span>
                         </div>
                     </div>
                 </div>
