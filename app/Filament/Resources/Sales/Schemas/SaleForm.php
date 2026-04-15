@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Sales\Schemas;
 
 use App\Models\Product;
+use App\Services\PaymentLedgerService;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -1026,10 +1027,7 @@ class SaleForm
             return new HtmlString('<span class="text-gray-500">No payment history available yet.</span>');
         }
 
-        $payments = $record->payments()
-            ->orderBy('payment_date')
-            ->orderBy('created_at')
-            ->get(['id', 'payment_date', 'entry_type', 'amount']);
+        $payments = PaymentLedgerService::displayablePayments($record);
 
         if ($payments->isEmpty()) {
             return new HtmlString('<span class="text-gray-500">No payment history available yet.</span>');
@@ -1038,7 +1036,7 @@ class SaleForm
         $rows = $payments->map(function ($payment) {
             $date = $payment->payment_date?->format('d/m/Y') ?? '—';
             $type = ucfirst((string) ($payment->entry_type ?? 'payment'));
-            $amount = 'PKR ' . number_format((float) ($payment->amount ?? 0), 2);
+            $amount = 'PKR ' . number_format((float) ($payment->display_amount ?? 0), 2);
 
             $actionButton = '';
             if ((float) ($payment->amount ?? 0) > 0 && (string) ($payment->entry_type ?? 'payment') === 'payment') {

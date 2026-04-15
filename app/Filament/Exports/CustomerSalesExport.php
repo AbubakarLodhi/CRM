@@ -176,11 +176,15 @@ class CustomerSalesExport implements
                 ],
             ];
 
+            $ledgerPaid = 0.0;
+
             foreach (($sale->payments ?? collect())->sortBy([['payment_date', 'asc'], ['created_at', 'asc']]) as $payment) {
                 $amount = round((float) ($payment->amount ?? 0), 2);
                 if ($amount == 0.0) {
                     continue;
                 }
+
+                $ledgerPaid = round($ledgerPaid + $amount, 2);
 
                 $entries[] = [
                     'date' => ($payment->payment_date ?? $payment->created_at)->copy()->startOfDay(),
@@ -194,6 +198,36 @@ class CustomerSalesExport implements
                         'branch' => (string) ($branchText ?: '-'),
                         'payment_type' => ucfirst((string) ($payment->entry_type ?? 'payment')),
                         'paid_amount' => $amount > 0 ? $amount : 0.0,
+                        'due_amount' => '-',
+                        'items_count' => '-',
+                        'subtotal' => '-',
+                        'discount' => '-',
+                        'tax' => '-',
+                        'total_amount' => 0.0,
+                    ],
+                ];
+            }
+
+            $returnAdjustment = round(max(0, $ledgerPaid - (float) ($sale->total_amount ?? 0)), 2);
+
+            if ($returnAdjustment > 0 && ($sale->returns ?? collect())->isNotEmpty()) {
+                $latestReturn = ($sale->returns ?? collect())
+                    ->sortByDesc(fn ($return) => $return->return_date ?? $return->created_at)
+                    ->first();
+                $returnDate = $latestReturn?->return_date ?? $latestReturn?->created_at ?? $sale->updated_at ?? $sale->created_at;
+
+                $entries[] = [
+                    'date' => $returnDate->copy()->startOfDay(),
+                    'created_at' => $latestReturn?->created_at ?? $sale->updated_at ?? $sale->created_at,
+                    'debit' => $returnAdjustment,
+                    'credit' => 0.0,
+                    'description' => self::saleReturnAdjustmentDescription($sale->sale_no),
+                    'extras' => [
+                        'party_name' => (string) ($sale->customer?->name ?? '-'),
+                        'merchant' => (string) ($sale->merchant?->name ?? '-'),
+                        'branch' => (string) ($branchText ?: '-'),
+                        'payment_type' => 'Sale Return Adjustment',
+                        'paid_amount' => 0.0,
                         'due_amount' => '-',
                         'items_count' => '-',
                         'subtotal' => '-',
@@ -288,6 +322,11 @@ class CustomerSalesExport implements
         $parts[] = 'against invoice ' . (string) ($saleNo ?? '-');
 
         return implode(' ', $parts);
+    }
+
+    protected static function saleReturnAdjustmentDescription(?string $saleNo): string
+    {
+        return 'Sale return adjustment against invoice ' . (string) ($saleNo ?? '-');
     }
 
     protected static function cashFlowDescription(string $flowType, string $direction, ?string $reference, ?string $method): string

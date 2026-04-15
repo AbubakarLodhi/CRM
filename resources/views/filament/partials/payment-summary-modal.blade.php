@@ -1,8 +1,5 @@
 @php
-    $payments = $document->payments()
-        ->orderBy('payment_date')
-        ->orderBy('created_at')
-        ->get();
+    $payments = \App\Services\PaymentLedgerService::displayablePayments($document);
 
     $totalAmount = (float) ($document->total_amount ?? 0);
     $paidAmount = (float) ($document->paid_amount ?? 0);
@@ -53,7 +50,7 @@
                                     </span>
                                 </td>
                                 <td class="px-3 py-2 text-gray-700">{{ ucfirst((string) ($payment->entry_type ?? 'payment')) }}</td>
-                                <td class="px-3 py-2 font-medium text-gray-900">PKR {{ number_format((float) ($payment->amount ?? 0), 2) }}</td>
+                                <td class="px-3 py-2 font-medium text-gray-900">PKR {{ number_format((float) ($payment->display_amount ?? 0), 2) }}</td>
                                 <td class="px-3 py-2 text-gray-700">{{ $payment->reference_no ?: '—' }}</td>
                             </tr>
                         @endforeach

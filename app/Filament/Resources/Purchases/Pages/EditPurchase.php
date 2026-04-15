@@ -303,13 +303,9 @@ class EditPurchase extends EditRecord
 
     private function getRecordedPaidAmount(): float
     {
-        $recordedPaid = (float) $this->record->payments()->sum('amount');
+        $this->record->refresh();
 
-        if ($recordedPaid <= 0 && ! $this->record->payments()->exists()) {
-            $recordedPaid = (float) ($this->record->paid_amount ?? 0);
-        }
-
-        return round(max(0, $recordedPaid), 2);
+        return round(max(0, (float) ($this->record->paid_amount ?? 0)), 2);
     }
 
     public function confirmReversePayment(string $paymentId): void

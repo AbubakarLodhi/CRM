@@ -176,11 +176,15 @@ class VendorPurchasesExport implements
                 ],
             ];
 
+            $ledgerPaid = 0.0;
+
             foreach (($purchase->payments ?? collect())->sortBy([['payment_date', 'asc'], ['created_at', 'asc']]) as $payment) {
                 $amount = round((float) ($payment->amount ?? 0), 2);
                 if ($amount == 0.0) {
                     continue;
                 }
+
+                $ledgerPaid = round($ledgerPaid + $amount, 2);
 
                 $entries[] = [
                     'date' => ($payment->payment_date ?? $payment->created_at)->copy()->startOfDay(),
@@ -194,6 +198,36 @@ class VendorPurchasesExport implements
                         'branch' => (string) ($branchText ?: '-'),
                         'payment_type' => ucfirst((string) ($payment->entry_type ?? 'payment')),
                         'paid_amount' => $amount > 0 ? $amount : 0.0,
+                        'due_amount' => '-',
+                        'items_count' => '-',
+                        'subtotal' => '-',
+                        'discount' => '-',
+                        'tax' => '-',
+                        'total_amount' => 0.0,
+                    ],
+                ];
+            }
+
+            $returnAdjustment = round(max(0, $ledgerPaid - (float) ($purchase->total_amount ?? 0)), 2);
+
+            if ($returnAdjustment > 0 && ($purchase->returns ?? collect())->isNotEmpty()) {
+                $latestReturn = ($purchase->returns ?? collect())
+                    ->sortByDesc(fn ($return) => $return->return_date ?? $return->created_at)
+                    ->first();
+                $returnDate = $latestReturn?->return_date ?? $latestReturn?->created_at ?? $purchase->updated_at ?? $purchase->created_at;
+
+                $entries[] = [
+                    'date' => $returnDate->copy()->startOfDay(),
+                    'created_at' => $latestReturn?->created_at ?? $purchase->updated_at ?? $purchase->created_at,
+                    'debit' => $returnAdjustment,
+                    'credit' => 0.0,
+                    'description' => self::purchaseReturnAdjustmentDescription($purchase->purchase_no),
+                    'extras' => [
+                        'party_name' => (string) ($purchase->vendor?->name ?? '-'),
+                        'merchant' => (string) ($purchase->merchant?->name ?? '-'),
+                        'branch' => (string) ($branchText ?: '-'),
+                        'payment_type' => 'Purchase Return Adjustment',
+                        'paid_amount' => 0.0,
                         'due_amount' => '-',
                         'items_count' => '-',
                         'subtotal' => '-',
@@ -291,6 +325,11 @@ class VendorPurchasesExport implements
         $parts[] = 'against invoice ' . (string) ($purchaseNo ?? '-');
 
         return implode(' ', $parts);
+    }
+
+    protected static function purchaseReturnAdjustmentDescription(?string $purchaseNo): string
+    {
+        return 'Purchase return adjustment against invoice ' . (string) ($purchaseNo ?? '-');
     }
 
     protected static function cashFlowDescription(string $flowType, string $direction, ?string $reference, ?string $method): string

@@ -847,8 +847,8 @@ class ReportsStatsWidget extends Widget
                 ->whereNull('deleted_at')
                 ->sum('total_amount');
 
-        $netSales = $salesTotal - $salesReturns;
-        $netPurchases = $purchasesTotal - $purchaseReturns;
+        $netSales = $salesTotal;
+        $netPurchases = $purchasesTotal;
         $grossProfit = $netSales - $netPurchases;
         $filters = $this->filters();
 

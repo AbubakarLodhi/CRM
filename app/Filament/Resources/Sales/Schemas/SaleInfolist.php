@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Sales\Schemas;
 
+use App\Services\PaymentLedgerService;
 use Filament\Infolists\Components\RepeatableEntry;
 
 use Filament\Infolists\Components\TextEntry;
@@ -163,12 +164,7 @@ class SaleInfolist
 
                         RepeatableEntry::make('payment_history')
                             ->label('Payment History')
-                            ->getStateUsing(fn ($record) => ($record->payments ?? collect())
-                                ->sortBy([
-                                    ['payment_date', 'asc'],
-                                    ['created_at', 'asc'],
-                                ])
-                                ->values())
+                            ->getStateUsing(fn ($record) => PaymentLedgerService::displayablePayments($record))
                             ->schema([
                                 TextEntry::make('payment_date')
                                     ->label('Date')
@@ -176,7 +172,7 @@ class SaleInfolist
                                 TextEntry::make('entry_type')
                                     ->label('Type')
                                     ->formatStateUsing(fn (?string $state) => ucfirst((string) ($state ?? 'payment'))),
-                                TextEntry::make('amount')
+                                TextEntry::make('display_amount')
                                     ->label('Amount')
                                     ->money('PKR'),
                             ])

@@ -10,6 +10,33 @@ use Illuminate\Support\Carbon;
 
 class PaymentLedgerService
 {
+    public static function displayablePayments(Sale|Purchase $document): \Illuminate\Support\Collection
+    {
+        $remainingDisplayAmount = max(0, (float) ($document->total_amount ?? 0));
+
+        return $document->payments()
+            ->orderBy('payment_date')
+            ->orderBy('created_at')
+            ->get(['id', 'payment_date', 'entry_type', 'amount', 'reference_no', 'method', 'created_at'])
+            ->map(function (Payment $payment) use (&$remainingDisplayAmount): Payment {
+                $amount = round((float) ($payment->amount ?? 0), 2);
+                $displayAmount = $amount;
+
+                if ($amount > 0) {
+                    $displayAmount = min($amount, $remainingDisplayAmount);
+                    $remainingDisplayAmount = max(0, round($remainingDisplayAmount - $displayAmount, 2));
+                } elseif ($amount < 0) {
+                    $remainingDisplayAmount = round($remainingDisplayAmount + abs($amount), 2);
+                }
+
+                $payment->setAttribute('display_amount', round($displayAmount, 2));
+
+                return $payment;
+            })
+            ->filter(fn (Payment $payment): bool => round((float) $payment->getAttribute('display_amount'), 2) != 0.0)
+            ->values();
+    }
+
     public static function recordSalePayment(
         Sale $sale,
         float $amount,

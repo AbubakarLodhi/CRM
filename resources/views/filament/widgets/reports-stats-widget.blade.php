@@ -121,7 +121,7 @@
                                 Gross Profit
                                 <span
                                     class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
-                                    title="Gross Profit = (Total Sales - Sale Returns) - (Total Purchases - Purchase Returns)"
+                                    title="Gross Profit = Net Sales - Net Purchases."
                                     aria-label="Gross Profit formula"
                                 >?</span>
                             </span>

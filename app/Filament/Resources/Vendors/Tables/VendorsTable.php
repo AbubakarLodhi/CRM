@@ -182,6 +182,7 @@ class VendorsTable
                                 'items.product',
                                 'items.branch',
                                 'items.variants.variant',
+                                'returns',
                                 'payments',
                             ]);
 
