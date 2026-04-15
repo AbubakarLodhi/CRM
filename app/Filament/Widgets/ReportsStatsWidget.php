@@ -925,7 +925,7 @@ class ReportsStatsWidget extends Widget
             'cash_pool' => $cashPool,
             'cash_flow_receivable' => $cashFlowReceivable,
             'cash_flow_payable' => $cashFlowPayable,
-            'business_health' => $cashPool - $netProfit + $cashFlowReceivable - $cashFlowPayable,
+            'business_health' => $cashPool + $netProfit + $cashFlowReceivable - $cashFlowPayable,
         ];
     }
 

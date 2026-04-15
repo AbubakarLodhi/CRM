@@ -117,15 +117,36 @@
                     </p>
                     <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
                         <div class="flex items-center justify-between">
-                            <span>Gross Profit</span>
+                            <span class="inline-flex items-center gap-1">
+                                Gross Profit
+                                <span
+                                    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+                                    title="Gross Profit = (Total Sales - Sale Returns) - (Total Purchases - Purchase Returns)"
+                                    aria-label="Gross Profit formula"
+                                >?</span>
+                            </span>
                             <span class="font-medium {{ ($profitLoss['gross_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['gross_profit'] ?? 0, 2) }}</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span>Net Profit</span>
+                            <span class="inline-flex items-center gap-1">
+                                Net Profit
+                                <span
+                                    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+                                    title="Net Profit = Gross Profit - Expenses - Payrolls"
+                                    aria-label="Net Profit formula"
+                                >?</span>
+                            </span>
                             <span class="font-medium {{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span>Business Health</span>
+                            <span class="inline-flex items-center gap-1">
+                                Business Health
+                                <span
+                                    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+                                    title="Business Health = (Cash In Hand + Cash In Bank) + Net Profit + Cash Flow Receivable - Cash Flow Payable"
+                                    aria-label="Business Health formula"
+                                >?</span>
+                            </span>
                             <span class="font-medium {{ ($profitLoss['business_health'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['business_health'] ?? 0, 2) }}</span>
                         </div>
                         <div class="flex items-center justify-between">
