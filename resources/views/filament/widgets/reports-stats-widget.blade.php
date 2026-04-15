@@ -33,6 +33,7 @@
         $credit = $credit ?? ['receivable_total' => 0, 'payable_total' => 0, 'top_customers' => [], 'top_vendors' => []];
         $expenses = $expenses ?? ['total_expenses' => 0, 'total_amount' => 0, 'avg_expense' => 0];
         $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'expenses_outflow' => 0, 'payroll_outflow' => 0, 'cash_flow_net' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
+        $filterPeriodLabel = $filterPeriodLabel ?? 'All time';
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
             'sales' => array_map(fn ($value) => $barMax > 0 ? (int) round(($value / $barMax) * 100) : 0, $salesSeries),
@@ -52,7 +53,7 @@
         <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
             <div class="flex items-center justify-between">
                 <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Overview</p>
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">All time</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">{{ $filterPeriodLabel }}</span>
             </div>
             <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm ring-1 ring-blue-100 stats-panel stats-panel-blue dark:bg-slate-900 dark:ring-blue-900/50">
@@ -112,7 +113,7 @@
                 <div class="rounded-2xl bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm ring-1 ring-sky-100 stats-panel stats-panel-sky dark:bg-slate-900 dark:ring-sky-900/50">
                     <div class="flex items-center justify-between">
                         <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Inventory Movement</p>
-                        <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600 dark:bg-sky-900/40 dark:text-sky-200">All time</span>
+                        <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600 dark:bg-sky-900/40 dark:text-sky-200">{{ $filterPeriodLabel }}</span>
                     </div>
                     <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['total_purchased_qty'] - $stock['total_sold_qty'], 2) }}</p>
                     <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
@@ -127,6 +128,10 @@
                         <div class="flex items-center justify-between">
                             <span>Available Stock</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['available_stock'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Total Amount</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">PKR {{ number_format($stock['total_amount'] ?? 0, 2) }}</span>
                         </div>
                     </div>
                 </div>

@@ -49,9 +49,9 @@ class CashFlowsTable
                     ->default('-'),
 
                 TextColumn::make('flow_type')
-                    ->label('Flow Type')
+                    ->label('Account Type')
                     ->badge()
-                    ->formatStateUsing(fn (?string $state) => ucfirst((string) ($state ?? '-'))),
+                    ->formatStateUsing(fn (?string $state) => CashFlow::flowTypeLabel($state)),
 
                 TextColumn::make('direction')
                     ->label('Direction')
@@ -112,11 +112,8 @@ class CashFlowsTable
                     ]),
 
                 SelectFilter::make('flow_type')
-                    ->label('Flow Type')
-                    ->options([
-                        'advance' => 'Advance',
-                        'loan' => 'Loan',
-                    ]),
+                    ->label('Account Type')
+                    ->options(CashFlow::flowTypeLabels()),
 
                 SelectFilter::make('direction')
                     ->label('Direction')

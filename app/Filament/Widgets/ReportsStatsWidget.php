@@ -39,6 +39,7 @@ class ReportsStatsWidget extends Widget
             'trend' => $this->getTrendData(),
             'leaders' => $this->getLeaderboardStats(),
             'credit' => $this->getCreditStats(),
+            'filterPeriodLabel' => $this->filterPeriodLabel(),
         ];
     }
 
@@ -69,12 +70,156 @@ class ReportsStatsWidget extends Widget
         ];
     }
 
+    protected function filterPeriodLabel(): string
+    {
+        $filters = $this->filters();
+        $from = filled($filters['date_from']) ? Carbon::parse($filters['date_from'])->format('d M Y') : null;
+        $to = filled($filters['date_to']) ? Carbon::parse($filters['date_to'])->format('d M Y') : null;
+
+        return match (true) {
+            filled($from) && filled($to) => "{$from} - {$to}",
+            filled($from) => "From {$from}",
+            filled($to) => "Until {$to}",
+            default => 'All time',
+        };
+    }
+
     protected function staffAssignments(User $user): array
     {
         return [
             'business_ids' => $user->businesses()->pluck('businesses.id'),
             'branch_ids' => $user->branches()->pluck('branches.id'),
         ];
+    }
+
+    protected function sqlInScope(string $column, array $values): string
+    {
+        $values = collect($values)
+            ->filter(fn ($value) => filled($value))
+            ->map(fn ($value) => "'" . addslashes((string) $value) . "'")
+            ->values()
+            ->all();
+
+        if (empty($values)) {
+            return '';
+        }
+
+        return " AND {$column} IN (" . implode(', ', $values) . ')';
+    }
+
+    protected function stockSoldExpression(?string $merchantId, array $filters, array $staffBusinessIds = [], array $staffBranchIds = []): string
+    {
+        if (! $merchantId) {
+            return '0';
+        }
+
+        $merchantScope = " AND s.merchant_id = '" . addslashes($merchantId) . "'";
+        $businessScope = filled($filters['business_id'] ?? null)
+            ? " AND si.business_id = '" . addslashes((string) $filters['business_id']) . "'"
+            : '';
+        $branchScope = filled($filters['branch_id'] ?? null)
+            ? " AND si.branch_id = '" . addslashes((string) $filters['branch_id']) . "'"
+            : '';
+        $staffBusinessScope = $this->sqlInScope('si.business_id', $staffBusinessIds);
+        $staffBranchScope = $this->sqlInScope('si.branch_id', $staffBranchIds);
+        $fromScope = filled($filters['date_from'] ?? null)
+            ? " AND s.sale_date >= '" . addslashes((string) $filters['date_from']) . "'"
+            : '';
+        $toScope = filled($filters['date_to'] ?? null)
+            ? " AND s.sale_date <= '" . addslashes((string) $filters['date_to']) . "'"
+            : '';
+
+        return "
+            COALESCE(
+                (
+                    SELECT SUM(siv.quantity)
+                    FROM sale_item_variants siv
+                    JOIN sale_items si ON si.id = siv.sale_item_id
+                    JOIN sales s ON s.id = si.sale_id
+                    WHERE siv.product_variant_id = product_variants.id
+                      AND s.deleted_at IS NULL
+                      {$merchantScope}
+                      {$businessScope}
+                      {$branchScope}
+                      {$staffBusinessScope}
+                      {$staffBranchScope}
+                      {$fromScope}
+                      {$toScope}
+                ),
+                0
+            )
+        ";
+    }
+
+    protected function stockValueExpression(?string $merchantId, array $filters, array $staffBusinessIds = [], array $staffBranchIds = []): string
+    {
+        if (! $merchantId) {
+            return '0';
+        }
+
+        $merchantScope = " AND p.merchant_id = '" . addslashes($merchantId) . "'";
+        $businessScope = filled($filters['business_id'] ?? null)
+            ? " AND pi.business_id = '" . addslashes((string) $filters['business_id']) . "'"
+            : '';
+        $branchScope = filled($filters['branch_id'] ?? null)
+            ? " AND pi.branch_id = '" . addslashes((string) $filters['branch_id']) . "'"
+            : '';
+        $staffBusinessScope = $this->sqlInScope('pi.business_id', $staffBusinessIds);
+        $staffBranchScope = $this->sqlInScope('pi.branch_id', $staffBranchIds);
+        $fromScope = filled($filters['date_from'] ?? null)
+            ? " AND p.purchase_date >= '" . addslashes((string) $filters['date_from']) . "'"
+            : '';
+        $toScope = filled($filters['date_to'] ?? null)
+            ? " AND p.purchase_date <= '" . addslashes((string) $filters['date_to']) . "'"
+            : '';
+        $soldExpr = $this->stockSoldExpression($merchantId, $filters, $staffBusinessIds, $staffBranchIds);
+
+        return "
+            COALESCE(
+                (
+                    WITH purchase_lots AS (
+                        SELECT
+                            piv.id,
+                            COALESCE(piv.quantity, 0)::numeric AS lot_qty,
+                            COALESCE(piv.unit_price, 0)::numeric AS lot_unit_price,
+                            SUM(COALESCE(piv.quantity, 0)) OVER (
+                                ORDER BY piv.created_at ASC, p.purchase_date ASC, piv.id ASC
+                            )::numeric AS running_qty
+                        FROM purchase_item_variants piv
+                        JOIN purchase_items pi ON pi.id = piv.purchase_item_id
+                        JOIN purchases p ON p.id = pi.purchase_id
+                        WHERE piv.product_variant_id = product_variants.id
+                          AND p.deleted_at IS NULL
+                          {$merchantScope}
+                          {$businessScope}
+                          {$branchScope}
+                          {$staffBusinessScope}
+                          {$staffBranchScope}
+                          {$fromScope}
+                          {$toScope}
+                    )
+                    SELECT
+                        GREATEST(
+                            COALESCE(SUM(purchase_lots.lot_qty * purchase_lots.lot_unit_price), 0)
+                            - COALESCE(
+                                SUM(
+                                    GREATEST(
+                                        LEAST(
+                                            purchase_lots.lot_qty,
+                                            GREATEST(({$soldExpr})::numeric, 0) - (purchase_lots.running_qty - purchase_lots.lot_qty)
+                                        ),
+                                        0
+                                    ) * purchase_lots.lot_unit_price
+                                ),
+                                0
+                            ),
+                            0
+                        )
+                    FROM purchase_lots
+                ),
+                0
+            )
+        ";
     }
 
     protected function salesBaseQuery($user, string $merchantId): EloquentBuilder
@@ -423,11 +568,15 @@ class ReportsStatsWidget extends Widget
         $selectedVariantIds = collect($filters['product_variant_ids'] ?? []);
 
         $variantIds = collect();
+        $staffBusinessIds = collect();
+        $staffBranchIds = collect();
 
         if ($user instanceof User) {
             $assignments = $this->staffAssignments($user);
             $branchIds = $assignments['branch_ids'];
             $businessIds = $assignments['business_ids'];
+            $staffBranchIds = $branchIds;
+            $staffBusinessIds = $businessIds;
 
             if ($branchIds->isEmpty() || $businessIds->isEmpty()) {
                 return [
@@ -435,6 +584,7 @@ class ReportsStatsWidget extends Widget
                     'total_purchased_qty' => 0,
                     'total_sold_qty'      => 0,
                     'available_stock'     => 0,
+                    'total_amount'        => 0,
                     'total_revenue'       => 0,
                     'avg_selling_price'   => 0,
                     'avg_buying_price'    => 0,
@@ -476,6 +626,7 @@ class ReportsStatsWidget extends Widget
                 'total_purchased_qty' => 0,
                 'total_sold_qty'      => 0,
                 'available_stock'     => 0,
+                'total_amount'        => 0,
                 'total_revenue'       => 0,
                 'avg_selling_price'   => 0,
                 'avg_buying_price'    => 0,
@@ -519,6 +670,23 @@ class ReportsStatsWidget extends Widget
                 ->sum(DB::raw('siv.quantity * pv.selling_price'));
 
         $netRevenue = $totalRevenue;
+        $stockValueQuery = DB::table('product_variants')
+            ->whereIn('id', $variantIds)
+            ->select('id')
+            ->selectRaw(
+                $this->stockValueExpression(
+                    $merchantId,
+                    $filters,
+                    $staffBusinessIds->all(),
+                    $staffBranchIds->all(),
+                ) . ' as total_amount'
+            );
+
+        $totalAmount = (float) DB::query()
+            ->fromSub($stockValueQuery, 'stock')
+            ->selectRaw('COALESCE(SUM(total_amount), 0) as total_amount')
+            ->value('total_amount');
+
         $totalBuyingCost = $purchaseIds->isEmpty()
             ? 0
             : DB::table('purchase_item_variants as piv')
@@ -535,6 +703,7 @@ class ReportsStatsWidget extends Widget
             'total_purchased_qty' => (float) $netPurchasedQty,
             'total_sold_qty'      => (float) $netSoldQty,
             'available_stock'     => (float) $availableStock,
+            'total_amount'        => (float) $totalAmount,
             'total_revenue'       => (float) $netRevenue,
             'avg_selling_price'   => $netSoldQty > 0 ? round($netRevenue / $netSoldQty, 2) : 0,
             'avg_buying_price'    => $netPurchasedQty > 0 ? round($netBuyingCost / $netPurchasedQty, 2) : 0,
@@ -863,6 +1032,7 @@ class ReportsStatsWidget extends Widget
             ->sum('net_salary');
 
         $cashFlowQuery = CashFlow::query()
+            ->withoutTrashed()
             ->where('merchant_id', $merchantId)
             ->when(
                 $filters['date_from'],

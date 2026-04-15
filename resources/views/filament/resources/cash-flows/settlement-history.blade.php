@@ -13,8 +13,8 @@
             <div class="font-semibold">PKR {{ number_format((float) ($remaining ?? 0), 2) }}</div>
         </div>
         <div>
-            <div class="text-gray-500">Flow Type</div>
-            <div class="font-semibold">{{ ucfirst((string) ($base->flow_type ?? '-')) }}</div>
+            <div class="text-gray-500">Account Type</div>
+            <div class="font-semibold">{{ \App\Models\CashFlow::flowTypeLabel($base->flow_type ?? null) }}</div>
         </div>
     </div>
 

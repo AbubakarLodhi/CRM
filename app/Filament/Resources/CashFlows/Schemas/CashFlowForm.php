@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\CashFlows\Schemas;
 
+use App\Models\CashFlow;
 use App\Models\Customer;
 use App\Models\Vendor;
 use Filament\Facades\Filament;
@@ -87,11 +88,8 @@ class CashFlowForm
                         ->columnSpan(2),
 
                     Select::make('flow_type')
-                        ->label('Flow Type')
-                        ->options([
-                            'advance' => 'Advance',
-                            'loan' => 'Loan',
-                        ])
+                        ->label('Account Type')
+                        ->options(CashFlow::flowTypeLabels())
                         ->required()
                         ->columnSpan(1),
 

@@ -38,6 +38,19 @@ class CashFlow extends Model
         'flow_date' => 'date',
     ];
 
+    public static function flowTypeLabels(): array
+    {
+        return [
+            'advance' => 'Account Payable',
+            'loan' => 'Account Receivable',
+        ];
+    }
+
+    public static function flowTypeLabel(?string $flowType, string $default = '-'): string
+    {
+        return self::flowTypeLabels()[$flowType] ?? $default;
+    }
+
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);

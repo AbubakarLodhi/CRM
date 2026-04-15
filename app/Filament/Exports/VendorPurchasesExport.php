@@ -2,6 +2,7 @@
 
 namespace App\Filament\Exports;
 
+use App\Models\CashFlow;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -214,7 +215,7 @@ class VendorPurchasesExport implements
             // Outflow to vendor reduces payable -> credit
             // Inflow from vendor increases payable -> debit
             $isCredit = (string) ($cashFlow->direction ?? '') === 'out';
-            $flowType = ucfirst((string) ($cashFlow->flow_type ?? 'Cash Flow'));
+            $flowType = CashFlow::flowTypeLabel($cashFlow->flow_type, 'Cash Flow');
             $direction = $isCredit ? 'Out' : 'In';
 
             $entries[] = [
