@@ -190,7 +190,7 @@ class CashFlowsTable
                             return;
                         }
 
-                        $direction = $record->direction === 'in' ? 'out' : 'in';
+                        $direction = CashFlow::settlementDirectionForFlowType($record->flow_type);
                         $installmentNo = $record->settlements()->withoutTrashed()->count() + 1;
                         $referenceNo = sprintf(
                             'CF-STL-%s-%03d',

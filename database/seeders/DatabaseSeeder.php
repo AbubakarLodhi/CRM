@@ -73,6 +73,7 @@ class DatabaseSeeder extends Seeder
             BranchesSeeder::class,
             BranchUsersSeeder::class,
             CustomersSeeder::class,
+            CashFlowsSeeder::class,
             PermissionsModulesSeeder::class,
             MerchantPermissionModulesSeeder::class,
 

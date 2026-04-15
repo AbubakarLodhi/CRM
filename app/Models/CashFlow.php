@@ -51,6 +51,16 @@ class CashFlow extends Model
         return self::flowTypeLabels()[$flowType] ?? $default;
     }
 
+    public static function primaryDirectionForFlowType(?string $flowType): string
+    {
+        return $flowType === 'loan' ? 'out' : 'in';
+    }
+
+    public static function settlementDirectionForFlowType(?string $flowType): string
+    {
+        return self::primaryDirectionForFlowType($flowType) === 'in' ? 'out' : 'in';
+    }
+
     public function merchant(): BelongsTo
     {
         return $this->belongsTo(Merchant::class);
@@ -78,15 +88,7 @@ class CashFlow extends Model
 
     public function expectedPrimaryDirection(): string
     {
-        if ($this->party_type === Customer::class) {
-            return $this->flow_type === 'loan' ? 'out' : 'in';
-        }
-
-        if ($this->party_type === Vendor::class) {
-            return $this->flow_type === 'loan' ? 'in' : 'out';
-        }
-
-        return 'in';
+        return self::primaryDirectionForFlowType($this->flow_type);
     }
 
     public function isPrimaryTransaction(): bool
