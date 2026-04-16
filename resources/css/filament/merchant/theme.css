@@ -203,6 +203,207 @@
 }
 
 /* --------------------------------------------
+ | Login screen
+ |---------------------------------------------
+ */
+.zgn-auth-layout {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+    align-items: stretch;
+    background: #ffffff;
+}
+
+.zgn-auth-layout .zgn-auth-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 34px 0 34px 40px;
+    overflow: hidden;
+}
+
+.zgn-auth-layout .zgn-auth-visual-image {
+    width: 100%;
+    height: min(86vh, 670px);
+    object-fit: contain;
+    object-position: center;
+    border-radius: 2px;
+}
+
+.zgn-auth-layout .fi-simple-main-ctn {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px clamp(36px, 6vw, 92px);
+}
+
+.zgn-auth-layout .fi-simple-main {
+    width: min(100%, 630px);
+    max-width: 630px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.zgn-auth-layout .fi-simple-page-content {
+    gap: 34px;
+}
+
+.zgn-auth-layout .fi-simple-header {
+    align-items: flex-start;
+    text-align: left;
+    gap: 10px;
+}
+
+.zgn-auth-layout .fi-logo {
+    align-self: center;
+    height: auto !important;
+    margin-bottom: 22px;
+    color: #2f9145;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.zgn-auth-layout img.fi-logo {
+    width: auto;
+    max-width: 180px;
+    max-height: 110px;
+    object-fit: contain;
+}
+
+.zgn-auth-layout .zgn-auth-logo {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: #2f9145;
+}
+
+.zgn-auth-layout .zgn-auth-logo svg {
+    width: 76px;
+    height: 62px;
+    display: block;
+}
+
+.zgn-auth-layout .zgn-auth-logo strong {
+    color: #2f9145;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.zgn-auth-layout .fi-simple-header-heading {
+    color: #202b3c;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.2;
+}
+
+.zgn-auth-layout .fi-simple-header-subheading {
+    color: #7a8495;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.zgn-auth-layout .fi-sc-form,
+.zgn-auth-layout .fi-fo-component-ctn,
+.zgn-auth-layout form {
+    gap: 20px;
+}
+
+.zgn-auth-layout .fi-fo-field-wrp-label span,
+.zgn-auth-layout .fi-fo-field-wrp-label label {
+    color: #4a5668;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.zgn-auth-layout .fi-input-wrp {
+    min-height: 40px;
+    border-color: #e2e8f0;
+    border-radius: 5px;
+    background: #ffffff;
+    box-shadow: none;
+}
+
+.zgn-auth-layout .fi-input {
+    color: #263244;
+    font-size: 13px;
+}
+
+.zgn-auth-layout .fi-input::placeholder {
+    color: #a5adbb;
+}
+
+.zgn-auth-layout .fi-fo-field-wrp-error-message {
+    font-size: 12px;
+}
+
+.zgn-auth-layout .fi-checkbox-input {
+    border-color: #d8dee8;
+    border-radius: 3px;
+}
+
+.zgn-auth-layout .fi-checkbox-list-option-label,
+.zgn-auth-layout .fi-fo-checkbox-list-option-label,
+.zgn-auth-layout .fi-fo-field-wrp-hint,
+.zgn-auth-layout .fi-link {
+    color: #6c7483;
+    font-size: 13px;
+}
+
+.zgn-auth-layout .fi-link {
+    font-weight: 600;
+}
+
+.zgn-auth-layout .fi-ac {
+    margin-top: 6px;
+}
+
+.zgn-auth-layout .fi-btn {
+    min-height: 44px;
+    border-radius: 5px;
+    background: #1478f2;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+.zgn-auth-layout .fi-btn:hover,
+.zgn-auth-layout .fi-btn:focus-visible {
+    background: #0d6ee5;
+}
+
+@media (max-width: 1024px) {
+    .zgn-auth-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .zgn-auth-layout .zgn-auth-visual {
+        display: none;
+    }
+
+    .zgn-auth-layout .fi-simple-main-ctn {
+        padding: 32px 22px;
+    }
+
+    .zgn-auth-layout .fi-simple-main {
+        max-width: 520px;
+    }
+
+    .zgn-auth-layout .fi-simple-header {
+        align-items: center;
+        text-align: center;
+    }
+}
+
+/* --------------------------------------------
  | Stats dashboard dark mode overrides
  |---------------------------------------------
  */

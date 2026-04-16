@@ -35,18 +35,23 @@ class MerchantPanelProvider extends PanelProvider
             ->authGuard('merchant')
             ->authPasswordBroker('merchants')
             ->default()
-            ->login()
+            ->login(\App\Filament\Auth\Login::class)
             ->passwordReset()
             ->brandLogo(function () {
                 $merchant = Filament::auth()->user();
-                if (! $merchant || ! $merchant->logo) {
-                    return null;
+
+                if (! $merchant) {
+                    return asset('images/zgn-crm-logo.png');
+                }
+
+                if (! $merchant->logo) {
+                    return asset('images/zgn-crm-logo.png');
                 }
 
                 $path = $merchant->logo->photo_url;
 
                 if (! Storage::disk('public')->exists($path)) {
-                    return null;
+                    return asset('images/zgn-crm-logo.png');
                 }
 
                 return asset('storage/'.$path);

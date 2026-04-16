@@ -18,7 +18,10 @@
         'subheading' => null,
     ])
 
-    <div class="fi-simple-layout">
+    <div @class([
+        'fi-simple-layout',
+        'zgn-auth-layout' => ! filament()->auth()->check(),
+    ])>
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::SIMPLE_LAYOUT_START, scopes: $renderHookScopes) }}
 
         @if (($hasTopbar ?? true) && filament()->auth()->check())
@@ -34,6 +37,16 @@
                     @livewire(Filament\Livewire\SimpleUserMenu::class)
                 @endif
             </div>
+        @endif
+
+        @if (! filament()->auth()->check())
+            <aside class="zgn-auth-visual" aria-hidden="true">
+                <img
+                    src="{{ asset('images/login-illustration.png') }}"
+                    alt=""
+                    class="zgn-auth-visual-image"
+                >
+            </aside>
         @endif
 
         <div class="fi-simple-main-ctn">

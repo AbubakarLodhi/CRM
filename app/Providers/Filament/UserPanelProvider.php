@@ -19,6 +19,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class UserPanelProvider extends PanelProvider
@@ -30,11 +31,20 @@ class UserPanelProvider extends PanelProvider
             ->path('staff')
             ->authGuard('staff')
             ->authPasswordBroker('staffs')
-            ->login()
+            ->login(\App\Filament\Auth\Login::class)
             ->passwordReset()
             ->colors([
                 'primary' => Color::Green,
             ])
+            ->brandLogo(function () {
+                $path = Filament::auth()->user()?->merchant?->logo?->photo_url;
+
+                if ($path && Storage::disk('public')->exists($path)) {
+                    return asset('storage/'.$path);
+                }
+
+                return asset('images/zgn-crm-logo.png');
+            })
             ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Green Pvt')
             ->viteTheme('resources/css/filament/merchant/theme.css')
             ->navigationGroups([
