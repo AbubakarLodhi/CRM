@@ -250,18 +250,6 @@
                     </p>
                     <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
                         <div class="flex items-center justify-between">
-                            <span>Net Cash Flow</span>
-                            <span class="font-medium {{ ($funds['cash_flow_net'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">{{ number_format($funds['cash_flow_net'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Received Amount</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_received'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Paid Amount</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_paid'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
                             <span>Receivable Cash</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_receivable'], 2) }}</span>
                         </div>
