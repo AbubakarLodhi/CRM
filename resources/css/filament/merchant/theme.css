@@ -272,8 +272,8 @@
 
 .zgn-auth-layout img.fi-logo {
     width: auto;
-    max-width: 180px;
-    max-height: 110px;
+    max-width: 240px;
+    max-height: 150px;
     object-fit: contain;
 }
 
@@ -286,8 +286,8 @@
 }
 
 .zgn-auth-layout .zgn-auth-logo svg {
-    width: 76px;
-    height: 62px;
+    width: 104px;
+    height: 84px;
     display: block;
 }
 

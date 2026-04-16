@@ -86,10 +86,23 @@ class CreateMerchantSetting extends CreateRecord
 
         if (array_key_exists('cash_in_hand', $state) || array_key_exists('cash_in_bank', $state)) {
             $merchant->update([
-                'cash_in_hand' => $state['cash_in_hand'] ?? 0,
-                'cash_in_bank' => $state['cash_in_bank'] ?? 0,
+                'cash_in_hand' => array_key_exists('cash_in_hand', $state)
+                    ? $this->cashAccountAmount($state['cash_in_hand'])
+                    : $merchant->cash_in_hand,
+                'cash_in_bank' => array_key_exists('cash_in_bank', $state)
+                    ? $this->cashAccountAmount($state['cash_in_bank'])
+                    : $merchant->cash_in_bank,
             ]);
         }
 
+    }
+
+    private function cashAccountAmount(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        return is_numeric($value) ? (float) $value : 0.0;
     }
 }
