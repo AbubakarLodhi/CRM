@@ -244,12 +244,11 @@
                         <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Cash Flow</p>
                         <span class="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-200">Flow</span>
                     </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($funds['current_total_funds'], 2) }}</p>
+                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                        {{ number_format($funds['current_total_funds'], 2) }}
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">(Total Funds)</span>
+                    </p>
                     <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Total Funds</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['current_total_funds'], 2) }}</span>
-                        </div>
                         <div class="flex items-center justify-between">
                             <span>Net Cash Flow</span>
                             <span class="font-medium {{ ($funds['cash_flow_net'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">{{ number_format($funds['cash_flow_net'], 2) }}</span>
