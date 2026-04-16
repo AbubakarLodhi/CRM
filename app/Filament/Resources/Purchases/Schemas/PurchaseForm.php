@@ -121,6 +121,26 @@ class PurchaseForm
                                 ->default(false)
                                 ->dehydrated(false),
 
+                            Hidden::make('paginated_items_mode')
+                                ->default(false)
+                                ->dehydrated(),
+
+                            Hidden::make('items_page')
+                                ->default(1)
+                                ->dehydrated(),
+
+                            Hidden::make('items_per_page')
+                                ->default(25)
+                                ->dehydrated(false),
+
+                            Hidden::make('items_total')
+                                ->default(0)
+                                ->dehydrated(false),
+
+                            Hidden::make('items_last_page')
+                                ->default(1)
+                                ->dehydrated(false),
+
                             Hidden::make('merchant_id')
                                 ->default(fn () => self::merchantId())
                                 ->required(),
@@ -222,18 +242,40 @@ class PurchaseForm
                             $set('items', $items);
                             $set('discount_mode', 'amount');
                         }),
+                    \Filament\Actions\Action::make('previousItemsPage')
+                        ->label('Previous')
+                        ->visible(fn (callable $get) => (bool) ($get('paginated_items_mode') ?? false))
+                        ->disabled(fn (callable $get) => (int) ($get('items_page') ?? 1) <= 1)
+                        ->action(fn ($livewire) => $livewire->previousItemsPage()),
+                    \Filament\Actions\Action::make('nextItemsPage')
+                        ->label('Next')
+                        ->visible(fn (callable $get) => (bool) ($get('paginated_items_mode') ?? false))
+                        ->disabled(fn (callable $get) => (int) ($get('items_page') ?? 1) >= (int) ($get('items_last_page') ?? 1))
+                        ->action(fn ($livewire) => $livewire->nextItemsPage()),
                 ])
                 ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false))
                 ->schema([
                     Hidden::make('discount_mode')
                         ->default('percent')
                         ->dehydrated(false),
+
+                    Placeholder::make('items_page_status')
+                        ->label('Line items page')
+                        ->content(fn (callable $get) => new HtmlString(
+                            'Showing page '.(int) ($get('items_page') ?? 1).' of '.(int) ($get('items_last_page') ?? 1)
+                            .' for '.(int) ($get('items_total') ?? 0).' line items. '
+                            .'Use Previous or Next to save this page and load another set of items.'
+                        ))
+                        ->visible(fn (callable $get) => (bool) ($get('paginated_items_mode') ?? false)),
+
                     Repeater::make('items')
                         ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                             $livewire->resetValidation();
                             $livewire->resetErrorBag();
                         })
                         ->schema([
+                            Hidden::make('purchase_item_id')
+                                ->dehydrated(),
 
 //                            /* -------- BUSINESS -------- */
 //                            Select::make('business_id')
@@ -263,7 +305,6 @@ class PurchaseForm
                             Select::make('product_id')
                                 ->label('Product')
                                 ->searchable()
-                                ->preload()
                                 ->required()
                                 ->live()
                                 ->reactive()
@@ -770,8 +811,9 @@ class PurchaseForm
                         ->itemLabel('Item')
                         ->itemNumbers()
                         ->addActionLabel('Add Item')
+                        ->addable(fn (callable $get) => ! (bool) ($get('../../paginated_items_mode') ?? false))
                         ->reorderable(false)
-                        ->deletable(true)
+                        ->deletable(fn (callable $get) => ! (bool) ($get('../../paginated_items_mode') ?? false))
                         ->afterStateHydrated(function (callable $set, callable $get) {
                             $items = $get('items') ?? [];
                             $discountMode = $get('discount_mode') ?? 'percent';
@@ -977,6 +1019,12 @@ class PurchaseForm
         if (! is_array($items)) {
             $items = $get('../../items') ?? [];
             $rootPrefix = '../../';
+        }
+
+        if ((bool) ($get($rootPrefix . 'paginated_items_mode') ?? false)) {
+            self::syncPaymentFromTotals($set, $get, $rootPrefix);
+
+            return;
         }
 
         $discountMode = $get($rootPrefix . 'discount_mode') ?? 'percent';

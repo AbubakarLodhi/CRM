@@ -19,10 +19,15 @@ use Illuminate\Validation\ValidationException;
 class EditPurchase extends EditRecord
 {
     protected static string $resource = PurchaseResource::class;
+    private const PAGINATED_ITEMS_THRESHOLD = 75;
+    private const ITEMS_PER_PAGE = 25;
+
     protected bool $isPartiallyReturned = false;
     protected float $paymentDelta = 0.0;
     protected ?string $paymentDate = null;
     protected string $paymentEntryType = 'payment';
+    protected bool $usesPaginatedItems = false;
+    public int $itemsPage = 1;
 
 
     public function getTitle(): string
@@ -40,26 +45,25 @@ class EditPurchase extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $this->isPartiallyReturned = $this->isPartiallyReturnedPurchase();
+        $itemCount = $this->record->items()->count();
+        $this->usesPaginatedItems = $itemCount > self::PAGINATED_ITEMS_THRESHOLD;
+        $this->itemsPage = 1;
         $recordedPaid = $this->getRecordedPaidAmount();
 
-        $data['items'] = $this->record->items->map(fn ($item) => [
-            'line_subtotal'      => (float) $item->line_total,
-            'discount_amount'    => (float) $item->line_total * ((float) ($item->discount ?? 0) / 100),
-            'tax_amount'         => ((float) $item->line_total - ((float) $item->line_total * ((float) ($item->discount ?? 0) / 100)))
-                * ((float) ($item->tax ?? 0) / 100),
-            'branch_id'          => $item->branch_id,
-            'product_id'         => $item->product_id,
-            'product_variant_id' => optional($item->variants->first())->product_variant_id,
-            'quantity'           => $item->quantity,
-            'unit_price'         => $item->unit_price,
-            'line_total'         => $item->line_total,
-            'discount'           => $item->discount ?? 0,
-            'tax'                => $item->tax ?? 0,
-        ])->toArray();
+        $data['paginated_items_mode'] = $this->usesPaginatedItems;
+        $data['items_page'] = $this->itemsPage;
+        $data['items_per_page'] = self::ITEMS_PER_PAGE;
+        $data['items_total'] = $itemCount;
+        $data['items_last_page'] = $this->itemsLastPage($itemCount);
+        $data['items'] = $this->usesPaginatedItems
+            ? $this->itemsForPage($this->itemsPage)
+            : $this->record->items->map(fn ($item) => $this->itemState($item))->toArray();
 
         $data['previous_paid_amount'] = $recordedPaid;
         $data['current_payment_amount'] = 0;
         $data['paid_amount'] = $recordedPaid;
+        $data['subtotal'] = (float) ($data['subtotal'] ?? $this->record->subtotal ?? 0);
+        $data['total_amount'] = (float) ($data['total_amount'] ?? $this->record->total_amount ?? 0);
 
         if (! array_key_exists('due_amount', $data) || $data['due_amount'] === null) {
             $totalAmount = (float) ($data['total_amount'] ?? 0);
@@ -111,9 +115,34 @@ class EditPurchase extends EditRecord
             ];
         }
 
+        if ((bool) ($data['paginated_items_mode'] ?? false)) {
+            unset($data['payment_date']);
+            unset($data['items']);
+            unset($data['paginated_items_mode']);
+            unset($data['items_page']);
+            unset($data['items_per_page']);
+            unset($data['items_total']);
+            unset($data['items_last_page']);
+
+            $data['subtotal'] = (float) ($this->record->subtotal ?? 0);
+            $data['total_amount'] = (float) ($this->record->total_amount ?? 0);
+            $data['current_payment_amount'] = (float) ($data['current_payment_amount'] ?? 0);
+            $this->preparePaymentDelta($data, (float) $data['total_amount']);
+            unset($data['current_payment_amount']);
+            $data['paid_amount'] = $this->getRecordedPaidAmount() + $this->paymentDelta;
+            self::applyPaymentFields($data);
+
+            return $data;
+        }
+
         $items = $data['items'] ?? [];
         $currentPaymentAmount = (float) ($data['current_payment_amount'] ?? 0);
         unset($data['items']);
+        unset($data['paginated_items_mode']);
+        unset($data['items_page']);
+        unset($data['items_per_page']);
+        unset($data['items_total']);
+        unset($data['items_last_page']);
         unset($data['current_payment_amount']);
         unset($data['payment_date']);
         $items = self::normalizeItems($items);
@@ -161,7 +190,7 @@ class EditPurchase extends EditRecord
             $items = $this->form->getState()['items'] ?? [];
             $items = self::normalizeItems($items);
 
-            if (! $this->isPartiallyReturned) {
+            if (! $this->isPartiallyReturned && ! (bool) ($this->form->getState()['paginated_items_mode'] ?? false)) {
                 // Clear existing
                 $this->record->items()->delete();
 
@@ -197,6 +226,10 @@ class EditPurchase extends EditRecord
                 }
             }
 
+            if (! $this->isPartiallyReturned && (bool) ($this->form->getState()['paginated_items_mode'] ?? false)) {
+                $this->saveVisibleItemsPage();
+            }
+
             if ($this->paymentDelta != 0.0) {
                 PaymentLedgerService::recordPurchasePayment(
                     $this->record->fresh(),
@@ -206,6 +239,177 @@ class EditPurchase extends EditRecord
                 );
             }
         });
+    }
+
+    public function previousItemsPage(): void
+    {
+        $this->changeItemsPage($this->itemsPage - 1);
+    }
+
+    public function nextItemsPage(): void
+    {
+        $this->changeItemsPage($this->itemsPage + 1);
+    }
+
+    public function changeItemsPage(int $page): void
+    {
+        if ($this->isPartiallyReturnedPurchase()) {
+            return;
+        }
+
+        $state = $this->form->getState();
+
+        if (! (bool) ($state['paginated_items_mode'] ?? false)) {
+            return;
+        }
+
+        $this->saveVisibleItemsPage();
+
+        $total = $this->record->items()->count();
+        $lastPage = $this->itemsLastPage($total);
+        $this->itemsPage = max(1, min($page, $lastPage));
+
+        $this->form->fill([
+            ...$state,
+            'items' => $this->itemsForPage($this->itemsPage),
+            'items_page' => $this->itemsPage,
+            'items_total' => $total,
+            'items_last_page' => $lastPage,
+            'subtotal' => (float) ($this->record->subtotal ?? 0),
+            'total_amount' => (float) ($this->record->total_amount ?? 0),
+        ]);
+    }
+
+    private function saveVisibleItemsPage(): void
+    {
+        $items = self::normalizeItems($this->form->getState()['items'] ?? []);
+
+        DB::transaction(function () use ($items): void {
+            foreach ($items as $item) {
+                $purchaseItemId = $item['purchase_item_id'] ?? null;
+
+                if (! $purchaseItemId) {
+                    continue;
+                }
+
+                $purchaseItem = $this->record->items()->find($purchaseItemId);
+
+                if (! $purchaseItem) {
+                    continue;
+                }
+
+                $branch = \App\Models\Branch::select('id', 'business_id')
+                    ->find($item['branch_id']);
+
+                if (! $branch) {
+                    continue;
+                }
+
+                $purchaseItem->update([
+                    'business_id' => $branch->business_id,
+                    'branch_id' => $branch->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'line_total' => $item['line_total'],
+                    'discount' => $item['discount'] ?? 0,
+                    'tax' => $item['tax'] ?? 0,
+                ]);
+
+                $variant = $purchaseItem->variants()->first();
+
+                if (! empty($item['product_variant_id'])) {
+                    if ($variant) {
+                        $variant->update([
+                            'product_variant_id' => $item['product_variant_id'],
+                            'quantity' => $item['quantity'],
+                            'unit_price' => $item['unit_price'],
+                            'line_total' => $item['line_total'],
+                        ]);
+                    } else {
+                        $purchaseItem->variants()->create([
+                            'product_variant_id' => $item['product_variant_id'],
+                            'quantity' => $item['quantity'],
+                            'unit_price' => $item['unit_price'],
+                            'line_total' => $item['line_total'],
+                        ]);
+                    }
+                } else {
+                    $purchaseItem->variants()->delete();
+                }
+            }
+
+            $this->syncRecordTotalsFromItems();
+        });
+    }
+
+    private function syncRecordTotalsFromItems(): void
+    {
+        $items = $this->record->items()->get(['line_total', 'discount', 'tax']);
+        $subtotal = 0.0;
+        $totalDiscount = 0.0;
+        $totalTax = 0.0;
+
+        foreach ($items as $item) {
+            $lineTotal = (float) ($item->line_total ?? 0);
+            $discountRate = max(0, min(100, (float) ($item->discount ?? 0)));
+            $taxRate = max(0, min(100, (float) ($item->tax ?? 0)));
+            $discountAmount = $lineTotal * ($discountRate / 100);
+            $taxableAmount = max(0, $lineTotal - $discountAmount);
+
+            $subtotal += $lineTotal;
+            $totalDiscount += $discountAmount;
+            $totalTax += $taxableAmount * ($taxRate / 100);
+        }
+
+        $totalAmount = round($subtotal - $totalDiscount + $totalTax, 2);
+        $paidAmount = min($totalAmount, (float) ($this->record->paid_amount ?? 0));
+
+        $this->record->update([
+            'subtotal' => round($subtotal, 2),
+            'total_amount' => $totalAmount,
+            'paid_amount' => round($paidAmount, 2),
+            'due_amount' => round(max(0, $totalAmount - $paidAmount), 2),
+            'payment_type' => $totalAmount > $paidAmount ? 'credit' : 'cash',
+        ]);
+
+        $this->record->refresh();
+    }
+
+    private function itemsForPage(int $page): array
+    {
+        return $this->record
+            ->items()
+            ->with('variants')
+            ->orderBy('id')
+            ->forPage($page, self::ITEMS_PER_PAGE)
+            ->get()
+            ->map(fn ($item) => $this->itemState($item))
+            ->toArray();
+    }
+
+    private function itemState($item): array
+    {
+        return [
+            'purchase_item_id' => $item->id,
+            'line_subtotal' => (float) $item->line_total,
+            'discount_amount' => (float) $item->line_total * ((float) ($item->discount ?? 0) / 100),
+            'tax_amount' => ((float) $item->line_total - ((float) $item->line_total * ((float) ($item->discount ?? 0) / 100)))
+                * ((float) ($item->tax ?? 0) / 100),
+            'branch_id' => $item->branch_id,
+            'product_id' => $item->product_id,
+            'product_variant_id' => optional($item->variants->first())->product_variant_id,
+            'quantity' => $item->quantity,
+            'unit_price' => $item->unit_price,
+            'line_total' => $item->line_total,
+            'discount' => $item->discount ?? 0,
+            'tax' => $item->tax ?? 0,
+        ];
+    }
+
+    private function itemsLastPage(int $total): int
+    {
+        return max(1, (int) ceil($total / self::ITEMS_PER_PAGE));
     }
 
     private static function normalizeItems(array $items): array
