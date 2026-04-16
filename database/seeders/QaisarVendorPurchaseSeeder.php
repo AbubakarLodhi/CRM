@@ -22,13 +22,10 @@ class QaisarVendorPurchaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchants = Merchant::whereIn('email', [
-            'info@zgngreenpvt.com',
-            'info@halaynoor.com',
-        ])->get();
+        $merchants = Merchant::where('email', 'info@zgngreenpvt.com')->get();
 
         if ($merchants->isEmpty()) {
-            $this->command->warn('No merchants found. Please run MerchantsSeeder first.');
+            $this->command->warn('ZGN merchant not found. Please run MerchantsSeeder first.');
 
             return;
         }
@@ -84,21 +81,18 @@ class QaisarVendorPurchaseSeeder extends Seeder
         }
 
         $createdBy = User::where('merchant_id', $merchant->id)->first();
-        $purchaseDate = now()->subDays(rand(1, 10));
-        $purchaseNo = 'PUR-'.$purchaseDate->format('Ymd').'-'.strtoupper(Str::random(6));
+        $purchaseDate = now()->subDays(3)->startOfDay();
+        $purchaseNo = 'PUR-QAISAR-'.strtoupper(substr((string) $merchant->id, 0, 8));
 
-        $purchase = Purchase::firstOrCreate(
+        $purchase = Purchase::updateOrCreate(
             [
+                'merchant_id' => $merchant->id,
                 'purchase_no' => $purchaseNo,
             ],
             [
-                'id' => (string) Str::uuid(),
-                'merchant_id' => $merchant->id,
                 'vendor_id' => $vendor->id,
                 'purchase_date' => $purchaseDate,
                 'subtotal' => 0,
-                'discount' => 0,
-                'tax' => 0,
                 'total_amount' => 0,
                 'paid_amount' => 0,
                 'due_amount' => 0,
@@ -185,23 +179,15 @@ class QaisarVendorPurchaseSeeder extends Seeder
             );
         }
 
-        $tax = round($subtotal * 0.15, 2);
-        $totalAmount = round($subtotal + $tax, 2);
-
         $purchase->update([
             'subtotal' => $subtotal,
-            'total_amount' => $totalAmount,
+            'total_amount' => $subtotal,
             'paid_amount' => 0,
-            'due_amount' => $totalAmount,
+            'due_amount' => $subtotal,
             'payment_type' => 'credit',
         ]);
-        $purchase->forceFill([
-            'discount' => 0,
-            'tax' => $tax,
-        ])->save();
 
-        $this->command->info("Purchase from Qaisar created successfully for {$merchant->name}.");
-        $this->command->info('Purchase No: '.$purchaseNo.' | Total Lines: '.count($this->items()));
+        $this->command->info("Qaisar purchase seeded for {$merchant->name}: {$purchaseNo}");
     }
 
     private function categoryFor(Merchant $merchant, string $name): Category
