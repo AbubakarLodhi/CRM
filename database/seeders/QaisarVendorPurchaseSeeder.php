@@ -96,7 +96,7 @@ class QaisarVendorPurchaseSeeder extends Seeder
                 'total_amount' => 0,
                 'paid_amount' => 0,
                 'due_amount' => 0,
-                'payment_type' => 'credit',
+                'payment_type' => 'cash',
                 'notes' => 'Purchase of filters, tyres, and oils from Qaisar',
                 'created_by' => $createdBy?->id,
             ],
@@ -182,9 +182,9 @@ class QaisarVendorPurchaseSeeder extends Seeder
         $purchase->update([
             'subtotal' => $subtotal,
             'total_amount' => $subtotal,
-            'paid_amount' => 0,
-            'due_amount' => $subtotal,
-            'payment_type' => 'credit',
+            'paid_amount' => $subtotal,
+            'due_amount' => 0,
+            'payment_type' => 'cash',
         ]);
 
         $this->command->info("Qaisar purchase seeded for {$merchant->name}: {$purchaseNo}");

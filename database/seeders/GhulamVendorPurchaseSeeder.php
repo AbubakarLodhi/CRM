@@ -24,7 +24,7 @@ class GhulamVendorPurchaseSeeder extends Seeder
     {
         $merchants = Merchant::whereIn('email', [
             'info@zgngreenpvt.com',
-            'info@halaynoor.com',
+           // 'info@halaynoor.com',
         ])->get();
 
         if ($merchants->isEmpty()) {
@@ -97,12 +97,10 @@ class GhulamVendorPurchaseSeeder extends Seeder
                 'vendor_id' => $vendor->id,
                 'purchase_date' => $purchaseDate,
                 'subtotal' => 0,
-                'discount' => 0,
-                'tax' => 0,
                 'total_amount' => 0,
                 'paid_amount' => 0,
                 'due_amount' => 0,
-                'payment_type' => 'credit',
+                'payment_type' => 'cash',
                 'notes' => 'Bulk purchase from Ghulam Nabi - Inverters, Batteries, Solar Plates & EVEE Products',
                 'created_by' => $createdBy?->id,
             ],
@@ -192,14 +190,10 @@ class GhulamVendorPurchaseSeeder extends Seeder
         $purchase->update([
             'subtotal' => $subtotal,
             'total_amount' => $totalAmount,
-            'paid_amount' => 0,
-            'due_amount' => $totalAmount,
-            'payment_type' => 'credit',
+            'paid_amount' => $totalAmount,
+            'due_amount' => 0,
+            'payment_type' => 'cash',
         ]);
-        $purchase->forceFill([
-            'discount' => 0,
-            'tax' => $tax,
-        ])->save();
 
         $this->command->info("Specific bulk purchase created successfully for merchant: {$merchant->name}");
         $this->command->info('Purchase No: '.$purchaseNo.' | Total Items: '.count($this->items()).' lines');
