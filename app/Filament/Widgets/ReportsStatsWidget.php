@@ -810,12 +810,6 @@ class ReportsStatsWidget extends Widget
                 'expenses' => 0,
                 'payrolls' => 0,
                 'net_profit' => 0,
-                'cash_in_hand' => 0,
-                'cash_in_bank' => 0,
-                'cash_pool' => 0,
-                'cash_flow_receivable' => 0,
-                'cash_flow_payable' => 0,
-                'business_health' => 0,
             ];
         }
 
@@ -867,46 +861,6 @@ class ReportsStatsWidget extends Widget
             )
             ->sum('net_salary');
 
-        $cashFlowBalances = CashFlow::query()
-            ->withoutTrashed()
-            ->where('merchant_id', $merchantId)
-            ->whereIn('flow_type', ['loan', 'advance'])
-            ->where(function (EloquentBuilder $query): void {
-                $query->whereNull('settlement_for_id')
-                    ->orWhereExists(function ($subQuery): void {
-                        $subQuery
-                            ->selectRaw('1')
-                            ->from('cash_flows as original_cash_flows')
-                            ->whereColumn('original_cash_flows.id', 'cash_flows.settlement_for_id')
-                            ->whereNull('original_cash_flows.deleted_at');
-                    });
-            })
-            ->when(
-                $filters['date_from'],
-                fn (EloquentBuilder $query, $date) => $query->whereDate('flow_date', '>=', $date),
-            )
-            ->when(
-                $filters['date_to'],
-                fn (EloquentBuilder $query, $date) => $query->whereDate('flow_date', '<=', $date),
-            )
-            ->select('flow_type')
-            ->selectRaw("
-                COALESCE(SUM(
-                    CASE
-                        WHEN settlement_for_id IS NULL THEN amount
-                        ELSE -amount
-                    END
-                ), 0) as balance
-            ")
-            ->groupBy('flow_type')
-            ->pluck('balance', 'flow_type');
-
-        $merchant = Merchant::query()->find($merchantId);
-        $cashInHand = (float) ($merchant?->cash_in_hand ?? 0);
-        $cashInBank = (float) ($merchant?->cash_in_bank ?? 0);
-        $cashPool = $cashInHand + $cashInBank;
-        $cashFlowReceivable = (float) ($cashFlowBalances['loan'] ?? 0);
-        $cashFlowPayable = (float) ($cashFlowBalances['advance'] ?? 0);
         $netProfit = $grossProfit - $expenses - $payrolls;
 
         return [
@@ -920,12 +874,6 @@ class ReportsStatsWidget extends Widget
             'expenses' => $expenses,
             'payrolls' => $payrolls,
             'net_profit' => $netProfit,
-            'cash_in_hand' => $cashInHand,
-            'cash_in_bank' => $cashInBank,
-            'cash_pool' => $cashPool,
-            'cash_flow_receivable' => $cashFlowReceivable,
-            'cash_flow_payable' => $cashFlowPayable,
-            'business_health' => $cashPool + $netProfit + $cashFlowReceivable - $cashFlowPayable,
         ];
     }
 
@@ -1138,6 +1086,10 @@ class ReportsStatsWidget extends Widget
                 'expenses_outflow' => 0,
                 'payroll_outflow' => 0,
                 'cash_flow_net' => 0,
+                'cash_flow_received' => 0,
+                'cash_flow_paid' => 0,
+                'cash_flow_receivable' => 0,
+                'cash_flow_payable' => 0,
                 'net_cash_movement' => 0,
                 'current_total_funds' => 0,
             ];
@@ -1169,6 +1121,7 @@ class ReportsStatsWidget extends Widget
 
         $cashFlowQuery = CashFlow::query()
             ->withoutTrashed()
+            ->activeLedger()
             ->where('merchant_id', $merchantId)
             ->when(
                 $filters['date_from'],
@@ -1189,6 +1142,22 @@ class ReportsStatsWidget extends Widget
 
         $cashFlowNet = $cashFlowIn - $cashFlowOut;
 
+        $cashFlowBalances = (clone $cashFlowQuery)
+            ->select('flow_type')
+            ->selectRaw("
+                COALESCE(SUM(
+                    CASE
+                        WHEN settlement_for_id IS NULL THEN amount
+                        ELSE -amount
+                    END
+                ), 0) as balance
+            ")
+            ->groupBy('flow_type')
+            ->pluck('balance', 'flow_type');
+
+        $cashFlowReceivable = max(0, (float) ($cashFlowBalances['loan'] ?? 0));
+        $cashFlowPayable = max(0, (float) ($cashFlowBalances['advance'] ?? 0));
+
         $salesCashInflow = $cashSalesAmount;
         $purchasesCashOutflow = $cashPurchasesAmount;
         $expensesOutflow = $expenseAmount;
@@ -1202,6 +1171,10 @@ class ReportsStatsWidget extends Widget
             'expenses_outflow' => $expensesOutflow,
             'payroll_outflow' => $payrollOutflow,
             'cash_flow_net' => $cashFlowNet,
+            'cash_flow_received' => $cashFlowIn,
+            'cash_flow_paid' => $cashFlowOut,
+            'cash_flow_receivable' => $cashFlowReceivable,
+            'cash_flow_payable' => $cashFlowPayable,
             'net_cash_movement' => $netCashMovement,
             'current_total_funds' => $openingTotalFunds + $netCashMovement,
         ];

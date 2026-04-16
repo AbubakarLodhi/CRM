@@ -230,6 +230,7 @@ class CustomersTable
                             ->get();
                         $cashFlows = CashFlow::query()
                             ->withoutTrashed()
+                            ->activeLedger()
                             ->where('merchant_id', $merchantId)
                             ->where('party_type', Customer::class)
                             ->where('party_id', $record->id)
@@ -359,6 +360,7 @@ class CustomersTable
 
         $cashFlowQuery = CashFlow::query()
             ->withoutTrashed()
+            ->activeLedger()
             ->where('merchant_id', $record->merchant_id)
             ->where('party_type', Customer::class)
             ->where('party_id', $record->id);

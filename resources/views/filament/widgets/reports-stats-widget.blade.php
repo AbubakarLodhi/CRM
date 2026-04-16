@@ -32,8 +32,8 @@
         $leaders = $leaders ?? ['customers' => [], 'vendors' => [], 'variants' => []];
         $credit = $credit ?? ['receivable_total' => 0, 'payable_total' => 0, 'top_customers' => [], 'top_vendors' => []];
         $expenses = $expenses ?? ['total_expenses' => 0, 'total_amount' => 0, 'avg_expense' => 0];
-        $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'expenses_outflow' => 0, 'payroll_outflow' => 0, 'cash_flow_net' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
-        $profitLoss = $profitLoss ?? ['gross_profit' => 0, 'net_profit' => 0, 'business_health' => 0, 'net_sales' => 0, 'net_purchases' => 0, 'expenses' => 0, 'payrolls' => 0, 'cash_in_hand' => 0, 'cash_flow_receivable' => 0, 'cash_flow_payable' => 0, 'sales_returns' => 0, 'purchase_returns' => 0];
+        $funds = $funds ?? ['opening_total_funds' => 0, 'sales_cash_inflow' => 0, 'purchases_cash_outflow' => 0, 'expenses_outflow' => 0, 'payroll_outflow' => 0, 'cash_flow_net' => 0, 'cash_flow_received' => 0, 'cash_flow_paid' => 0, 'cash_flow_receivable' => 0, 'cash_flow_payable' => 0, 'net_cash_movement' => 0, 'current_total_funds' => 0];
+        $profitLoss = $profitLoss ?? ['gross_profit' => 0, 'net_profit' => 0, 'net_sales' => 0, 'net_purchases' => 0, 'expenses' => 0, 'payrolls' => 0, 'sales_returns' => 0, 'purchase_returns' => 0];
         $filterPeriodLabel = $filterPeriodLabel ?? 'All time';
         $barMax = max($seriesAll ?: [1]);
         $barHeights = [
@@ -50,7 +50,7 @@
         }
     @endphp
 
-    <div class="space-y-6 stats-dashboard" x-data="{ showSales: true, showPurchases: true, profitLossMetric: 'business_health', toggle(which) { if (which === 'sales') { this.showSales = !this.showSales; if (!this.showSales && !this.showPurchases) this.showPurchases = true; } if (which === 'purchases') { this.showPurchases = !this.showPurchases; if (!this.showPurchases && !this.showSales) this.showSales = true; } } }">
+    <div class="space-y-6 stats-dashboard" x-data="{ showSales: true, showPurchases: true, profitLossMetric: 'gross_profit', toggle(which) { if (which === 'sales') { this.showSales = !this.showSales; if (!this.showSales && !this.showPurchases) this.showPurchases = true; } if (which === 'purchases') { this.showPurchases = !this.showPurchases; if (!this.showPurchases && !this.showSales) this.showSales = true; } } }">
         <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
             <div class="flex items-center justify-between">
                 <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Overview</p>
@@ -101,7 +101,6 @@
                             class="rounded-full border-0 bg-lime-50 px-3 py-1 text-xs font-semibold text-lime-700 shadow-none ring-0 focus:ring-2 focus:ring-lime-200 dark:bg-lime-900/40 dark:text-lime-200"
                             aria-label="Profit Loss headline metric"
                         >
-                            <option value="business_health">Health</option>
                             <option value="gross_profit">Gross Profit</option>
                             <option value="net_profit">Net Profit</option>
                             <option value="net_sales">Net Sales</option>
@@ -109,7 +108,6 @@
                         </select>
                     </div>
                     <p class="mt-4 text-2xl font-semibold">
-                        <span x-show="profitLossMetric === 'business_health'" class="{{ ($profitLoss['business_health'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['business_health'] ?? 0, 2) }}</span>
                         <span x-show="profitLossMetric === 'gross_profit'" class="{{ ($profitLoss['gross_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['gross_profit'] ?? 0, 2) }}</span>
                         <span x-show="profitLossMetric === 'net_profit'" class="{{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
                         <span x-show="profitLossMetric === 'net_sales'" class="{{ ($profitLoss['net_sales'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_sales'] ?? 0, 2) }}</span>
@@ -137,17 +135,6 @@
                                 >?</span>
                             </span>
                             <span class="font-medium {{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="inline-flex items-center gap-1">
-                                Business Health
-                                <span
-                                    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
-                                    title="Business Health = (Cash In Hand + Cash In Bank) + Net Profit + Cash Flow Receivable - Cash Flow Payable"
-                                    aria-label="Business Health formula"
-                                >?</span>
-                            </span>
-                            <span class="font-medium {{ ($profitLoss['business_health'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['business_health'] ?? 0, 2) }}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span>Net Sales</span>
@@ -248,6 +235,40 @@
                         <div class="flex items-center justify-between">
                             <span>Cash Flow Net</span>
                             <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_net'], 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-gradient-to-br from-cyan-50 to-white p-5 shadow-sm ring-1 ring-cyan-100 stats-panel dark:bg-slate-900 dark:ring-cyan-900/50">
+                    <div class="flex items-center justify-between">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Cash Flow</p>
+                        <span class="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-200">Flow</span>
+                    </div>
+                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($funds['current_total_funds'], 2) }}</p>
+                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                        <div class="flex items-center justify-between">
+                            <span>Total Funds</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['current_total_funds'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Net Cash Flow</span>
+                            <span class="font-medium {{ ($funds['cash_flow_net'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">{{ number_format($funds['cash_flow_net'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Received Amount</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_received'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Paid Amount</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_paid'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Receivable Cash</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_receivable'], 2) }}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Payable Cash</span>
+                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_payable'], 2) }}</span>
                         </div>
                     </div>
                 </div>

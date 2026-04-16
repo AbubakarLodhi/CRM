@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,6 +38,41 @@ class CashFlow extends Model
         'amount' => 'decimal:2',
         'flow_date' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (self $cashFlow): void {
+            if ($cashFlow->settlement_for_id !== null) {
+                return;
+            }
+
+            $settlements = $cashFlow->settlements();
+
+            if ($cashFlow->isForceDeleting()) {
+                $settlements->withTrashed()->get()->each->forceDelete();
+
+                return;
+            }
+
+            $settlements->withoutTrashed()->get()->each->delete();
+        });
+
+        static::restoring(function (self $cashFlow): void {
+            if ($cashFlow->settlement_for_id !== null) {
+                return;
+            }
+
+            $cashFlow->settlements()->withTrashed()->restore();
+        });
+    }
+
+    public function scopeActiveLedger(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query): void {
+            $query->whereNull('settlement_for_id')
+                ->orWhereHas('settlementFor');
+        });
+    }
 
     public static function flowTypeLabels(): array
     {
