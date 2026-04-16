@@ -22,10 +22,13 @@ class GhulamVendorPurchaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchants = Merchant::where('email', 'info@zgngreenpvt.com')->get();
+        $merchants = Merchant::whereIn('email', [
+            'info@zgngreenpvt.com',
+            'info@halaynoor.com',
+        ])->get();
 
         if ($merchants->isEmpty()) {
-            $this->command->warn('ZGN merchant not found. Please run MerchantsSeeder first.');
+            $this->command->warn('No merchants found. Please run MerchantsSeeder first.');
 
             return;
         }
@@ -51,12 +54,12 @@ class GhulamVendorPurchaseSeeder extends Seeder
         $vendor = Vendor::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'name' => 'Ghulam',
+                'name' => 'Ghulam Nabi',
             ],
             [
                 'id' => (string) Str::uuid(),
-                'email' => 'ghulam-'.substr((string) $merchant->id, 0, 8).'@seed.local',
-                'phone' => '+923444555591',
+                'email' => 'ghulam-nabi-'.substr((string) $merchant->id, 0, 8).'@seed.local',
+                'phone' => '+923444555590',
                 'address' => 'Lahore, Pakistan',
                 'country_id' => $pakistan->id,
                 'city_id' => $lahore->id,
@@ -81,23 +84,26 @@ class GhulamVendorPurchaseSeeder extends Seeder
         }
 
         $createdBy = User::where('merchant_id', $merchant->id)->first();
-        $purchaseDate = now()->subDays(3)->startOfDay();
-        $purchaseNo = 'PUR-GHULAM-'.strtoupper(substr((string) $merchant->id, 0, 8));
+        $purchaseDate = now()->subDays(rand(1, 15));
+        $purchaseNo = 'PUR-'.$purchaseDate->format('Ymd').'-'.strtoupper(Str::random(6));
 
-        $purchase = Purchase::updateOrCreate(
+        $purchase = Purchase::firstOrCreate(
             [
-                'merchant_id' => $merchant->id,
                 'purchase_no' => $purchaseNo,
             ],
             [
+                'id' => (string) Str::uuid(),
+                'merchant_id' => $merchant->id,
                 'vendor_id' => $vendor->id,
                 'purchase_date' => $purchaseDate,
                 'subtotal' => 0,
+                'discount' => 0,
+                'tax' => 0,
                 'total_amount' => 0,
                 'paid_amount' => 0,
                 'due_amount' => 0,
                 'payment_type' => 'credit',
-                'notes' => 'Purchase of filters, tyres, and oils from Ghulam',
+                'notes' => 'Bulk purchase from Ghulam Nabi - Inverters, Batteries, Solar Plates & EVEE Products',
                 'created_by' => $createdBy?->id,
             ],
         );
@@ -109,9 +115,10 @@ class GhulamVendorPurchaseSeeder extends Seeder
                 continue;
             }
 
+            $productName = $this->productNameFor($item);
             $category = $this->categoryFor($merchant, $item['category']);
-            $sku = $this->skuFor($item['name'], $item['category']);
-            $unitPrice = $this->priceFor($item['name'], $item['category']);
+            $sku = $this->skuFor($productName, $item['category']);
+            $unitPrice = $this->priceFor($productName, $item['category']);
             $lineTotal = round($item['quantity'] * $unitPrice, 2);
             $subtotal = round($subtotal + $lineTotal, 2);
 
@@ -121,12 +128,12 @@ class GhulamVendorPurchaseSeeder extends Seeder
                     'sku' => $sku,
                 ],
                 [
-                    'name' => $item['name'],
+                    'name' => $productName,
                     'category_id' => $category->id,
                     'purchase_price' => $unitPrice,
                     'selling_price' => round($unitPrice * 1.18, 2),
                     'type' => 'stock',
-                    'unit' => $item['category'] === 'Oil' ? 'liter' : 'pcs',
+                    'unit' => $this->unitFor($item['category']),
                     'track_inventory' => true,
                     'is_variable_price' => false,
                     'is_active' => true,
@@ -179,15 +186,23 @@ class GhulamVendorPurchaseSeeder extends Seeder
             );
         }
 
+        $tax = round($subtotal * 0.15, 2);
+        $totalAmount = round($subtotal + $tax, 2);
+
         $purchase->update([
             'subtotal' => $subtotal,
-            'total_amount' => $subtotal,
+            'total_amount' => $totalAmount,
             'paid_amount' => 0,
-            'due_amount' => $subtotal,
+            'due_amount' => $totalAmount,
             'payment_type' => 'credit',
         ]);
+        $purchase->forceFill([
+            'discount' => 0,
+            'tax' => $tax,
+        ])->save();
 
-        $this->command->info("Ghulam purchase seeded for {$merchant->name}: {$purchaseNo}");
+        $this->command->info("Specific bulk purchase created successfully for merchant: {$merchant->name}");
+        $this->command->info('Purchase No: '.$purchaseNo.' | Total Items: '.count($this->items()).' lines');
     }
 
     private function categoryFor(Merchant $merchant, string $name): Category
@@ -212,12 +227,29 @@ class GhulamVendorPurchaseSeeder extends Seeder
         return substr($prefix.'-'.$slug, 0, 42).'-'.substr(md5($category.'|'.$name), 0, 6);
     }
 
+    private function productNameFor(array $item): string
+    {
+        return trim(collect([
+            $item['brand'],
+            $item['model'] ?: null,
+            $item['capacity'] ?: null,
+        ])->filter()->implode(' '));
+    }
+
+    private function unitFor(string $category): string
+    {
+        return 'pcs';
+    }
+
     private function priceFor(string $name, string $category): float
     {
         $ranges = [
-            'Filter' => [450, 3500],
-            'Tyre' => [4500, 45000],
-            'Oil' => [1200, 12000],
+            'Inverter' => [25000, 450000],
+            'VFD' => [15000, 180000],
+            'Battery' => [30000, 450000],
+            'Solar Plates' => [8000, 45000],
+            'Wire' => [150, 1200],
+            'EVEE' => [80000, 350000],
         ];
 
         [$min, $max] = $ranges[$category] ?? [1000, 10000];
@@ -229,97 +261,53 @@ class GhulamVendorPurchaseSeeder extends Seeder
     private function items(): array
     {
         return [
-            ['name' => 'M.G HS Air Imported', 'category' => 'Filter', 'quantity' => 2],
-            ['name' => 'M.G HS Oil filter Imported', 'category' => 'Filter', 'quantity' => 2],
-            ['name' => 'MG Ac vsp', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'E1 vsp', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => '21050 L.G', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => 'Ac xil vsp', 'category' => 'Filter', 'quantity' => 12],
-            ['name' => '74M Local Air', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => 'Alto Ac vsp', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => '76M Local Air', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => 'RB6 Local', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => 'Sportage Ac Local', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'Sportage oil vsp', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'Yaris Air Imported', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'N2 vvsp', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'Changhan Karwaan Air Imported', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'Oil filter Changan vsp', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => 'RAF vsp', 'category' => 'Filter', 'quantity' => 8],
-            ['name' => 'Oil filter 76M vvsp', 'category' => 'Filter', 'quantity' => 10],
-            ['name' => 'Kia Sportage Air Imported', 'category' => 'Filter', 'quantity' => 3],
-            ['name' => '145/70R12 Fortune', 'category' => 'Tyre', 'quantity' => 14],
-            ['name' => '145R12 Casumina', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '145R12 Fortune', 'category' => 'Tyre', 'quantity' => 16],
-            ['name' => '145R12 Linglong', 'category' => 'Tyre', 'quantity' => 22],
-            ['name' => '145R12 Aplus', 'category' => 'Tyre', 'quantity' => 2],
-            ['name' => '145R12 Maxsis', 'category' => 'Tyre', 'quantity' => 6],
-            ['name' => '155/70R12 Ovation', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '155R12 Linglong', 'category' => 'Tyre', 'quantity' => 9],
-            ['name' => '165R13 Linglong', 'category' => 'Tyre', 'quantity' => 7],
-            ['name' => '165/70R13 Gaoku', 'category' => 'Tyre', 'quantity' => 182],
-            ['name' => '165/70R13 Fortune', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '165/70R13 Armstrong', 'category' => 'Tyre', 'quantity' => 18],
-            ['name' => '175/70R13 Gaoku', 'category' => 'Tyre', 'quantity' => 188],
-            ['name' => '175/70R13 Armstrong', 'category' => 'Tyre', 'quantity' => 16],
-            ['name' => '215/75R14 Michelin', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '165/65R14 Armstrong', 'category' => 'Tyre', 'quantity' => 12],
-            ['name' => '165/65R14 Ovation', 'category' => 'Tyre', 'quantity' => 10],
-            ['name' => '165/70R14 Armstrong', 'category' => 'Tyre', 'quantity' => 16],
-            ['name' => '165/70R14 Ovation', 'category' => 'Tyre', 'quantity' => 12],
-            ['name' => '185/65R15 Armstrong', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '185/65R15 Linglong', 'category' => 'Tyre', 'quantity' => 15],
-            ['name' => '185/65R15 Zmax', 'category' => 'Tyre', 'quantity' => 131],
-            ['name' => '195/65R15 Linglong', 'category' => 'Tyre', 'quantity' => 23],
-            ['name' => '195/65R15 Zmax', 'category' => 'Tyre', 'quantity' => 255],
-            ['name' => '195/65R15 Armstrong', 'category' => 'Tyre', 'quantity' => 16],
-            ['name' => '195/65R15 Fortune', 'category' => 'Tyre', 'quantity' => 11],
-            ['name' => '195/R14 Maxsis', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '195/R14 Westlac', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '255/55R18 Linglong', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '215/70R15 Linglong', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '825/16 Longmarch', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '600/16 Panther', 'category' => 'Tyre', 'quantity' => 16],
-            ['name' => '750/16 Panther', 'category' => 'Tyre', 'quantity' => 16],
-            ['name' => '750/16 Diamond', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '135/10 Panther', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '500/12 Champion', 'category' => 'Tyre', 'quantity' => 6],
-            ['name' => '500/12 Zep', 'category' => 'Tyre', 'quantity' => 3],
-            ['name' => '500/12 Service Star', 'category' => 'Tyre', 'quantity' => 2],
-            ['name' => '500/12 Baz-Hero', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '195/65/R15 GT', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '215/60R16 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '255/55/18 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '215/50R17 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '195/55R16 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '215/70R15 GT', 'category' => 'Tyre', 'quantity' => 2],
-            ['name' => '145/R12 Aplus', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '155/R12 Aplus', 'category' => 'Tyre', 'quantity' => 10],
-            ['name' => '195R15(8)ply Giti', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '185R14 Giti', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '195R15(10)ply Giti', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '165-65-13 Minrava', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '195-65-R15 Nanking', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '265-60-R18 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '175-70R13 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '165-70-R13 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '185-65-R15 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '195-65-R15 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '165-65R14 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '225-55-R18 Dunloap', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '265-60-R18 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '145-70-R12 GT', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '155-70-R12 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '165-70-R13 GT', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '175-70-R13 GT', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => '175-65-R14 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '155-80-R13 GT', 'category' => 'Tyre', 'quantity' => 4],
-            ['name' => '185-65-R15 GT', 'category' => 'Tyre', 'quantity' => 8],
-            ['name' => 'Zic Oil 10w40 X5 4L', 'category' => 'Oil', 'quantity' => 80],
-            ['name' => 'Zic Oil 5w30 X5 3L', 'category' => 'Oil', 'quantity' => 216],
-            ['name' => 'Zic Oil 75W85 1L', 'category' => 'Oil', 'quantity' => 12],
-            ['name' => 'Zic Oil 5w30 X5 4L', 'category' => 'Oil', 'quantity' => 192],
-            ['name' => 'Zic Oil 10w40 3L', 'category' => 'Oil', 'quantity' => 90],
+            ['category' => 'Inverter', 'brand' => 'CROWN', 'model' => 'off grid', 'capacity' => '10kw', 'quantity' => 3],
+            ['category' => 'Inverter', 'brand' => 'CROWN', 'model' => 'off grid', 'capacity' => '8kw', 'quantity' => 2],
+            ['category' => 'Inverter', 'brand' => 'Solar Power', 'model' => 'off grid', 'capacity' => '8kw', 'quantity' => 3],
+            ['category' => 'Inverter', 'brand' => 'Long Life', 'model' => 'Hybrid', 'capacity' => '4000', 'quantity' => 4],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'Hybrid', 'capacity' => '8kw pro', 'quantity' => 5],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'Hybrid', 'capacity' => '8kw plus', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'Hybrid', 'capacity' => '6kw pro', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'Hybrid', 'capacity' => '6kw plus', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'Ongrid', 'capacity' => '10kw three phase', 'quantity' => 3],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'ongrid', 'capacity' => '110kw 3 phase', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Huawei', 'model' => 'Ongrid', 'capacity' => '25kw 3 phase', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Huawei', 'model' => 'Ongrid', 'capacity' => '12kw 3 phase', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Auxsol', 'model' => 'Ongrid', 'capacity' => '10kw 3 phase', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Maxpower', 'model' => 'pro', 'capacity' => '7kw', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Long Life', 'model' => '', 'capacity' => '7kw 1 phase', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Solis', 'model' => 'Hybrid', 'capacity' => '12kw 3 phase', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Auxsol', 'model' => 'Hybrid', 'capacity' => '15kw', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Dongeal', 'model' => 'Huawei Wifi', 'capacity' => '', 'quantity' => 1],
+            ['category' => 'Inverter', 'brand' => 'Auxsol', 'model' => 'Power bank', 'capacity' => '16.5kw', 'quantity' => 1],
+            ['category' => 'VFD', 'brand' => 'INVIT', 'model' => '', 'capacity' => '5.5kw', 'quantity' => 1],
+            ['category' => 'VFD', 'brand' => 'INVIT', 'model' => '', 'capacity' => '22/30', 'quantity' => 1],
+            ['category' => 'VFD', 'brand' => 'INVIT', 'model' => '', 'capacity' => '18/22', 'quantity' => 2],
+            ['category' => 'VFD', 'brand' => 'INVIT', 'model' => '', 'capacity' => '37/45', 'quantity' => 1],
+            ['category' => 'Battery', 'brand' => 'Pylontech', 'model' => 'Fidus', 'capacity' => '5kw', 'quantity' => 6],
+            ['category' => 'Battery', 'brand' => 'Ritar', 'model' => '', 'capacity' => '5kw', 'quantity' => 1],
+            ['category' => 'Battery', 'brand' => 'Narada', 'model' => 'for claim', 'capacity' => '', 'quantity' => 1],
+            ['category' => 'Battery', 'brand' => 'Apex', 'model' => '', 'capacity' => '6000 cycle', 'quantity' => 0],
+            ['category' => 'Battery', 'brand' => 'Grovolt', 'model' => 'inverter Hybrid', 'capacity' => '8.2kw', 'quantity' => 1],
+            ['category' => 'Battery', 'brand' => 'Apex', 'model' => '', 'capacity' => '8000 cycle', 'quantity' => 4],
+            ['category' => 'Solar Plates', 'brand' => 'TCL', 'model' => '', 'capacity' => '620w', 'quantity' => 512],
+            ['category' => 'Solar Plates', 'brand' => 'JA', 'model' => '', 'capacity' => '715w', 'quantity' => 3],
+            ['category' => 'Solar Plates', 'brand' => 'Canadian', 'model' => '', 'capacity' => '625w', 'quantity' => 119],
+            ['category' => 'Solar Plates', 'brand' => 'Huasun', 'model' => '', 'capacity' => '650w', 'quantity' => 1],
+            ['category' => 'Solar Plates', 'brand' => 'Huasun', 'model' => '', 'capacity' => '610w', 'quantity' => 2],
+            ['category' => 'Solar Plates', 'brand' => 'Tw', 'model' => '', 'capacity' => '615W', 'quantity' => 2],
+            ['category' => 'Solar Plates', 'brand' => 'Astronergy', 'model' => '', 'capacity' => '625w', 'quantity' => 12],
+            ['category' => 'Solar Plates', 'brand' => 'Sunpro', 'model' => '', 'capacity' => '620w', 'quantity' => 15],
+            ['category' => 'Solar Plates', 'brand' => 'TCL', 'model' => '', 'capacity' => '715w', 'quantity' => 0],
+            ['category' => 'Wire', 'brand' => 'Black', 'model' => '4mm', 'capacity' => '1000 m', 'quantity' => 1000],
+            ['category' => 'Wire', 'brand' => 'Red', 'model' => '4mm', 'capacity' => '22 m', 'quantity' => 22],
+            ['category' => 'Wire', 'brand' => 'Black', 'model' => '6mm', 'capacity' => '1959', 'quantity' => 1854],
+            ['category' => 'Wire', 'brand' => 'Red', 'model' => '6mm', 'capacity' => '3068', 'quantity' => 2971],
+            ['category' => 'EVEE', 'brand' => 'Evee', 'model' => 'Nisa 3w', 'capacity' => 'Graphane', 'quantity' => 1],
+            ['category' => 'EVEE', 'brand' => 'Evee', 'model' => 'S1 Air', 'capacity' => 'Graphane', 'quantity' => 2],
+            ['category' => 'EVEE', 'brand' => 'Evee', 'model' => 'Nisa', 'capacity' => 'Graphane', 'quantity' => 1],
+            ['category' => 'EVEE', 'brand' => 'Evee', 'model' => 'Mito', 'capacity' => 'Graphane', 'quantity' => 1],
+            ['category' => 'EVEE', 'brand' => 'Evee', 'model' => 'Gen z', 'capacity' => 'Graphane', 'quantity' => 3],
         ];
     }
 }
