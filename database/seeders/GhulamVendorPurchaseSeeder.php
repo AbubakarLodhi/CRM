@@ -20,6 +20,12 @@ use Illuminate\Support\Str;
 
 class GhulamVendorPurchaseSeeder extends Seeder
 {
+    private const EVEE_BUSINESS_NAME = 'Evee Zgn Green';
+    private const EVEE_BRANCH_NAME = 'Evee zgn green Ellahabad';
+    private const SOLAR_BUSINESS_NAME = 'ZGN GREEN PVT LTD';
+    private const SOLAR_BRANCH_NAME = 'zgn green solar ELLAHABAD';
+    private const TAX_RATE = 0;
+
     public function run(): void
     {
         $merchants = Merchant::whereIn('email', [
@@ -67,22 +73,6 @@ class GhulamVendorPurchaseSeeder extends Seeder
             ],
         );
 
-        $business = Business::where('merchant_id', $merchant->id)->first();
-
-        if (! $business) {
-            $this->command->warn("No business found for merchant: {$merchant->name}");
-
-            return;
-        }
-
-        $branch = Branch::where('business_id', $business->id)->first();
-
-        if (! $branch) {
-            $this->command->warn("No branch found for merchant: {$merchant->name}");
-
-            return;
-        }
-
         $createdBy = User::where('merchant_id', $merchant->id)->first();
         $purchaseDate = now()->subDays(rand(1, 15));
         $purchaseNo = 'PUR-'.$purchaseDate->format('Ymd').'-'.strtoupper(Str::random(6));
@@ -107,18 +97,38 @@ class GhulamVendorPurchaseSeeder extends Seeder
         );
 
         $subtotal = 0.0;
+        $totalTax = 0.0;
+        $locations = [];
 
         foreach ($this->items() as $item) {
             if ($item['quantity'] <= 0) {
                 continue;
             }
 
+            $locationKey = $this->locationKeyFor($item['category']);
+
+            if (! $locationKey) {
+                $this->command->warn("No business/branch mapping found for {$item['category']}. Skipping item.");
+
+                continue;
+            }
+
+            $locations[$locationKey] ??= $this->locationFor($merchant, $item['category']);
+
+            if (! $locations[$locationKey]) {
+                continue;
+            }
+
+            [$business, $branch] = $locations[$locationKey];
+
             $productName = $this->productNameFor($item);
             $category = $this->categoryFor($merchant, $item['category']);
             $sku = $this->skuFor($productName, $item['category']);
             $unitPrice = $this->priceFor($productName, $item['category']);
             $lineTotal = round($item['quantity'] * $unitPrice, 2);
+            $lineTax = round($lineTotal * (self::TAX_RATE / 100), 2);
             $subtotal = round($subtotal + $lineTotal, 2);
+            $totalTax = round($totalTax + $lineTax, 2);
 
             $product = Product::updateOrCreate(
                 [
@@ -167,7 +177,7 @@ class GhulamVendorPurchaseSeeder extends Seeder
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                     'discount' => 0,
-                    'tax' => 0,
+                    'tax' => self::TAX_RATE,
                 ],
             );
 
@@ -184,8 +194,7 @@ class GhulamVendorPurchaseSeeder extends Seeder
             );
         }
 
-        $tax = round($subtotal * 0.15, 2);
-        $totalAmount = round($subtotal + $tax, 2);
+        $totalAmount = round($subtotal + $totalTax, 2);
 
         $purchase->update([
             'subtotal' => $subtotal,
@@ -211,6 +220,50 @@ class GhulamVendorPurchaseSeeder extends Seeder
                 'id' => (string) Str::uuid(),
             ],
         );
+    }
+
+    private function locationKeyFor(string $category): ?string
+    {
+        return match ($category) {
+            'EVEE' => 'evee',
+            'Inverter', 'Battery', 'Solar Plates', 'VFD', 'Wire' => 'solar',
+            default => null,
+        };
+    }
+
+    private function locationFor(Merchant $merchant, string $category): ?array
+    {
+        [$businessName, $branchName] = $this->locationNamesFor($category);
+
+        $business = Business::where('merchant_id', $merchant->id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower($businessName)])
+            ->first();
+
+        if (! $business) {
+            $this->command->warn("{$businessName} business not found for merchant: {$merchant->name}");
+
+            return null;
+        }
+
+        $branch = Branch::where('merchant_id', $merchant->id)
+            ->where('business_id', $business->id)
+            ->whereRaw('LOWER(name) = ?', [Str::lower($branchName)])
+            ->first();
+
+        if (! $branch) {
+            $this->command->warn("{$branchName} branch not found for merchant: {$merchant->name}");
+
+            return null;
+        }
+
+        return [$business, $branch];
+    }
+
+    private function locationNamesFor(string $category): array
+    {
+        return $category === 'EVEE'
+            ? [self::EVEE_BUSINESS_NAME, self::EVEE_BRANCH_NAME]
+            : [self::SOLAR_BUSINESS_NAME, self::SOLAR_BRANCH_NAME];
     }
 
     private function skuFor(string $name, string $category): string

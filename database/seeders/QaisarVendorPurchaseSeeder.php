@@ -20,6 +20,8 @@ use Illuminate\Support\Str;
 
 class QaisarVendorPurchaseSeeder extends Seeder
 {
+    private const TYRE_OIL_SERVICE_NAME = 'AW TYRE AND OIL SERVICE';
+
     public function run(): void
     {
         $merchants = Merchant::where('email', 'info@zgngreenpvt.com')->get();
@@ -64,18 +66,23 @@ class QaisarVendorPurchaseSeeder extends Seeder
             ],
         );
 
-        $business = Business::where('merchant_id', $merchant->id)->first();
+        $business = Business::where('merchant_id', $merchant->id)
+            ->where('name', self::TYRE_OIL_SERVICE_NAME)
+            ->first();
 
         if (! $business) {
-            $this->command->warn("No business found for merchant: {$merchant->name}");
+            $this->command->warn(self::TYRE_OIL_SERVICE_NAME." business not found for merchant: {$merchant->name}");
 
             return;
         }
 
-        $branch = Branch::where('business_id', $business->id)->first();
+        $branch = Branch::where('merchant_id', $merchant->id)
+            ->where('business_id', $business->id)
+            ->where('name', self::TYRE_OIL_SERVICE_NAME)
+            ->first();
 
         if (! $branch) {
-            $this->command->warn("No branch found for merchant: {$merchant->name}");
+            $this->command->warn(self::TYRE_OIL_SERVICE_NAME." branch not found for merchant: {$merchant->name}");
 
             return;
         }
