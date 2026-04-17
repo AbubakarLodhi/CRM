@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
+use App\Models\Brand;
+use App\Models\BrandModel;
 use App\Models\Business;
 use App\Models\Category;
 use App\Models\City;
@@ -125,6 +127,7 @@ class GhulamVendorPurchaseSeeder extends Seeder
 
             $productName = $this->productNameFor($item);
             $category = $this->categoryFor($merchant, $item['category']);
+            $productMeta = $this->productMetaFor($merchant, $category, $item);
             $sku = $this->skuFor($productName, $item['category']);
             $unitPrice = $this->priceFor($productName, $item['category']);
             $lineTotal = round($item['quantity'] * $unitPrice, 2);
@@ -140,6 +143,9 @@ class GhulamVendorPurchaseSeeder extends Seeder
                 [
                     'name' => $productName,
                     'category_id' => $category->id,
+                    'sub_category_id' => $productMeta['sub_category']->id,
+                    'brand_id' => $productMeta['brand']->id,
+                    'brand_model_id' => $productMeta['brand_model']->id,
                     'purchase_price' => $unitPrice,
                     'selling_price' => round($unitPrice * 1.18, 2),
                     'type' => 'stock',
@@ -222,6 +228,155 @@ class GhulamVendorPurchaseSeeder extends Seeder
                 'id' => (string) Str::uuid(),
             ],
         );
+    }
+
+    private function subCategoryFor(Merchant $merchant, Category $category, string $name): Category
+    {
+        return Category::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'parent_id' => $category->id,
+                'name' => $name,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+            ],
+        );
+    }
+
+    private function brandFor(Merchant $merchant, Category $category, string $name): Brand
+    {
+        $brand = Brand::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'name' => $this->normaliseBrandName($name),
+            ],
+            [
+                'id' => (string) Str::uuid(),
+            ],
+        );
+
+        $brand->categories()->syncWithoutDetaching([$category->id]);
+
+        return $brand;
+    }
+
+    private function brandModelFor(Merchant $merchant, Brand $brand, string $name): BrandModel
+    {
+        return BrandModel::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'name' => $name,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'brand_id' => $brand->id,
+            ],
+        );
+    }
+
+    private function productMetaFor(Merchant $merchant, Category $category, array $item): array
+    {
+        $subCategoryName = $this->subCategoryNameFor($item);
+        $brand = $this->brandFor($merchant, $category, $item['brand']);
+        $brandModel = $this->brandModelFor($merchant, $brand, $this->brandModelNameFor($item, $brand->name));
+
+        return [
+            'sub_category' => $this->subCategoryFor($merchant, $category, $subCategoryName),
+            'brand' => $brand,
+            'brand_model' => $brandModel,
+        ];
+    }
+
+    private function subCategoryNameFor(array $item): string
+    {
+        $model = Str::lower($item['model'] ?? '');
+        $capacity = Str::lower($item['capacity'] ?? '');
+
+        return match ($item['category']) {
+            'Inverter' => match (true) {
+                str_contains($model, 'hybrid') => 'Hybrid Solar Inverters',
+                str_contains($model, 'ongrid'), str_contains($model, 'on grid') => 'On-Grid Solar Inverters',
+                str_contains($model, 'off grid') => 'Off-Grid Solar Inverters',
+                str_contains($model, 'wifi') => 'Inverter Monitoring Devices',
+                str_contains($model, 'power bank') => 'Solar Power Backup Units',
+                default => 'Solar Inverters',
+            },
+            'VFD' => 'Solar Pump VFDs',
+            'Battery' => match (true) {
+                str_contains($model, 'claim') => 'Battery Warranty Claim Units',
+                str_contains($model, 'hybrid') => 'Hybrid Lithium Batteries',
+                str_contains($capacity, 'cycle') => 'Deep Cycle Lithium Batteries',
+                default => 'Lithium Solar Batteries',
+            },
+            'Solar Plates' => match (true) {
+                str_contains($capacity, '715') => 'High Wattage N-Type Solar Panels',
+                str_contains($capacity, '650') || str_contains($capacity, '625') || str_contains($capacity, '620') => 'A Grade Mono PERC Solar Panels',
+                default => 'Solar Panels',
+            },
+            'Wire' => match (true) {
+                str_contains($model, '6mm') => '6mm DC Solar Cable',
+                default => '4mm DC Solar Cable',
+            },
+            'EVEE' => match (true) {
+                str_contains($model, '3w') => 'Three Wheel Electric Scooters',
+                str_contains($model, 's1') => 'Electric Scooters',
+                default => 'Electric Bikes',
+            },
+            default => $item['category'],
+        };
+    }
+
+    private function brandModelNameFor(array $item, string $brandName): string
+    {
+        $parts = collect([
+            $brandName,
+            $this->normaliseModelName($item['model'] ?? ''),
+            $this->normaliseCapacity($item['capacity'] ?? ''),
+        ])->filter();
+
+        return $parts->implode(' ');
+    }
+
+    private function normaliseBrandName(string $brand): string
+    {
+        return match (Str::lower(trim($brand))) {
+            'ja' => 'JA Solar',
+            'tw' => 'Tongwei',
+            'invit' => 'INVT',
+            'dongeal' => 'Dongle',
+            default => Str::title(trim($brand)),
+        };
+    }
+
+    private function normaliseModelName(string $model): ?string
+    {
+        $model = trim($model);
+
+        if ($model === '') {
+            return null;
+        }
+
+        return match (Str::lower($model)) {
+            'off grid' => 'Off Grid',
+            'ongrid' => 'On Grid',
+            'inverter hybrid' => 'Hybrid Inverter Compatible',
+            'for claim' => 'Claim Replacement',
+            'gen z' => 'Gen Z',
+            'nisa 3w' => 'Nisa 3W',
+            default => Str::title($model),
+        };
+    }
+
+    private function normaliseCapacity(string $capacity): ?string
+    {
+        $capacity = trim($capacity);
+
+        if ($capacity === '') {
+            return null;
+        }
+
+        return preg_replace('/kw/i', 'kW', $capacity);
     }
 
     private function locationKeyFor(string $category): ?string

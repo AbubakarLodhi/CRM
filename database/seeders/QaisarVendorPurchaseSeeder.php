@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
+use App\Models\Brand;
+use App\Models\BrandModel;
 use App\Models\Business;
 use App\Models\Category;
 use App\Models\City;
@@ -117,6 +119,7 @@ class QaisarVendorPurchaseSeeder extends Seeder
             }
 
             $category = $this->categoryFor($merchant, $item['category']);
+            $productMeta = $this->productMetaFor($merchant, $category, $item);
             $sku = $this->skuFor($item['name'], $item['category']);
             $unitPrice = $this->priceFor($item['name'], $item['category']);
             $lineTotal = round($item['quantity'] * $unitPrice, 2);
@@ -130,6 +133,9 @@ class QaisarVendorPurchaseSeeder extends Seeder
                 [
                     'name' => $item['name'],
                     'category_id' => $category->id,
+                    'sub_category_id' => $productMeta['sub_category']->id,
+                    'brand_id' => $productMeta['brand']->id,
+                    'brand_model_id' => $productMeta['brand_model']->id,
                     'purchase_price' => $unitPrice,
                     'selling_price' => round($unitPrice * 1.18, 2),
                     'type' => 'stock',
@@ -209,6 +215,177 @@ class QaisarVendorPurchaseSeeder extends Seeder
                 'id' => (string) Str::uuid(),
             ],
         );
+    }
+
+    private function subCategoryFor(Merchant $merchant, Category $category, string $name): Category
+    {
+        return Category::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'parent_id' => $category->id,
+                'name' => $name,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+            ],
+        );
+    }
+
+    private function brandFor(Merchant $merchant, Category $category, string $name): Brand
+    {
+        $brand = Brand::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'name' => $name,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+            ],
+        );
+
+        $brand->categories()->syncWithoutDetaching([$category->id]);
+
+        return $brand;
+    }
+
+    private function brandModelFor(Merchant $merchant, Brand $brand, string $name): BrandModel
+    {
+        return BrandModel::firstOrCreate(
+            [
+                'merchant_id' => $merchant->id,
+                'name' => $name,
+            ],
+            [
+                'id' => (string) Str::uuid(),
+                'brand_id' => $brand->id,
+            ],
+        );
+    }
+
+    private function productMetaFor(Merchant $merchant, Category $category, array $item): array
+    {
+        $meta = match ($item['category']) {
+            'Filter' => $this->filterMetaFor($item['name']),
+            'Tyre' => $this->tyreMetaFor($item['name']),
+            'Oil' => $this->oilMetaFor($item['name']),
+            default => [
+                'sub_category' => $item['category'],
+                'brand' => 'Generic',
+                'model' => $item['name'],
+            ],
+        };
+
+        $subCategory = $this->subCategoryFor($merchant, $category, $meta['sub_category']);
+        $brand = $this->brandFor($merchant, $category, $meta['brand']);
+        $brandModel = $this->brandModelFor($merchant, $brand, $meta['model']);
+
+        return [
+            'sub_category' => $subCategory,
+            'brand' => $brand,
+            'brand_model' => $brandModel,
+        ];
+    }
+
+    private function filterMetaFor(string $name): array
+    {
+        $lowerName = Str::lower($name);
+        $vehicle = match (true) {
+            str_contains($lowerName, 'm.g hs'), str_contains($lowerName, 'mg') => 'MG HS',
+            str_contains($lowerName, 'alto') => 'Suzuki Alto 660cc',
+            str_contains($lowerName, 'sportage') => 'Kia Sportage',
+            str_contains($lowerName, 'yaris') => 'Toyota Yaris',
+            str_contains($lowerName, 'changhan'), str_contains($lowerName, 'changan') => 'Changan Karvaan',
+            str_contains($lowerName, '76m') => 'Suzuki Mehran 800cc',
+            str_contains($lowerName, '74m') => 'Suzuki Cultus',
+            str_contains($lowerName, 'rb6') => 'Honda City',
+            str_contains($lowerName, 'e1') => 'Suzuki Every',
+            str_contains($lowerName, '21050') => 'Toyota Corolla',
+            default => 'Universal Passenger Car',
+        };
+
+        return [
+            'sub_category' => match (true) {
+                str_contains($lowerName, 'oil') => 'Oil Filters',
+                str_contains($lowerName, ' ac ') || str_starts_with($lowerName, 'ac ') => 'Cabin AC Filters',
+                default => 'Air Filters',
+            },
+            'brand' => match (true) {
+                str_contains($lowerName, 'vsp'), str_contains($lowerName, 'vvsp') => 'VSP',
+                str_contains($lowerName, 'imported') => 'Imported Filter',
+                str_contains($lowerName, 'local') => 'Local Filter',
+                default => 'Aftermarket Filter',
+            },
+            'model' => $vehicle.' '.match (true) {
+                str_contains($lowerName, 'oil') => 'Oil Filter',
+                str_contains($lowerName, ' ac ') || str_starts_with($lowerName, 'ac ') => 'Cabin AC Filter',
+                default => 'Air Filter',
+            },
+        ];
+    }
+
+    private function tyreMetaFor(string $name): array
+    {
+        preg_match('/\d{3}[\/-]?\d{0,2}R?\d{2}|\d{3}R\d{2}|\d{3}\/\d{2}\/?\d{2}|\d{3,4}\/\d{2}/i', $name, $sizeMatch);
+
+        $size = isset($sizeMatch[0])
+            ? strtoupper(str_replace('-', '/', $sizeMatch[0]))
+            : 'Standard Size';
+        $brand = $this->normaliseTyreBrand((string) Str::of($name)->afterLast(' ')->trim(" ()\t\n\r\0\x0B"));
+
+        $subCategory = match (true) {
+            str_contains($size, '255/55') || str_contains($size, '265/60') || str_contains($size, '225/55') => 'SUV and 4x4 Tyres',
+            str_contains($size, '825/16') || str_contains($size, '750/16') || str_contains($size, '600/16') => 'Commercial Truck Tyres',
+            str_contains($size, '500/12') || str_contains($size, '135/10') => 'Rickshaw and Loader Tyres',
+            str_contains($size, '195R15') || str_contains($name, 'ply') => 'Light Truck Tyres',
+            default => 'Passenger Car Tyres',
+        };
+
+        return [
+            'sub_category' => $subCategory,
+            'brand' => $brand,
+            'model' => "{$brand} {$size} {$this->tyreSegmentFor($subCategory)}",
+        ];
+    }
+
+    private function normaliseTyreBrand(string $brand): string
+    {
+        return match (Str::lower($brand)) {
+            'maxsis' => 'Maxxis',
+            'westlac' => 'Westlake',
+            'dunloap' => 'Dunlop',
+            'minrava' => 'Minerva',
+            'nanking' => 'Nankang',
+            'baz-hero' => 'Baz Hero',
+            default => Str::title($brand),
+        };
+    }
+
+    private function tyreSegmentFor(string $subCategory): string
+    {
+        return match ($subCategory) {
+            'SUV and 4x4 Tyres' => 'SUV',
+            'Commercial Truck Tyres' => 'Commercial',
+            'Rickshaw and Loader Tyres' => 'Loader',
+            'Light Truck Tyres' => 'LT',
+            default => 'PCR',
+        };
+    }
+
+    private function oilMetaFor(string $name): array
+    {
+        $lowerName = Str::lower($name);
+        preg_match('/\d{1,2}w\d{2}|\d{2}w\d{2}/i', $name, $gradeMatch);
+        preg_match('/\d+l/i', $name, $packMatch);
+
+        $grade = isset($gradeMatch[0]) ? strtoupper($gradeMatch[0]) : 'Standard Grade';
+        $pack = isset($packMatch[0]) ? strtoupper($packMatch[0]) : 'Bottle';
+        $series = str_contains($lowerName, 'x5') ? 'X5' : 'Standard';
+
+        return [
+            'sub_category' => str_contains($lowerName, '75w85') ? 'Gear Oil' : 'Engine Oil',
+            'brand' => 'ZIC',
+            'model' => "ZIC {$series} {$grade} {$pack}",
+        ];
     }
 
     private function skuFor(string $name, string $category): string
