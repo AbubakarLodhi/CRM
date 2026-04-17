@@ -113,7 +113,9 @@ class GhulamVendorPurchaseSeeder extends Seeder
                 continue;
             }
 
-            $locations[$locationKey] ??= $this->locationFor($merchant, $item['category']);
+            if (! array_key_exists($locationKey, $locations)) {
+                $locations[$locationKey] = $this->locationFor($merchant, $item['category']);
+            }
 
             if (! $locations[$locationKey]) {
                 continue;
@@ -236,7 +238,7 @@ class GhulamVendorPurchaseSeeder extends Seeder
         [$businessName, $branchName] = $this->locationNamesFor($category);
 
         $business = Business::where('merchant_id', $merchant->id)
-            ->whereRaw('LOWER(name) = ?', [Str::lower($businessName)])
+            ->whereRaw('LOWER(TRIM(name)) = ?', [Str::lower(trim($businessName))])
             ->first();
 
         if (! $business) {
@@ -247,8 +249,18 @@ class GhulamVendorPurchaseSeeder extends Seeder
 
         $branch = Branch::where('merchant_id', $merchant->id)
             ->where('business_id', $business->id)
-            ->whereRaw('LOWER(name) = ?', [Str::lower($branchName)])
+            ->whereRaw('LOWER(TRIM(name)) = ?', [Str::lower(trim($branchName))])
             ->first();
+
+        if (! $branch) {
+            $branch = Branch::where('merchant_id', $merchant->id)
+                ->whereRaw('LOWER(TRIM(name)) = ?', [Str::lower(trim($branchName))])
+                ->first();
+
+            if ($branch) {
+                $branch->update(['business_id' => $business->id]);
+            }
+        }
 
         if (! $branch) {
             $this->command->warn("{$branchName} branch not found for merchant: {$merchant->name}");
