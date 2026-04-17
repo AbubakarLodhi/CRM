@@ -308,42 +308,9 @@ class PurchaseForm
                                 ->required()
                                 ->live()
                                 ->reactive()
-                                ->options(function () {
-
-                                    $user = Filament::auth()->user();
-
-                                    // MERCHANT → all products
-                                    if ($user instanceof \App\Models\Merchant) {
-                                        return Product::query()
-                                            ->withoutTrashed()
-                                            ->where('is_active', true)
-                                            ->where('merchant_id', self::merchantId())
-                                            ->orderBy('name')
-                                            ->limit(50)
-                                            ->get()
-                                            ->mapWithKeys(fn ($p) => [$p->id => "{$p->name} ({$p->sku})"])
-                                            ->all();
-                                    }
-
-                                    // STAFF → only products linked to their branches
-                                    $branchIds = $user->branches()->pluck('branches.id');
-
-                                    return Product::query()
-                                        ->withoutTrashed()
-                                        ->where('products.is_active', true)
-                                        ->where('products.merchant_id', self::merchantId())
-                                        ->whereExists(function ($q) use ($branchIds) {
-                                            $q->selectRaw(1)
-                                                ->from('branch_products')
-                                                ->whereColumn('branch_products.product_id', 'products.id')
-                                                ->whereIn('branch_products.branch_id', $branchIds);
-                                        })
-                                        ->orderBy('products.name')
-                                        ->limit(50)
-                                        ->get()
-                                        ->mapWithKeys(fn ($p) => [$p->id => "{$p->name} ({$p->sku})"])
-                                        ->all();
-                                })
+                                ->preload()
+                                ->options(fn (): array => self::productOptions())
+                                ->getSearchResultsUsing(fn (string $search): array => self::productOptions($search))
                                 ->getOptionLabelUsing(function ($value): ?string {
                                     if (! $value) {
                                         return null;
@@ -1009,6 +976,45 @@ class PurchaseForm
             : $user?->merchant;
 
         return (bool) $merchant?->logo;
+    }
+
+    private static function productOptions(?string $search = null): array
+    {
+        $user = Filament::auth()->user();
+
+        $query = Product::query()
+            ->withoutTrashed()
+            ->where('products.is_active', true)
+            ->where('products.merchant_id', self::merchantId());
+
+        if ($user instanceof \App\Models\User) {
+            $branchIds = $user->branches()->pluck('branches.id');
+
+            $query->whereExists(function ($q) use ($branchIds) {
+                $q->selectRaw(1)
+                    ->from('branch_products')
+                    ->whereColumn('branch_products.product_id', 'products.id')
+                    ->whereIn('branch_products.branch_id', $branchIds);
+            });
+        }
+
+        if (filled($search)) {
+            $term = '%'.mb_strtolower(trim($search)).'%';
+
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(products.name) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(products.sku) LIKE ?', [$term]);
+            });
+        }
+
+        return $query
+            ->orderBy('products.name')
+            ->limit(50)
+            ->get(['products.id', 'products.name', 'products.sku'])
+            ->mapWithKeys(fn (Product $product) => [
+                $product->id => "{$product->name} ({$product->sku})",
+            ])
+            ->all();
     }
 
     private static function recalcTotals(callable $set, callable $get): void
