@@ -1007,9 +1007,13 @@ class PurchaseForm
             });
         }
 
+        $query->orderBy('products.name');
+
+        if (filled($search)) {
+            $query->limit(50);
+        }
+
         return $query
-            ->orderBy('products.name')
-            ->limit(50)
             ->get(['products.id', 'products.name', 'products.sku'])
             ->mapWithKeys(fn (Product $product) => [
                 $product->id => "{$product->name} ({$product->sku})",
