@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Brand;
+use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use App\Models\Business;
 use App\Models\Category;
@@ -256,7 +257,11 @@ class GhulamVendorPurchaseSeeder extends Seeder
             ],
         );
 
-        $brand->categories()->syncWithoutDetaching([$category->id]);
+        BrandCategory::firstOrCreate([
+            'merchant_id' => $merchant->id,
+            'brand_id' => $brand->id,
+            'category_id' => $category->id,
+        ]);
 
         return $brand;
     }
@@ -278,11 +283,12 @@ class GhulamVendorPurchaseSeeder extends Seeder
     private function productMetaFor(Merchant $merchant, Category $category, array $item): array
     {
         $subCategoryName = $this->subCategoryNameFor($item);
-        $brand = $this->brandFor($merchant, $category, $item['brand']);
+        $subCategory = $this->subCategoryFor($merchant, $category, $subCategoryName);
+        $brand = $this->brandFor($merchant, $subCategory, $item['brand']);
         $brandModel = $this->brandModelFor($merchant, $brand, $this->brandModelNameFor($item, $brand->name));
 
         return [
-            'sub_category' => $this->subCategoryFor($merchant, $category, $subCategoryName),
+            'sub_category' => $subCategory,
             'brand' => $brand,
             'brand_model' => $brandModel,
         ];

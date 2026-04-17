@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use App\Models\Brand;
+use App\Models\BrandCategory;
 use App\Models\BrandModel;
 use App\Models\Business;
 use App\Models\Category;
@@ -243,7 +244,11 @@ class QaisarVendorPurchaseSeeder extends Seeder
             ],
         );
 
-        $brand->categories()->syncWithoutDetaching([$category->id]);
+        BrandCategory::firstOrCreate([
+            'merchant_id' => $merchant->id,
+            'brand_id' => $brand->id,
+            'category_id' => $category->id,
+        ]);
 
         return $brand;
     }
@@ -276,7 +281,7 @@ class QaisarVendorPurchaseSeeder extends Seeder
         };
 
         $subCategory = $this->subCategoryFor($merchant, $category, $meta['sub_category']);
-        $brand = $this->brandFor($merchant, $category, $meta['brand']);
+        $brand = $this->brandFor($merchant, $subCategory, $meta['brand']);
         $brandModel = $this->brandModelFor($merchant, $brand, $meta['model']);
 
         return [
