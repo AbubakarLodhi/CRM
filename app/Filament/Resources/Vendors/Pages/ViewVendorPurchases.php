@@ -28,6 +28,14 @@ class ViewVendorPurchases extends Page implements HasTable
 
     public function mount(Vendor $record): void
     {
+        abort_unless(
+            VendorResource::scopeVisibleVendors(
+                Vendor::query()->whereKey($record->getKey()),
+                Filament::auth()->user(),
+            )->exists(),
+            404,
+        );
+
         $this->record = $record;
     }
 
@@ -58,7 +66,9 @@ class ViewVendorPurchases extends Page implements HasTable
                     ->where('vendor_id', $this->record->id);
 
                 if ($user instanceof \App\Models\User) {
-                    $query->whereHas('items.branch.users', fn ($q) => $q->where('users.id', $user->id));
+                    $query
+                        ->whereHas('items.business.users', fn ($q) => $q->where('users.id', $user->id))
+                        ->whereHas('items.branch.users', fn ($q) => $q->where('users.id', $user->id));
                 }
 
                 return $query;

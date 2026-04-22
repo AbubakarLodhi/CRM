@@ -169,9 +169,13 @@ class VendorsTable
                             );
 
                         if ($user instanceof \App\Models\User) {
-                            $baseQuery->whereHas('items.branch.users', fn ($q) =>
-                                $q->where('users.id', $user->id)
-                            );
+                            $baseQuery
+                                ->whereHas('items.business.users', fn ($q) =>
+                                    $q->where('users.id', $user->id)
+                                )
+                                ->whereHas('items.branch.users', fn ($q) =>
+                                    $q->where('users.id', $user->id)
+                                );
                         }
 
                         $exportQuery = (clone $baseQuery)

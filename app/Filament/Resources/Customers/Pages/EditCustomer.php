@@ -13,6 +13,8 @@ class EditCustomer extends EditRecord
 {
     protected static string $resource = CustomerResource::class;
 
+    protected array $branchIds = [];
+
     public function getTitle(): string
     {
         $name = (string) ($this->record?->name ?? '');
@@ -24,6 +26,32 @@ class EditCustomer extends EditRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $data['branch_ids'] = $this->record->branches()
+            ->pluck('branches.id')
+            ->all();
+
+        return $data;
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $this->branchIds = array_values($data['branch_ids'] ?? []);
+        unset($data['branch_ids']);
+
+        return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        CustomerResource::syncCustomerBranches(
+            $this->record,
+            $this->branchIds,
+            Filament::auth()->user(),
+        );
     }
 
     protected function getHeaderActions(): array

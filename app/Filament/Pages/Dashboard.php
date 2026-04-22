@@ -187,6 +187,7 @@ class Dashboard extends BaseDashboard
 
                         DatePicker::make('date_from')
                             ->label('Date From')
+                            ->default(now()->toDateString())
                             ->placeholder('Start date')
                             ->displayFormat('d/m/Y')
                             ->maxDate(now())
@@ -201,6 +202,7 @@ class Dashboard extends BaseDashboard
 
                         DatePicker::make('date_to')
                             ->label('Date To')
+                            ->default(now()->toDateString())
                             ->placeholder('End date')
                             ->displayFormat('d/m/Y')
                             ->minDate(fn (callable $get) => $get('date_from'))

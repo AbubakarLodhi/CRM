@@ -2,9 +2,10 @@
 
 namespace App\Filament\Resources\Customers\Schemas;
 
+use App\Filament\Resources\Customers\CustomerResource;
+use App\Models\City;
 use App\Models\Customer;
 use App\Models\Country;
-use App\Models\City;
 use App\Models\Merchant;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -142,6 +143,27 @@ class CustomerForm
                 ->label('Reference Customer')
                 ->maxLength(255)
                 ->nullable(),
+
+            Select::make('branch_ids')
+                ->label('Branches')
+                ->multiple()
+                ->searchable()
+                ->preload()
+                ->required()
+                ->options(fn () => CustomerResource::branchOptions(Filament::auth()->user()))
+                ->helperText('Select the branches this customer belongs to. Businesses are derived automatically.')
+                ->afterStateHydrated(function (Select $component, ?Customer $record, $state): void {
+                    if (filled($state) || ! $record) {
+                        return;
+                    }
+
+                    $component->state(
+                        $record->branches()
+                            ->pluck('branches.id')
+                            ->all()
+                    );
+                })
+                ->dehydrated(),
         ];
     }
 

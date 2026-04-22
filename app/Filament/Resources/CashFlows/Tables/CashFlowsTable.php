@@ -24,7 +24,59 @@ use Illuminate\Database\Eloquent\Builder;
 
 class CashFlowsTable
 {
-    public static function configure(Table $table): Table
+    public static function configureGrouped(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('party_type')
+                    ->label('Party Type')
+                    ->badge()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        Customer::class => 'Customer',
+                        Vendor::class => 'Vendor',
+                        default => '-',
+                    }),
+
+                TextColumn::make('party.name')
+                    ->label('Party')
+                    ->searchable()
+                    ->sortable()
+                    ->default('-'),
+
+                TextColumn::make('flow_date')
+                    ->label('Latest Date')
+                    ->date('d/m/Y')
+                    ->sortable(),
+
+                TextColumn::make('entries_count')
+                    ->label('Entries')
+                    ->getStateUsing(fn (CashFlow $record): int => self::partySummary($record)['entries_count']),
+
+                TextColumn::make('total_amount')
+                    ->label('Total (PKR)')
+                    ->money('PKR')
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['total_amount']),
+
+                TextColumn::make('settled_amount')
+                    ->label('Settled (PKR)')
+                    ->money('PKR')
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['settled_amount']),
+
+                TextColumn::make('remaining_amount')
+                    ->label('Remaining (PKR)')
+                    ->money('PKR')
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['remaining_amount'])
+                    ->color(fn ($state) => (float) $state > 0 ? 'warning' : 'success'),
+            ])
+            ->filters(static::sharedFilters())
+            ->recordUrl(fn (CashFlow $record) => CashFlowResource::getUrl('party', [
+                'partyType' => CashFlowResource::partyAliasFor($record->party_type),
+                'partyId' => $record->party_id,
+            ]))
+            ->defaultSort('flow_date', 'desc');
+    }
+
+    public static function configureDetail(Table $table): Table
     {
         return $table
             ->columns([
@@ -103,172 +155,15 @@ class CashFlowsTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->default('-'),
             ])
-            ->filters([
-                SelectFilter::make('party_type')
-                    ->label('Party Type')
-                    ->options([
-                        Customer::class => 'Customer',
-                        Vendor::class => 'Vendor',
-                    ]),
-
-                SelectFilter::make('flow_type')
-                    ->label('Account Type')
-                    ->options(CashFlow::flowTypeLabels()),
-
-                SelectFilter::make('direction')
-                    ->label('Direction')
-                    ->options([
-                        'in' => 'In',
-                        'out' => 'Out',
-                    ]),
-
-                Filter::make('date_range')
-                    ->label('Date Range')
-                    ->form([
-                        DatePicker::make('from'),
-                        DatePicker::make('to'),
-                    ])
-                    ->query(fn (Builder $query, array $data) => $query
-                        ->when(
-                            $data['from'] ?? null,
-                            fn (Builder $builder, $date) => $builder->whereDate('flow_date', '>=', $date)
-                        )
-                        ->when(
-                            $data['to'] ?? null,
-                            fn (Builder $builder, $date) => $builder->whereDate('flow_date', '<=', $date)
-                        )),
-            ])
+            ->filters(static::sharedFilters())
             ->recordUrl(fn (CashFlow $record) =>
-            auth(Filament::getCurrentPanel()->getAuthGuard())
-                ->user()
-                ?->hasPermissionTo('cash_flows.update', Filament::getCurrentPanel()->getAuthGuard())
-                ? CashFlowResource::getUrl('edit', ['record' => $record])
-                : null
+                auth(Filament::getCurrentPanel()->getAuthGuard())
+                    ->user()
+                    ?->hasPermissionTo('cash_flows.update', Filament::getCurrentPanel()->getAuthGuard())
+                    ? CashFlowResource::getUrl('edit', ['record' => $record])
+                    : null
             )
-            ->recordActions([
-                Action::make('settle')
-                    ->label('')
-                    ->tooltip('Settle')
-                    ->icon('heroicon-s-banknotes')
-                    ->color('success')
-                    ->modalHeading('Settle Cash Flow')
-                    ->schema([
-                        DatePicker::make('flow_date')
-                            ->label('Settlement Date')
-                            ->required()
-                            ->default(now()),
-                        TextInput::make('amount')
-                            ->label('Settlement Amount')
-                            ->numeric()
-                            ->required()
-                            ->minValue(0.01),
-                        Textarea::make('notes')
-                            ->label('Notes')
-                            ->rows(3),
-                    ])
-                    ->action(function (CashFlow $record, array $data): void {
-                        if (! $record->isPrimaryTransaction()) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Cannot settle this entry')
-                                ->body('Only original cash flow entries can be settled.')
-                                ->send();
-
-                            return;
-                        }
-
-                        $remaining = self::remainingAmount($record);
-                        $amount = round((float) ($data['amount'] ?? 0), 2);
-
-                        if ($amount <= 0 || $amount > $remaining) {
-                            Notification::make()
-                                ->danger()
-                                ->title('Invalid settlement amount')
-                                ->body('Amount must be between PKR 0.01 and PKR ' . number_format($remaining, 2) . '.')
-                                ->send();
-
-                            return;
-                        }
-
-                        $direction = CashFlow::settlementDirectionForFlowType($record->flow_type);
-                        $installmentNo = $record->settlements()->withoutTrashed()->count() + 1;
-                        $referenceNo = sprintf(
-                            'CF-STL-%s-%03d',
-                            strtoupper(substr((string) $record->id, 0, 8)),
-                            $installmentNo
-                        );
-
-                        $authUser = Filament::auth()->user();
-                        $createdBy = $authUser instanceof \App\Models\User ? (string) $authUser->getKey() : null;
-
-                        CashFlow::query()->create([
-                            'merchant_id' => $record->merchant_id,
-                            'party_type' => $record->party_type,
-                            'party_id' => $record->party_id,
-                            'settlement_for_id' => $record->id,
-                            'flow_type' => $record->flow_type,
-                            'direction' => $direction,
-                            'amount' => $amount,
-                            'flow_date' => $data['flow_date'] ?? now()->toDateString(),
-                            'method' => 'Cash',
-                            'reference_no' => $referenceNo,
-                            'notes' => $data['notes'] ?? null,
-                            'created_by' => $createdBy,
-                        ]);
-
-                        $newRemaining = max(0, round($remaining - $amount, 2));
-
-                        Notification::make()
-                            ->success()
-                            ->title('Settlement recorded')
-                            ->body('PKR ' . number_format($amount, 2) . ' settled. Remaining: PKR ' . number_format($newRemaining, 2) . '.')
-                            ->send();
-                    })
-                    ->visible(function (CashFlow $record): bool {
-                        $user = auth(Filament::getCurrentPanel()->getAuthGuard())->user();
-                        $canSettle = $user?->hasPermissionTo('cash_flows.create', Filament::getCurrentPanel()->getAuthGuard())
-                            || $user?->hasPermissionTo('cash_flows.update', Filament::getCurrentPanel()->getAuthGuard());
-
-                        return $canSettle && $record->isPrimaryTransaction() && self::remainingAmount($record) > 0;
-                    }),
-
-                Action::make('history')
-                    ->label('')
-                    ->tooltip('History')
-                    ->icon('heroicon-s-clock')
-                    ->color('gray')
-                    ->modalHeading('Cash Flow History')
-                    ->modalSubmitAction(false)
-                    ->modalCancelActionLabel('Close')
-                    ->modalContent(function (CashFlow $record) {
-                        $base = $record->settlementFor()->first() ?? $record;
-                        $history = CashFlow::query()
-                            ->withoutTrashed()
-                            ->where(function (Builder $query) use ($base): void {
-                                $query->whereKey($base->id)
-                                    ->orWhere('settlement_for_id', $base->id);
-                            })
-                            ->orderBy('flow_date')
-                            ->orderBy('created_at')
-                            ->get();
-
-                        return view('filament.resources.cash-flows.settlement-history', [
-                            'base' => $base,
-                            'history' => $history,
-                            'settled' => self::settledAmount($base),
-                            'remaining' => self::remainingAmount($base),
-                        ]);
-                    }),
-
-                EditAction::make()
-                    ->label('')
-                    ->tooltip('Edit')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('cash_flows.update', Filament::getCurrentPanel()->getAuthGuard())),
-                DeleteAction::make()
-                    ->label('')
-                    ->tooltip('Delete')
-                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('cash_flows.delete', Filament::getCurrentPanel()->getAuthGuard())),
-            ])
+            ->recordActions(static::detailActions())
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
@@ -276,6 +171,270 @@ class CashFlowsTable
                 ]),
             ])
             ->defaultSort('flow_date', 'desc');
+    }
+
+    protected static function sharedFilters(): array
+    {
+        return [
+            SelectFilter::make('party_type')
+                ->label('Party Type')
+                ->options([
+                    Customer::class => 'Customer',
+                    Vendor::class => 'Vendor',
+                ]),
+
+            SelectFilter::make('business_id')
+                ->label('Business')
+                ->options(fn () => CashFlowResource::accessibleBusinessesQuery(Filament::auth()->user())
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->toArray()
+                )
+                ->query(function (Builder $query, array $data): void {
+                    if (empty($data['value'])) {
+                        return;
+                    }
+
+                    $query->where(function (Builder $query) use ($data): void {
+                        $query
+                            ->whereHasMorph(
+                                'party',
+                                [Customer::class],
+                                fn (Builder $query) => $query->whereHas(
+                                    'businesses',
+                                    fn (Builder $query) => $query->where('businesses.id', $data['value'])
+                                )
+                            )
+                            ->orWhereHasMorph(
+                                'party',
+                                [Vendor::class],
+                                fn (Builder $query) => $query->whereHas(
+                                    'businesses',
+                                    fn (Builder $query) => $query->where('businesses.id', $data['value'])
+                                )
+                            );
+                    });
+                }),
+
+            SelectFilter::make('branch_id')
+                ->label('Branch')
+                ->options(function ($livewire) {
+                    $businessId = $livewire->getTableFilterState('business_id')['value'] ?? null;
+
+                    return CashFlowResource::accessibleBranchesQuery(Filament::auth()->user(), $businessId)
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->toArray();
+                })
+                ->query(function (Builder $query, array $data): void {
+                    if (empty($data['value'])) {
+                        return;
+                    }
+
+                    $query->where(function (Builder $query) use ($data): void {
+                        $query
+                            ->whereHasMorph(
+                                'party',
+                                [Customer::class],
+                                fn (Builder $query) => $query->whereHas(
+                                    'branches',
+                                    fn (Builder $query) => $query->where('branches.id', $data['value'])
+                                )
+                            )
+                            ->orWhereHasMorph(
+                                'party',
+                                [Vendor::class],
+                                fn (Builder $query) => $query->whereHas(
+                                    'branches',
+                                    fn (Builder $query) => $query->where('branches.id', $data['value'])
+                                )
+                            );
+                    });
+                }),
+
+            SelectFilter::make('flow_type')
+                ->label('Account Type')
+                ->options(CashFlow::flowTypeLabels()),
+
+            SelectFilter::make('direction')
+                ->label('Direction')
+                ->options([
+                    'in' => 'In',
+                    'out' => 'Out',
+                ]),
+
+            Filter::make('date_range')
+                ->label('Date Range')
+                ->form([
+                    DatePicker::make('from'),
+                    DatePicker::make('to'),
+                ])
+                ->query(fn (Builder $query, array $data) => $query
+                    ->when(
+                        $data['from'] ?? null,
+                        fn (Builder $builder, $date) => $builder->whereDate('flow_date', '>=', $date)
+                    )
+                    ->when(
+                        $data['to'] ?? null,
+                        fn (Builder $builder, $date) => $builder->whereDate('flow_date', '<=', $date)
+                    )),
+        ];
+    }
+
+    protected static function detailActions(): array
+    {
+        return [
+            Action::make('settle')
+                ->label('')
+                ->tooltip('Settle')
+                ->icon('heroicon-s-banknotes')
+                ->color('success')
+                ->modalHeading('Settle Cash Flow')
+                ->schema([
+                    DatePicker::make('flow_date')
+                        ->label('Settlement Date')
+                        ->required()
+                        ->default(now()),
+                    TextInput::make('amount')
+                        ->label('Settlement Amount')
+                        ->numeric()
+                        ->required()
+                        ->minValue(0.01),
+                    Textarea::make('notes')
+                        ->label('Notes')
+                        ->rows(3),
+                ])
+                ->action(function (CashFlow $record, array $data): void {
+                    if (! $record->isPrimaryTransaction()) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Cannot settle this entry')
+                            ->body('Only original cash flow entries can be settled.')
+                            ->send();
+
+                        return;
+                    }
+
+                    $remaining = self::remainingAmount($record);
+                    $amount = round((float) ($data['amount'] ?? 0), 2);
+
+                    if ($amount <= 0 || $amount > $remaining) {
+                        Notification::make()
+                            ->danger()
+                            ->title('Invalid settlement amount')
+                            ->body('Amount must be between PKR 0.01 and PKR ' . number_format($remaining, 2) . '.')
+                            ->send();
+
+                        return;
+                    }
+
+                    $direction = CashFlow::settlementDirectionForFlowType($record->flow_type);
+                    $installmentNo = $record->settlements()->withoutTrashed()->count() + 1;
+                    $referenceNo = sprintf(
+                        'CF-STL-%s-%03d',
+                        strtoupper(substr((string) $record->id, 0, 8)),
+                        $installmentNo
+                    );
+
+                    $authUser = Filament::auth()->user();
+                    $createdBy = $authUser instanceof \App\Models\User ? (string) $authUser->getKey() : null;
+
+                    CashFlow::query()->create([
+                        'merchant_id' => $record->merchant_id,
+                        'party_type' => $record->party_type,
+                        'party_id' => $record->party_id,
+                        'settlement_for_id' => $record->id,
+                        'flow_type' => $record->flow_type,
+                        'direction' => $direction,
+                        'amount' => $amount,
+                        'flow_date' => $data['flow_date'] ?? now()->toDateString(),
+                        'method' => 'Cash',
+                        'reference_no' => $referenceNo,
+                        'notes' => $data['notes'] ?? null,
+                        'created_by' => $createdBy,
+                    ]);
+
+                    $newRemaining = max(0, round($remaining - $amount, 2));
+
+                    Notification::make()
+                        ->success()
+                        ->title('Settlement recorded')
+                        ->body('PKR ' . number_format($amount, 2) . ' settled. Remaining: PKR ' . number_format($newRemaining, 2) . '.')
+                        ->send();
+                })
+                ->visible(function (CashFlow $record): bool {
+                    $user = auth(Filament::getCurrentPanel()->getAuthGuard())->user();
+                    $canSettle = $user?->hasPermissionTo('cash_flows.create', Filament::getCurrentPanel()->getAuthGuard())
+                        || $user?->hasPermissionTo('cash_flows.update', Filament::getCurrentPanel()->getAuthGuard());
+
+                    return $canSettle && $record->isPrimaryTransaction() && self::remainingAmount($record) > 0;
+                }),
+
+            Action::make('history')
+                ->label('')
+                ->tooltip('History')
+                ->icon('heroicon-s-clock')
+                ->color('gray')
+                ->modalHeading('Cash Flow History')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close')
+                ->modalContent(function (CashFlow $record) {
+                    $base = $record->settlementFor()->first() ?? $record;
+                    $history = CashFlow::query()
+                        ->withoutTrashed()
+                        ->where(function (Builder $query) use ($base): void {
+                            $query->whereKey($base->id)
+                                ->orWhere('settlement_for_id', $base->id);
+                        })
+                        ->orderBy('flow_date')
+                        ->orderBy('created_at')
+                        ->get();
+
+                    return view('filament.resources.cash-flows.settlement-history', [
+                        'base' => $base,
+                        'history' => $history,
+                        'settled' => self::settledAmount($base),
+                        'remaining' => self::remainingAmount($base),
+                    ]);
+                }),
+
+            EditAction::make()
+                ->label('')
+                ->tooltip('Edit')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('cash_flows.update', Filament::getCurrentPanel()->getAuthGuard())),
+            DeleteAction::make()
+                ->label('')
+                ->tooltip('Delete')
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('cash_flows.delete', Filament::getCurrentPanel()->getAuthGuard())),
+        ];
+    }
+
+    protected static function partySummary(CashFlow $record): array
+    {
+        static $cache = [];
+
+        $cacheKey = $record->party_type . ':' . $record->party_id;
+        if (isset($cache[$cacheKey])) {
+            return $cache[$cacheKey];
+        }
+
+        $entries = CashFlow::query()
+            ->withoutTrashed()
+            ->whereNull('settlement_for_id')
+            ->where('merchant_id', $record->merchant_id)
+            ->where('party_type', $record->party_type)
+            ->where('party_id', $record->party_id)
+            ->get();
+
+        $totalAmount = round((float) $entries->sum('amount'), 2);
+        $settledAmount = round((float) $entries->sum(fn (CashFlow $entry) => self::settledAmount($entry)), 2);
+
+        return $cache[$cacheKey] = [
+            'entries_count' => $entries->count(),
+            'total_amount' => $totalAmount,
+            'settled_amount' => $settledAmount,
+            'remaining_amount' => max(0, round($totalAmount - $settledAmount, 2)),
+        ];
     }
 
     protected static function settledAmount(CashFlow $record): float

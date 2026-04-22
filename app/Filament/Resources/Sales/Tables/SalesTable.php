@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Sales\Tables;
 
 use App\Filament\Resources\Sales\SaleResource;
+use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Sale;
@@ -210,19 +211,10 @@ class SalesTable
                         'activeCustomer',
                         'name',
                         modifyQueryUsing: function (Builder $query) {
-                            $user = Filament::auth()->user();
-
-                            $merchantId = match (true) {
-                                $user instanceof \App\Models\Merchant => $user->id,
-                                $user instanceof \App\Models\User     => $user->merchant_id,
-                                default                               => null,
-                            };
-
-                            $query->withoutTrashed();
-
-                            if ($merchantId) {
-                                $query->where('merchant_id', $merchantId);
-                            }
+                            CustomerResource::scopeVisibleCustomers(
+                                $query->withoutTrashed(),
+                                Filament::auth()->user(),
+                            );
                         }
                     )
                     ->label('Customer')

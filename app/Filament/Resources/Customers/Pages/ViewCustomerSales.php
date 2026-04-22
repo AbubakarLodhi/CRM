@@ -28,6 +28,14 @@ class ViewCustomerSales extends Page implements HasTable
 
     public function mount(Customer $record): void
     {
+        abort_unless(
+            CustomerResource::scopeVisibleCustomers(
+                Customer::query()->whereKey($record->getKey()),
+                Filament::auth()->user(),
+            )->exists(),
+            404,
+        );
+
         $this->record = $record;
     }
 

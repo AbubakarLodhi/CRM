@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Vendors\Pages;
 
 use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\Vendor;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Validation\ValidationException;
 
@@ -11,8 +12,13 @@ class CreateVendor extends CreateRecord
 {
     protected static string $resource = VendorResource::class;
 
+    protected array $branchIds = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $this->branchIds = array_values($data['branch_ids'] ?? []);
+        unset($data['branch_ids']);
+
         $email = $data['email'] ?? null;
 
         if (! filled($email)) {
@@ -39,5 +45,14 @@ class CreateVendor extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    protected function afterCreate(): void
+    {
+        VendorResource::syncVendorBranches(
+            $this->record,
+            $this->branchIds,
+            Filament::auth()->user(),
+        );
     }
 }

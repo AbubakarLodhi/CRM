@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Customers\Pages;
 
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Customer;
+use Filament\Facades\Filament;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Validation\ValidationException;
 
@@ -11,8 +12,13 @@ class CreateCustomer extends CreateRecord
 {
     protected static string $resource = CustomerResource::class;
 
+    protected array $branchIds = [];
+
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $this->branchIds = array_values($data['branch_ids'] ?? []);
+        unset($data['branch_ids']);
+
         $email = $data['email'] ?? null;
 
         if (! filled($email)) {
@@ -41,4 +47,12 @@ class CreateCustomer extends CreateRecord
         return $this->getResource()::getUrl('index');
     }
 
+    protected function afterCreate(): void
+    {
+        CustomerResource::syncCustomerBranches(
+            $this->record,
+            $this->branchIds,
+            Filament::auth()->user(),
+        );
+    }
 }

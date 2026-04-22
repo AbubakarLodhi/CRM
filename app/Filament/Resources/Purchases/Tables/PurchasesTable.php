@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Purchases\Tables;
 
 use App\Filament\Resources\Purchases\PurchaseResource;
+use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Purchase;
@@ -319,19 +320,10 @@ class PurchasesTable
                     ->options(function () {
                         $user = Filament::auth()->user();
 
-                        $merchantId = match (true) {
-                            $user instanceof \App\Models\Merchant => $user->id,
-                            $user instanceof \App\Models\User     => $user->merchant_id,
-                            default                               => null,
-                        };
-
-                        if (! $merchantId) {
-                            return [];
-                        }
-
-                        return Vendor::query()
-                            ->withoutTrashed()
-                            ->where('merchant_id', $merchantId)
+                        return VendorResource::scopeVisibleVendors(
+                            Vendor::query()->withoutTrashed(),
+                            $user,
+                        )
                             ->orderBy('name')
                             ->pluck('name', 'id')
                             ->toArray();

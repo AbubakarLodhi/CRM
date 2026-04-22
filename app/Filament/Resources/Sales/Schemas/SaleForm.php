@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Sales\Schemas;
 
+use App\Filament\Resources\Customers\CustomerResource;
+use App\Filament\Resources\Customers\Schemas\CustomerForm;
+use App\Models\Customer;
 use App\Models\Product;
 use App\Services\PaymentLedgerService;
 use Filament\Actions\Action;
@@ -18,9 +21,8 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
-use App\Models\Customer;
-use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
@@ -71,9 +73,10 @@ class SaleForm
                                 ->relationship(
                                     'activeCustomer',
                                     'name',
-                                    fn (Builder $query) => $query->where(
-                                        'merchant_id',
-                                        self::merchantId()
+                                    fn (Builder $query, callable $get) => CustomerResource::scopeVisibleCustomers(
+                                        $query->withoutTrashed(),
+                                        Filament::auth()->user(),
+                                        self::selectedCustomerBranchIds($get),
                                     )
                                 )
                                 ->searchable()
@@ -89,6 +92,9 @@ class SaleForm
                                         ->model(Customer::class)
                                         ->form(CustomerForm::components())
                                         ->action(function (array $data, callable $set): void {
+                                            $branchIds = array_values($data['branch_ids'] ?? []);
+                                            unset($data['branch_ids']);
+
                                             $email = $data['email'] ?? null;
 
                                             if (filled($email)) {
@@ -107,7 +113,19 @@ class SaleForm
                                                 }
                                             }
 
-                                            $set('customer_id', Customer::create($data)->id);
+                                            $customer = DB::transaction(function () use ($data, $branchIds) {
+                                                $customer = Customer::create($data);
+
+                                                CustomerResource::syncCustomerBranches(
+                                                    $customer,
+                                                    $branchIds,
+                                                    Filament::auth()->user(),
+                                                );
+
+                                                return $customer;
+                                            });
+
+                                            $set('customer_id', $customer->id);
                                         })
                                 )
                                 ->live()
@@ -897,6 +915,17 @@ class SaleForm
             $user instanceof \App\Models\User     => $user->merchant_id,
             default                               => null,
         };
+    }
+
+    private static function selectedCustomerBranchIds(callable $get): array
+    {
+        return collect($get('items') ?? [])
+            ->pluck('branch_id')
+            ->filter(fn ($branchId) => filled($branchId))
+            ->map(fn ($branchId) => (string) $branchId)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private static function merchantHasLogo(): bool

@@ -123,6 +123,22 @@ class Business extends Model implements Auditable
             ->withTimestamps();
     }
 
+    public function customers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'customer_businesses'
+        )->withTimestamps();
+    }
+
+    public function vendors(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Vendor::class,
+            'vendor_businesses'
+        )->withTimestamps();
+    }
+
     public function countries():belongsToMany
     {
         return $this->belongsToMany(Country::class, 'business_country');

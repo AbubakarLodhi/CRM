@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\Purchases\Schemas;
 
+use App\Filament\Resources\Vendors\VendorResource;
+use App\Filament\Resources\Vendors\Schemas\VendorForm;
+use App\Models\Vendor;
 use App\Models\Product;
 use App\Services\PaymentLedgerService;
 use Filament\Facades\Filament;
@@ -18,8 +21,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\View;
 use Illuminate\Support\Facades\DB;
-use App\Models\Vendor;
-use App\Filament\Resources\Vendors\Schemas\VendorForm;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
@@ -70,7 +72,11 @@ class PurchaseForm
                                 ->relationship(
                                     'activeVendor',
                                     'name',
-                                    fn ($query) => $query->where('merchant_id', self::merchantId())
+                                    fn (Builder $query, callable $get) => VendorResource::scopeVisibleVendors(
+                                        $query->withoutTrashed(),
+                                        Filament::auth()->user(),
+                                        self::selectedVendorBranchIds($get),
+                                    )
                                 )
                                 ->searchable()
                                 ->preload()
@@ -85,6 +91,9 @@ class PurchaseForm
                                         ->model(Vendor::class)
                                         ->form(VendorForm::components())
                                         ->action(function (array $data, callable $set): void {
+                                            $branchIds = array_values($data['branch_ids'] ?? []);
+                                            unset($data['branch_ids']);
+
                                             $email = $data['email'] ?? null;
 
                                             if (filled($email)) {
@@ -103,7 +112,19 @@ class PurchaseForm
                                                 }
                                             }
 
-                                            $set('vendor_id', Vendor::create($data)->id);
+                                            $vendor = DB::transaction(function () use ($data, $branchIds) {
+                                                $vendor = Vendor::create($data);
+
+                                                VendorResource::syncVendorBranches(
+                                                    $vendor,
+                                                    $branchIds,
+                                                    Filament::auth()->user(),
+                                                );
+
+                                                return $vendor;
+                                            });
+
+                                            $set('vendor_id', $vendor->id);
                                         })
                                 )
                                 ->live()
@@ -955,6 +976,17 @@ class PurchaseForm
     /* ======================================================
      * HELPERS (DO NOT REMOVE)
      * ====================================================== */
+
+    private static function selectedVendorBranchIds(callable $get): array
+    {
+        return collect($get('items') ?? [])
+            ->pluck('branch_id')
+            ->filter(fn ($branchId) => filled($branchId))
+            ->map(fn ($branchId) => (string) $branchId)
+            ->unique()
+            ->values()
+            ->all();
+    }
 
     private static function merchantId(): ?string
     {

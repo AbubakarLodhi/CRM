@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vendors\Schemas;
 
+use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\Merchant;
@@ -138,6 +139,27 @@ class VendorForm
                 ->label('Reference Vendor')
                 ->maxLength(255)
                 ->nullable(),
+
+            Select::make('branch_ids')
+                ->label('Branches')
+                ->multiple()
+                ->searchable()
+                ->preload()
+                ->required()
+                ->options(fn () => VendorResource::branchOptions(Filament::auth()->user()))
+                ->helperText('Select the branches this vendor belongs to. Businesses are derived automatically.')
+                ->afterStateHydrated(function (Select $component, ?Vendor $record, $state): void {
+                    if (filled($state) || ! $record) {
+                        return;
+                    }
+
+                    $component->state(
+                        $record->branches()
+                            ->pluck('branches.id')
+                            ->all()
+                    );
+                })
+                ->dehydrated(),
         ];
     }
 

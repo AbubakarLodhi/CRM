@@ -107,6 +107,26 @@ class Branch extends Model implements Auditable
             ->withTimestamps();
     }
 
+    public function customers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Customer::class,
+            'customer_branches'
+        )
+            ->withPivot('business_id')
+            ->withTimestamps();
+    }
+
+    public function vendors(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Vendor::class,
+            'vendor_branches'
+        )
+            ->withPivot('business_id')
+            ->withTimestamps();
+    }
+
 
     /**
      * @return BelongsTo

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Vendor extends Model implements Auditable
@@ -54,6 +55,24 @@ class Vendor extends Model implements Auditable
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class, 'city_id');
+    }
+
+    public function businesses(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Business::class,
+            'vendor_businesses',
+        )->withTimestamps();
+    }
+
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Branch::class,
+            'vendor_branches',
+        )
+            ->withPivot('business_id')
+            ->withTimestamps();
     }
 
     public function payments(): MorphMany

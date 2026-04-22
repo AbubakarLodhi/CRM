@@ -2,6 +2,9 @@
 
 namespace App\Filament\Resources\CashFlows\Schemas;
 
+use App\Filament\Resources\CashFlows\CashFlowResource;
+use App\Filament\Resources\Customers\CustomerResource;
+use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\CashFlow;
 use App\Models\Customer;
 use App\Models\Vendor;
@@ -34,6 +37,42 @@ class CashFlowForm
                     Hidden::make('created_by')
                         ->default(fn () => Filament::auth()->user() instanceof \App\Models\User ? Filament::auth()->id() : null),
 
+                    Select::make('business_id')
+                        ->label('Business')
+                        ->searchable()
+                        ->preload()
+                        ->options(fn () => CashFlowResource::accessibleBusinessesQuery(Filament::auth()->user())
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray()
+                        )
+                        ->live()
+                        ->afterStateUpdated(function (callable $set): void {
+                            $set('branch_id', null);
+                            $set('party_id', null);
+                        })
+                        ->dehydrated(false)
+                        ->columnSpan(1),
+
+                    Select::make('branch_id')
+                        ->label('Branch')
+                        ->searchable()
+                        ->preload()
+                        ->options(fn (callable $get) => CashFlowResource::accessibleBranchesQuery(
+                            Filament::auth()->user(),
+                            $get('business_id'),
+                        )
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->toArray()
+                        )
+                        ->live()
+                        ->afterStateUpdated(function (callable $set): void {
+                            $set('party_id', null);
+                        })
+                        ->dehydrated(false)
+                        ->columnSpan(1),
+
                     Select::make('party_type')
                         ->label('Party Type')
                         ->options([
@@ -54,6 +93,8 @@ class CashFlowForm
                         ->preload()
                         ->options(function (callable $get): array {
                             $partyType = $get('party_type');
+                            $branchId = $get('branch_id');
+                            $businessId = $get('business_id');
 
                             $merchantId = match (true) {
                                 Filament::auth()->user() instanceof \App\Models\Merchant => Filament::auth()->user()->id,
@@ -66,18 +107,34 @@ class CashFlowForm
                             }
 
                             if ($partyType === Customer::class) {
-                                return Customer::query()
-                                    ->withoutTrashed()
-                                    ->where('merchant_id', $merchantId)
+                                $query = CustomerResource::scopeVisibleCustomers(
+                                    Customer::query()->withoutTrashed(),
+                                    Filament::auth()->user(),
+                                    filled($branchId) ? [$branchId] : null,
+                                );
+
+                                if (filled($businessId)) {
+                                    $query->whereHas('businesses', fn ($query) => $query->where('businesses.id', $businessId));
+                                }
+
+                                return $query
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
                             }
 
                             if ($partyType === Vendor::class) {
-                                return Vendor::query()
-                                    ->withoutTrashed()
-                                    ->where('merchant_id', $merchantId)
+                                $query = VendorResource::scopeVisibleVendors(
+                                    Vendor::query()->withoutTrashed(),
+                                    Filament::auth()->user(),
+                                    filled($branchId) ? [$branchId] : null,
+                                );
+
+                                if (filled($businessId)) {
+                                    $query->whereHas('businesses', fn ($query) => $query->where('businesses.id', $businessId));
+                                }
+
+                                return $query
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
