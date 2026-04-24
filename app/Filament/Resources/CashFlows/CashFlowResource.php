@@ -76,23 +76,9 @@ class CashFlowResource extends Resource
                 return $query->whereRaw('1 = 0');
             }
 
-            $query->where(function (Builder $query) use ($businessIds, $branchIds): void {
-                $query
-                    ->whereHasMorph(
-                        'party',
-                        [Customer::class],
-                        fn (Builder $query) => $query
-                            ->whereHas('businesses', fn (Builder $query) => $query->whereIn('businesses.id', $businessIds))
-                            ->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds))
-                    )
-                    ->orWhereHasMorph(
-                        'party',
-                        [Vendor::class],
-                        fn (Builder $query) => $query
-                            ->whereHas('businesses', fn (Builder $query) => $query->whereIn('businesses.id', $businessIds))
-                            ->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds))
-                    );
-            });
+            $query
+                ->whereIn('business_id', $businessIds)
+                ->whereIn('branch_id', $branchIds);
         }
 
         return CashFlow::query()
@@ -244,31 +230,9 @@ class CashFlowResource extends Resource
                 return $query->whereRaw('1 = 0');
             }
 
-            $query->where(function (Builder $query) use ($partyClass, $partyId, $user, $businessIds, $branchIds): void {
-                if ($partyClass === Customer::class) {
-                    $query->whereHasMorph(
-                        'party',
-                        [Customer::class],
-                        fn (Builder $query) => $query
-                            ->whereKey($partyId)
-                            ->whereHas('businesses', fn (Builder $query) => $query->whereIn('businesses.id', $businessIds))
-                            ->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds))
-                    );
-
-                    return;
-                }
-
-                if ($partyClass === Vendor::class) {
-                    $query->whereHasMorph(
-                        'party',
-                        [Vendor::class],
-                        fn (Builder $query) => $query
-                            ->whereKey($partyId)
-                            ->whereHas('businesses', fn (Builder $query) => $query->whereIn('businesses.id', $businessIds))
-                            ->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds))
-                    );
-                }
-            });
+            $query
+                ->whereIn('business_id', $businessIds)
+                ->whereIn('branch_id', $branchIds);
         }
 
         return $query;

@@ -146,7 +146,9 @@ class VendorResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        $query->where('merchant_id', $merchantId);
+        $query
+            ->withoutTrashed()
+            ->where('merchant_id', $merchantId);
 
         $branchIds = static::normalizeIds($limitToBranchIds);
 

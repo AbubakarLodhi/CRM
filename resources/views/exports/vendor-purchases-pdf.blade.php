@@ -120,15 +120,15 @@
     @endphp
     <table class="summary">
         <tr>
-            <td class="bold">Total debits</td>
+            <td class="bold">Total payable</td>
             <td>{{ number_format((float) ($totals['total_debits'] ?? 0), 2) }}</td>
         </tr>
         <tr>
-            <td class="bold">Total credits</td>
+            <td class="bold">Amount settled</td>
             <td>{{ number_format((float) ($totals['total_credits'] ?? 0), 2) }}</td>
         </tr>
         <tr>
-            <td class="bold">Closing balance</td>
+            <td class="bold">Pending payable</td>
             <td>{{ number_format($closingBalance, 2) }}</td>
         </tr>
     </table>

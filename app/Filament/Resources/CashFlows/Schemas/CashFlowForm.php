@@ -5,6 +5,7 @@ namespace App\Filament\Resources\CashFlows\Schemas;
 use App\Filament\Resources\CashFlows\CashFlowResource;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Vendors\VendorResource;
+use App\Models\Branch;
 use App\Models\CashFlow;
 use App\Models\Customer;
 use App\Models\Vendor;
@@ -37,41 +38,7 @@ class CashFlowForm
                     Hidden::make('created_by')
                         ->default(fn () => Filament::auth()->user() instanceof \App\Models\User ? Filament::auth()->id() : null),
 
-                    Select::make('business_id')
-                        ->label('Business')
-                        ->searchable()
-                        ->preload()
-                        ->options(fn () => CashFlowResource::accessibleBusinessesQuery(Filament::auth()->user())
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray()
-                        )
-                        ->live()
-                        ->afterStateUpdated(function (callable $set): void {
-                            $set('branch_id', null);
-                            $set('party_id', null);
-                        })
-                        ->dehydrated(false)
-                        ->columnSpan(1),
-
-                    Select::make('branch_id')
-                        ->label('Branch')
-                        ->searchable()
-                        ->preload()
-                        ->options(fn (callable $get) => CashFlowResource::accessibleBranchesQuery(
-                            Filament::auth()->user(),
-                            $get('business_id'),
-                        )
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->toArray()
-                        )
-                        ->live()
-                        ->afterStateUpdated(function (callable $set): void {
-                            $set('party_id', null);
-                        })
-                        ->dehydrated(false)
-                        ->columnSpan(1),
+                    Hidden::make('business_id'),
 
                     Select::make('party_type')
                         ->label('Party Type')
@@ -83,6 +50,8 @@ class CashFlowForm
                         ->live()
                         ->afterStateUpdated(function (callable $set): void {
                             $set('party_id', null);
+                            $set('branch_id', null);
+                            $set('business_id', null);
                         })
                         ->columnSpan(1),
 
@@ -93,48 +62,22 @@ class CashFlowForm
                         ->preload()
                         ->options(function (callable $get): array {
                             $partyType = $get('party_type');
-                            $branchId = $get('branch_id');
-                            $businessId = $get('business_id');
-
-                            $merchantId = match (true) {
-                                Filament::auth()->user() instanceof \App\Models\Merchant => Filament::auth()->user()->id,
-                                Filament::auth()->user() instanceof \App\Models\User => Filament::auth()->user()->merchant_id,
-                                default => null,
-                            };
-
-                            if (! $merchantId) {
-                                return [];
-                            }
 
                             if ($partyType === Customer::class) {
-                                $query = CustomerResource::scopeVisibleCustomers(
+                                return CustomerResource::scopeVisibleCustomers(
                                     Customer::query()->withoutTrashed(),
                                     Filament::auth()->user(),
-                                    filled($branchId) ? [$branchId] : null,
-                                );
-
-                                if (filled($businessId)) {
-                                    $query->whereHas('businesses', fn ($query) => $query->where('businesses.id', $businessId));
-                                }
-
-                                return $query
+                                )
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
                             }
 
                             if ($partyType === Vendor::class) {
-                                $query = VendorResource::scopeVisibleVendors(
+                                return VendorResource::scopeVisibleVendors(
                                     Vendor::query()->withoutTrashed(),
                                     Filament::auth()->user(),
-                                    filled($branchId) ? [$branchId] : null,
-                                );
-
-                                if (filled($businessId)) {
-                                    $query->whereHas('businesses', fn ($query) => $query->where('businesses.id', $businessId));
-                                }
-
-                                return $query
+                                )
                                     ->orderBy('name')
                                     ->pluck('name', 'id')
                                     ->toArray();
@@ -142,7 +85,43 @@ class CashFlowForm
 
                             return [];
                         })
-                        ->columnSpan(2),
+                        ->live()
+                        ->afterStateUpdated(function (callable $get, callable $set, $state): void {
+                            $branchOptions = self::partyBranchOptions($get('party_type'), $state);
+                            $branchIds = array_keys($branchOptions);
+
+                            if (count($branchIds) === 1) {
+                                $set('branch_id', $branchIds[0]);
+                                $set('business_id', Branch::query()->whereKey($branchIds[0])->value('business_id'));
+
+                                return;
+                            }
+
+                            $set('branch_id', null);
+                            $set('business_id', null);
+                        })
+                        ->columnSpan(1),
+
+                    Select::make('branch_id')
+                        ->label('Branch')
+                        ->required()
+                        ->searchable()
+                        ->preload()
+                        ->disabled(fn (callable $get): bool => blank($get('party_type')) || blank($get('party_id')))
+                        ->options(fn (callable $get): array => self::partyBranchOptions(
+                            $get('party_type'),
+                            $get('party_id'),
+                        ))
+                        ->live()
+                        ->afterStateUpdated(function (callable $set, $state): void {
+                            $set(
+                                'business_id',
+                                filled($state)
+                                    ? Branch::query()->whereKey($state)->value('business_id')
+                                    : null
+                            );
+                        })
+                        ->columnSpan(1),
 
                     Select::make('flow_type')
                         ->label('Account Type')
@@ -179,5 +158,27 @@ class CashFlowForm
                         ->rows(4),
                 ]),
         ]);
+    }
+
+    protected static function partyBranchOptions(?string $partyType, ?string $partyId): array
+    {
+        if (! filled($partyType) || ! filled($partyId)) {
+            return [];
+        }
+
+        $query = CashFlowResource::accessibleBranchesQuery(Filament::auth()->user());
+
+        if ($partyType === Customer::class) {
+            $query->whereHas('customers', fn ($query) => $query->where('customers.id', $partyId));
+        } elseif ($partyType === Vendor::class) {
+            $query->whereHas('vendors', fn ($query) => $query->where('vendors.id', $partyId));
+        } else {
+            return [];
+        }
+
+        return $query
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->toArray();
     }
 }

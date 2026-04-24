@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CashFlows\Pages;
 
 use App\Filament\Resources\CashFlows\CashFlowResource;
+use App\Models\Branch;
 use App\Models\CashFlow;
 use Filament\Support\Enums\Width;
 use Filament\Resources\Pages\CreateRecord;
@@ -19,6 +20,9 @@ class CreateCashFlow extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data['business_id'] = filled($data['branch_id'] ?? null)
+            ? Branch::query()->whereKey($data['branch_id'])->value('business_id')
+            : null;
         $data['method'] = 'Cash';
         $data['direction'] = CashFlow::primaryDirectionForFlowType($data['flow_type'] ?? null);
         $data['reference_no'] = null;

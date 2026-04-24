@@ -32,13 +32,13 @@ class VendorPurchasesExport implements
             'merchant' => 'Merchant',
             'branch' => 'Branch',
             'payment_type' => 'Type',
-            'paid_amount' => 'Paid Amount',
-            'due_amount' => 'Due Amount',
+            'paid_amount' => 'Amount Settled',
+            'due_amount' => 'Pending Payable',
             'items_count' => 'Items Count',
             'subtotal' => 'Subtotal',
             'discount' => 'Discount',
             'tax' => 'Tax',
-            'total_amount' => 'Total Amount',
+            'total_amount' => 'Total Payable',
         ];
     }
 

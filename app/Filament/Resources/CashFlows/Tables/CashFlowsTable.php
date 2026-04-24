@@ -5,7 +5,9 @@ namespace App\Filament\Resources\CashFlows\Tables;
 use App\Filament\Resources\CashFlows\CashFlowResource;
 use App\Models\CashFlow;
 use App\Models\Customer;
+use App\Models\Merchant;
 use App\Models\Vendor;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -21,6 +23,8 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class CashFlowsTable
 {
@@ -69,6 +73,61 @@ class CashFlowsTable
                     ->color(fn ($state) => (float) $state > 0 ? 'warning' : 'success'),
             ])
             ->filters(static::sharedFilters())
+            ->recordActions([
+                Action::make('print')
+                    ->label('')
+                    ->tooltip('Print')
+                    ->icon('heroicon-s-printer')
+                    ->color('gray')
+                    ->action(function (CashFlow $record) {
+                        $partyAlias = CashFlowResource::partyAliasFor($record->party_type);
+                        $party = CashFlowResource::visiblePartyRecord($partyAlias ?? '', (string) $record->party_id);
+
+                        if (! $party) {
+                            Notification::make()
+                                ->danger()
+                                ->title('Unable to print')
+                                ->body('This party is no longer available in your current scope.')
+                                ->send();
+
+                            return null;
+                        }
+
+                        $cashFlows = CashFlowResource::partyCashFlowsQuery(
+                            $partyAlias,
+                            (string) $party->getKey(),
+                        )
+                            ->with(['createdBy', 'settlements'])
+                            ->orderBy('flow_date')
+                            ->orderBy('created_at')
+                            ->get();
+
+                        $merchantLogoDataUri = static::merchantLogoDataUri($record->merchant_id);
+                        $safeName = Str::slug($party->name ?? 'party');
+                        $timestamp = now()->format('Y-m-d_H-i-s');
+
+                        $pdfContent = Pdf::loadView('exports.cash-flow-party-pdf', [
+                            'party' => $party,
+                            'partyLabel' => $record->party_type === Customer::class ? 'Customer' : 'Vendor',
+                            'cashFlows' => $cashFlows,
+                            'merchantLogoDataUri' => $merchantLogoDataUri,
+                            'totals' => [
+                                'total_amount' => round((float) $cashFlows->sum('amount'), 2),
+                                'settled_amount' => round((float) $cashFlows->sum(fn (CashFlow $cashFlow) => self::settledAmount($cashFlow)), 2),
+                                'remaining_amount' => round((float) $cashFlows->sum(fn (CashFlow $cashFlow) => self::remainingAmount($cashFlow)), 2),
+                            ],
+                        ])
+                            ->setPaper('a4', 'portrait')
+                            ->output();
+
+                        return response()->streamDownload(
+                            fn () => print($pdfContent),
+                            "cash-flow-{$safeName}-{$timestamp}.pdf",
+                            ['Content-Type' => 'application/pdf']
+                        );
+                    })
+                    ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('cash_flows.view', Filament::getCurrentPanel()->getAuthGuard())),
+            ])
             ->recordUrl(fn (CashFlow $record) => CashFlowResource::getUrl('party', [
                 'partyType' => CashFlowResource::partyAliasFor($record->party_type),
                 'partyId' => $record->party_id,
@@ -190,31 +249,9 @@ class CashFlowsTable
                     ->pluck('name', 'id')
                     ->toArray()
                 )
-                ->query(function (Builder $query, array $data): void {
-                    if (empty($data['value'])) {
-                        return;
-                    }
-
-                    $query->where(function (Builder $query) use ($data): void {
-                        $query
-                            ->whereHasMorph(
-                                'party',
-                                [Customer::class],
-                                fn (Builder $query) => $query->whereHas(
-                                    'businesses',
-                                    fn (Builder $query) => $query->where('businesses.id', $data['value'])
-                                )
-                            )
-                            ->orWhereHasMorph(
-                                'party',
-                                [Vendor::class],
-                                fn (Builder $query) => $query->whereHas(
-                                    'businesses',
-                                    fn (Builder $query) => $query->where('businesses.id', $data['value'])
-                                )
-                            );
-                    });
-                }),
+                ->query(fn (Builder $query, array $data) => empty($data['value'])
+                    ? null
+                    : $query->where('business_id', $data['value'])),
 
             SelectFilter::make('branch_id')
                 ->label('Branch')
@@ -231,25 +268,7 @@ class CashFlowsTable
                         return;
                     }
 
-                    $query->where(function (Builder $query) use ($data): void {
-                        $query
-                            ->whereHasMorph(
-                                'party',
-                                [Customer::class],
-                                fn (Builder $query) => $query->whereHas(
-                                    'branches',
-                                    fn (Builder $query) => $query->where('branches.id', $data['value'])
-                                )
-                            )
-                            ->orWhereHasMorph(
-                                'party',
-                                [Vendor::class],
-                                fn (Builder $query) => $query->whereHas(
-                                    'branches',
-                                    fn (Builder $query) => $query->where('branches.id', $data['value'])
-                                )
-                            );
-                    });
+                    $query->where('branch_id', $data['value']);
                 }),
 
             SelectFilter::make('flow_type')
@@ -341,6 +360,8 @@ class CashFlowsTable
 
                     CashFlow::query()->create([
                         'merchant_id' => $record->merchant_id,
+                        'business_id' => $record->business_id,
+                        'branch_id' => $record->branch_id,
                         'party_type' => $record->party_type,
                         'party_id' => $record->party_id,
                         'settlement_for_id' => $record->id,
@@ -455,5 +476,37 @@ class CashFlowsTable
         $remaining = round((float) $record->amount - self::settledAmount($record), 2);
 
         return max(0, $remaining);
+    }
+
+    protected static function merchantLogoDataUri(?string $merchantId): ?string
+    {
+        if (! $merchantId || ! extension_loaded('gd')) {
+            return null;
+        }
+
+        $merchant = Merchant::query()
+            ->with('logo')
+            ->find($merchantId);
+
+        $logoPath = $merchant?->logo?->photo_url;
+
+        if (! filled($logoPath) || ! Storage::disk('public')->exists($logoPath)) {
+            return null;
+        }
+
+        try {
+            $absolutePath = Storage::disk('public')->path($logoPath);
+            $contents = file_get_contents($absolutePath);
+
+            if ($contents === false) {
+                return null;
+            }
+
+            $mime = mime_content_type($absolutePath) ?: 'image/png';
+
+            return 'data:' . $mime . ';base64,' . base64_encode($contents);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

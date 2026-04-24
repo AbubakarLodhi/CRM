@@ -44,7 +44,7 @@ class VendorsTable
                     ->searchable(),
 
                 TextColumn::make('total_amount')
-                    ->label('Total Amount (PKR)')
+                    ->label('Total Payable (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Vendor $record) {
@@ -53,7 +53,7 @@ class VendorsTable
                     ->sortable(),
 
                 TextColumn::make('amount_paid')
-                    ->label('Amount Paid (PKR)')
+                    ->label('Amount Settled (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Vendor $record) {
@@ -61,7 +61,7 @@ class VendorsTable
                     }),
 
                 TextColumn::make('amount_pending')
-                    ->label('Amount Pending (PKR)')
+                    ->label('Pending Payable (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
                     ->getStateUsing(function (Vendor $record) {

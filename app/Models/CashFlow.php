@@ -21,6 +21,8 @@ class CashFlow extends Model
 
     protected $fillable = [
         'merchant_id',
+        'business_id',
+        'branch_id',
         'party_type',
         'party_id',
         'settlement_for_id',
@@ -105,6 +107,16 @@ class CashFlow extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function party(): MorphTo
