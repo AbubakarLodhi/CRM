@@ -2,28 +2,29 @@
 
 namespace App\Filament\Resources\Activities\Support;
 
+use App\Models\Merchant;
 use App\Models\User;
 
 class ActivityPerformer
 {
     public static function resolve(object $record): string
     {
-        if (($record->user_type ?? null) === User::class && $record->user?->name) {
-            return (string) $record->user->name;
-        }
-
-        $staffId = self::extractStaffIdFromAuditPayload($record);
-
-        if ($staffId) {
-            $staff = User::query()->find($staffId);
-
-            if ($staff?->name) {
-                return (string) $staff->name;
-            }
-        }
-
+        // Polymorphic user relationship covers both Merchant and User
         if ($record->user?->name) {
             return (string) $record->user->name;
+        }
+
+        // For staff records where the relationship is missing, try to find via audit payload
+        if (($record->user_type ?? null) === User::class) {
+            $staffId = self::extractStaffIdFromAuditPayload($record);
+
+            if ($staffId) {
+                $staff = User::query()->find($staffId);
+
+                if ($staff?->name) {
+                    return (string) $staff->name;
+                }
+            }
         }
 
         return 'System';
@@ -47,9 +48,7 @@ class ActivityPerformer
         return null;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+    /** @return array<string, mixed> */
     protected static function normalizeArray(mixed $value): array
     {
         if (is_array($value)) {
@@ -65,4 +64,3 @@ class ActivityPerformer
         return [];
     }
 }
-

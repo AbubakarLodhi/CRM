@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Activities\Tables;
 
+use App\Filament\Resources\Activities\Schemas\ActivityInfolist;
 use App\Filament\Resources\Activities\Support\ActivityPerformer;
 use App\Models\Merchant;
 use App\Models\User;
@@ -13,6 +14,7 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Str;
 
 class ActivitiesTable
 {
@@ -28,11 +30,11 @@ class ActivitiesTable
                 TextColumn::make('event')
                     ->badge()
                     ->color(fn (?string $state) => match (strtolower((string) $state)) {
-                        'created' => 'success',
-                        'updated' => 'info',
-                        'deleted' => 'danger',
+                        'created'  => 'success',
+                        'updated'  => 'info',
+                        'deleted'  => 'danger',
                         'restored' => 'warning',
-                        default => 'gray',
+                        default    => 'gray',
                     })
                     ->sortable(),
 
@@ -56,13 +58,25 @@ class ActivitiesTable
 
                         return class_basename($state);
                     })
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('auditable_type')
-                    ->label('Entity')
-                    ->formatStateUsing(fn (?string $state): string => $state ? class_basename($state) : '-')
+                    ->label('Entity Type')
+                    ->formatStateUsing(fn (?string $state): string => $state ? Str::headline(class_basename($state)) : '-')
                     ->searchable()
                     ->sortable(),
+
+                TextColumn::make('entity_name')
+                    ->label('Entity')
+                    ->getStateUsing(fn ($record) => ActivityInfolist::resolveAuditableEntityValue($record))
+                    ->placeholder('-')
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHasMorph(
+                            'auditable',
+                            '*',
+                            fn (Builder $q): Builder => $q->where('name', 'like', "%{$search}%"),
+                        );
+                    }),
 
                 TextColumn::make('auditable_id')
                     ->label('Entity ID')
@@ -82,9 +96,9 @@ class ActivitiesTable
             ->filters([
                 SelectFilter::make('event')
                     ->options([
-                        'created' => 'Created',
-                        'updated' => 'Updated',
-                        'deleted' => 'Deleted',
+                        'created'  => 'Created',
+                        'updated'  => 'Updated',
+                        'deleted'  => 'Deleted',
                         'restored' => 'Restored',
                     ]),
 
@@ -92,8 +106,20 @@ class ActivitiesTable
                     ->label('Actor Type')
                     ->options([
                         Merchant::class => 'Merchant',
-                        User::class => 'Staff',
+                        User::class     => 'Staff',
                     ]),
+
+                SelectFilter::make('auditable_type')
+                    ->label('Entity Type')
+                    ->searchable()
+                    ->options(function (): array {
+                        return \App\Models\Audit::query()
+                            ->select('auditable_type')
+                            ->distinct()
+                            ->pluck('auditable_type')
+                            ->mapWithKeys(fn (string $type) => [$type => Str::headline(class_basename($type))])
+                            ->toArray();
+                    }),
 
                 Filter::make('created_at_range')
                     ->label('Activity Date')

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Activities\Pages;
 
 use App\Filament\Resources\Activities\ActivityResource;
 use Filament\Resources\Pages\ViewRecord;
+use Illuminate\Support\Str;
 
 class ViewActivity extends ViewRecord
 {
@@ -11,7 +12,14 @@ class ViewActivity extends ViewRecord
 
     public function getTitle(): string
     {
-        return 'Activity Details';
+        $record = $this->getRecord();
+
+        $event      = Str::title((string) ($record->event ?? 'Activity'));
+        $entityType = $record->auditable_type
+            ? Str::headline(class_basename((string) $record->auditable_type))
+            : null;
+
+        return $entityType ? "{$event} — {$entityType}" : $event;
     }
 
     protected function getHeaderActions(): array
@@ -19,4 +27,3 @@ class ViewActivity extends ViewRecord
         return [];
     }
 }
-
