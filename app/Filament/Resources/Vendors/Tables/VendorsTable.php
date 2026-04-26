@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Vendors\Tables;
 
 use App\Filament\Exports\VendorPurchasesExport;
 use App\Filament\Resources\Vendors\VendorResource;
+use App\Models\Branch;
+use App\Models\Business;
 use App\Models\CashFlow;
 use App\Models\Vendor;
 use App\Models\Purchase;
@@ -19,7 +21,9 @@ use Filament\Forms\Components\Select;
 use Filament\Schemas\Components\Grid;
 use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -47,8 +51,9 @@ class VendorsTable
                     ->label('Total Payable (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
-                    ->getStateUsing(function (Vendor $record) {
-                        return self::vendorLedgerTotals($record)['total_amount'];
+                    ->getStateUsing(function (Vendor $record, $livewire) {
+                        $branchIds = $livewire->getTableFilterState('branch_id')['values'] ?? [];
+                        return self::vendorLedgerTotals($record, $branchIds)['total_amount'];
                     })
                     ->sortable(),
 
@@ -56,16 +61,18 @@ class VendorsTable
                     ->label('Amount Settled (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
-                    ->getStateUsing(function (Vendor $record) {
-                        return self::vendorLedgerTotals($record)['amount_paid'];
+                    ->getStateUsing(function (Vendor $record, $livewire) {
+                        $branchIds = $livewire->getTableFilterState('branch_id')['values'] ?? [];
+                        return self::vendorLedgerTotals($record, $branchIds)['amount_paid'];
                     }),
 
                 TextColumn::make('amount_pending')
                     ->label('Pending Payable (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
-                    ->getStateUsing(function (Vendor $record) {
-                        return self::vendorLedgerTotals($record)['amount_pending'];
+                    ->getStateUsing(function (Vendor $record, $livewire) {
+                        $branchIds = $livewire->getTableFilterState('branch_id')['values'] ?? [];
+                        return self::vendorLedgerTotals($record, $branchIds)['amount_pending'];
                     }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
@@ -98,7 +105,44 @@ class VendorsTable
                     ->searchable(),
             ])
             ->filters([
-                //
+                SelectFilter::make('branch_id')
+                    ->label('Branch')
+                    ->multiple()
+                    ->searchable()
+                    ->options(function () {
+                        $user = Filament::auth()->user();
+
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = Branch::query()
+                            ->withoutTrashed()
+                            ->where('merchant_id', $merchantId);
+
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                                $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query->orderBy('name')->pluck('name', 'id')->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+
+                        $query->whereHas('branches', fn ($q) =>
+                            $q->whereIn('branches.id', $data['values'])
+                        );
+                    }),
             ])
             ->recordUrl(fn (Vendor $record) =>
                 auth(Filament::getCurrentPanel()->getAuthGuard())
@@ -338,11 +382,11 @@ class VendorsTable
             ->defaultSort('created_at', 'desc');
     }
 
-    protected static function vendorLedgerTotals(Vendor $record): array
+    protected static function vendorLedgerTotals(Vendor $record, array $branchIds = []): array
     {
         static $cache = [];
 
-        $cacheKey = (string) $record->id;
+        $cacheKey = $record->id . '|' . implode(',', $branchIds);
         if (isset($cache[$cacheKey])) {
             return $cache[$cacheKey];
         }
@@ -351,6 +395,10 @@ class VendorsTable
             ->withoutTrashed()
             ->where('vendor_id', $record->id)
             ->where('merchant_id', $record->merchant_id);
+
+        if (! empty($branchIds)) {
+            $purchaseQuery->whereHas('items', fn ($q) => $q->whereIn('branch_id', $branchIds));
+        }
 
         $purchaseDebits = round((float) (clone $purchaseQuery)->sum('total_amount'), 2);
         $purchaseCredits = round((float) (clone $purchaseQuery)->sum('paid_amount'), 2);
@@ -361,6 +409,26 @@ class VendorsTable
             ->where('merchant_id', $record->merchant_id)
             ->where('party_type', Vendor::class)
             ->where('party_id', $record->id);
+
+        if (! empty($branchIds)) {
+            // Collect only the original (parent) cash flow IDs for the selected branches,
+            // then include those originals and their child settlements — this prevents
+            // settlements of other-branch originals from leaking into the totals.
+            $branchOriginalIds = CashFlow::query()
+                ->withoutTrashed()
+                ->whereNull('settlement_for_id')
+                ->where('merchant_id', $record->merchant_id)
+                ->where('party_type', Vendor::class)
+                ->where('party_id', $record->id)
+                ->whereIn('branch_id', $branchIds)
+                ->pluck('id')
+                ->all();
+
+            $cashFlowQuery->where(function ($q) use ($branchOriginalIds) {
+                $q->whereIn('id', $branchOriginalIds)
+                  ->orWhereIn('settlement_for_id', $branchOriginalIds);
+            });
+        }
 
         // Vendor statement rules:
         // - flow direction "out" reduces payable (credit)

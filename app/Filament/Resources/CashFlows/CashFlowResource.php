@@ -54,6 +54,34 @@ class CashFlowResource extends Resource
         return $user->hasPermissionTo('cash_flows.view', $guard);
     }
 
+    public static function getRecordRouteBindingEloquentQuery(): Builder
+    {
+        $user = Filament::auth()->user();
+        $merchantId = static::merchantIdFor($user);
+
+        $query = CashFlow::query()
+            ->withoutTrashed()
+            ->when(
+                filled($merchantId),
+                fn (Builder $q) => $q->where('merchant_id', $merchantId),
+                fn (Builder $q) => $q->whereRaw('1 = 0'),
+            );
+
+        if ($user instanceof User) {
+            $businessIds = $user->businesses()->pluck('businesses.id');
+            $branchIds   = $user->branches()->pluck('branches.id');
+
+            if ($businessIds->isEmpty() || $branchIds->isEmpty()) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            $query->whereIn('business_id', $businessIds)
+                  ->whereIn('branch_id', $branchIds);
+        }
+
+        return $query;
+    }
+
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $query = parent::getEloquentQuery();

@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Customers\Tables;
 
 use App\Filament\Exports\CustomerSalesExport;
 use App\Filament\Resources\Customers\CustomerResource;
+use App\Models\Branch;
+use App\Models\Business;
 use App\Models\CashFlow;
 use App\Models\Customer;
 use App\Models\Sale;
@@ -22,6 +24,7 @@ use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -49,8 +52,9 @@ class CustomersTable
                     ->label('Total Amount (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
-                    ->getStateUsing(function (Customer $record) {
-                        return self::customerLedgerTotals($record)['total_amount'];
+                    ->getStateUsing(function (Customer $record, $livewire) {
+                        $branchIds = $livewire->getTableFilterState('branch_id')['values'] ?? [];
+                        return self::customerLedgerTotals($record, $branchIds)['total_amount'];
                     })
                     ->sortable(),
 
@@ -58,16 +62,18 @@ class CustomersTable
                     ->label('Amount Paid (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
-                    ->getStateUsing(function (Customer $record) {
-                        return self::customerLedgerTotals($record)['amount_paid'];
+                    ->getStateUsing(function (Customer $record, $livewire) {
+                        $branchIds = $livewire->getTableFilterState('branch_id')['values'] ?? [];
+                        return self::customerLedgerTotals($record, $branchIds)['amount_paid'];
                     }),
 
                 TextColumn::make('amount_pending')
                     ->label('Amount Pending (PKR)')
                     ->alignRight()
                     ->formatStateUsing(fn ($state) => number_format((float) $state, 2))
-                    ->getStateUsing(function (Customer $record) {
-                        return self::customerLedgerTotals($record)['amount_pending'];
+                    ->getStateUsing(function (Customer $record, $livewire) {
+                        $branchIds = $livewire->getTableFilterState('branch_id')['values'] ?? [];
+                        return self::customerLedgerTotals($record, $branchIds)['amount_pending'];
                     }),
                 TextColumn::make('occupation')
                     ->label('Occupation')
@@ -102,7 +108,44 @@ class CustomersTable
                     ->searchable(),
             ])
             ->filters([
+                SelectFilter::make('branch_id')
+                    ->label('Branch')
+                    ->multiple()
+                    ->searchable()
+                    ->options(function () {
+                        $user = Filament::auth()->user();
 
+                        $merchantId = match (true) {
+                            $user instanceof \App\Models\Merchant => $user->id,
+                            $user instanceof \App\Models\User     => $user->merchant_id,
+                            default                               => null,
+                        };
+
+                        if (! $merchantId) {
+                            return [];
+                        }
+
+                        $query = Branch::query()
+                            ->withoutTrashed()
+                            ->where('merchant_id', $merchantId);
+
+                        if ($user instanceof \App\Models\User) {
+                            $query->whereHas('users', fn ($q) =>
+                                $q->where('users.id', $user->id)
+                            );
+                        }
+
+                        return $query->orderBy('name')->pluck('name', 'id')->toArray();
+                    })
+                    ->query(function (Builder $query, array $data) {
+                        if (empty($data['values'])) {
+                            return;
+                        }
+
+                        $query->whereHas('branches', fn ($q) =>
+                            $q->whereIn('branches.id', $data['values'])
+                        );
+                    }),
             ])
             ->recordUrl(fn (Customer $record) =>
             auth(Filament::getCurrentPanel()->getAuthGuard())
@@ -341,11 +384,11 @@ class CustomersTable
             ->defaultSort('created_at', 'desc');
     }
 
-    protected static function customerLedgerTotals(Customer $record): array
+    protected static function customerLedgerTotals(Customer $record, array $branchIds = []): array
     {
         static $cache = [];
 
-        $cacheKey = (string) $record->id;
+        $cacheKey = $record->id . '|' . implode(',', $branchIds);
         if (isset($cache[$cacheKey])) {
             return $cache[$cacheKey];
         }
@@ -354,6 +397,10 @@ class CustomersTable
             ->withoutTrashed()
             ->where('customer_id', $record->id)
             ->where('merchant_id', $record->merchant_id);
+
+        if (! empty($branchIds)) {
+            $salesQuery->whereHas('items', fn ($q) => $q->whereIn('branch_id', $branchIds));
+        }
 
         $salesDebits = round((float) (clone $salesQuery)->sum('total_amount'), 2);
         $salesCredits = round((float) (clone $salesQuery)->sum('paid_amount'), 2);
@@ -364,6 +411,26 @@ class CustomersTable
             ->where('merchant_id', $record->merchant_id)
             ->where('party_type', Customer::class)
             ->where('party_id', $record->id);
+
+        if (! empty($branchIds)) {
+            // Collect only the original (parent) cash flow IDs for the selected branches,
+            // then include those originals and their child settlements — this prevents
+            // settlements of other-branch originals from leaking into the totals.
+            $branchOriginalIds = CashFlow::query()
+                ->withoutTrashed()
+                ->whereNull('settlement_for_id')
+                ->where('merchant_id', $record->merchant_id)
+                ->where('party_type', Customer::class)
+                ->where('party_id', $record->id)
+                ->whereIn('branch_id', $branchIds)
+                ->pluck('id')
+                ->all();
+
+            $cashFlowQuery->where(function ($q) use ($branchOriginalIds) {
+                $q->whereIn('id', $branchOriginalIds)
+                  ->orWhereIn('settlement_for_id', $branchOriginalIds);
+            });
+        }
 
         // Customer statement rules:
         // - flow direction "in" reduces receivable (credit)

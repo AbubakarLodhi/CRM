@@ -56,20 +56,36 @@ class CashFlowsTable
                     ->label('Entries')
                     ->getStateUsing(fn (CashFlow $record): int => self::partySummary($record)['entries_count']),
 
-                TextColumn::make('total_amount')
-                    ->label('Total (PKR)')
+                TextColumn::make('payable_total')
+                    ->label('Payable (PKR)')
                     ->money('PKR')
-                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['total_amount']),
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['payable_total']),
 
-                TextColumn::make('settled_amount')
-                    ->label('Settled (PKR)')
+                TextColumn::make('payable_settled')
+                    ->label('Payable Settled (PKR)')
                     ->money('PKR')
-                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['settled_amount']),
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['payable_settled']),
 
-                TextColumn::make('remaining_amount')
-                    ->label('Remaining (PKR)')
+                TextColumn::make('payable_remaining')
+                    ->label('Payable Remaining (PKR)')
                     ->money('PKR')
-                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['remaining_amount'])
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['payable_remaining'])
+                    ->color(fn ($state) => (float) $state > 0 ? 'danger' : 'success'),
+
+                TextColumn::make('receivable_total')
+                    ->label('Receivable (PKR)')
+                    ->money('PKR')
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['receivable_total']),
+
+                TextColumn::make('receivable_settled')
+                    ->label('Receivable Settled (PKR)')
+                    ->money('PKR')
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['receivable_settled']),
+
+                TextColumn::make('receivable_remaining')
+                    ->label('Receivable Remaining (PKR)')
+                    ->money('PKR')
+                    ->getStateUsing(fn (CashFlow $record): float => self::partySummary($record)['receivable_remaining'])
                     ->color(fn ($state) => (float) $state > 0 ? 'warning' : 'success'),
             ])
             ->filters(static::sharedFilters())
@@ -106,15 +122,27 @@ class CashFlowsTable
                         $safeName = Str::slug($party->name ?? 'party');
                         $timestamp = now()->format('Y-m-d_H-i-s');
 
+                        $primaryEntries = $cashFlows->filter(fn (CashFlow $cf) => $cf->isPrimaryTransaction());
+                        $payableEntries = $primaryEntries->where('flow_type', 'advance');
+                        $receivableEntries = $primaryEntries->where('flow_type', 'loan');
+
+                        $payableTotal    = round((float) $payableEntries->sum('amount'), 2);
+                        $payableSettled  = round((float) $payableEntries->sum(fn (CashFlow $cf) => self::settledAmount($cf)), 2);
+                        $receivableTotal   = round((float) $receivableEntries->sum('amount'), 2);
+                        $receivableSettled = round((float) $receivableEntries->sum(fn (CashFlow $cf) => self::settledAmount($cf)), 2);
+
                         $pdfContent = Pdf::loadView('exports.cash-flow-party-pdf', [
                             'party' => $party,
                             'partyLabel' => $record->party_type === Customer::class ? 'Customer' : 'Vendor',
                             'cashFlows' => $cashFlows,
                             'merchantLogoDataUri' => $merchantLogoDataUri,
                             'totals' => [
-                                'total_amount' => round((float) $cashFlows->sum('amount'), 2),
-                                'settled_amount' => round((float) $cashFlows->sum(fn (CashFlow $cashFlow) => self::settledAmount($cashFlow)), 2),
-                                'remaining_amount' => round((float) $cashFlows->sum(fn (CashFlow $cashFlow) => self::remainingAmount($cashFlow)), 2),
+                                'payable_total'        => $payableTotal,
+                                'payable_settled'      => $payableSettled,
+                                'payable_remaining'    => max(0, round($payableTotal - $payableSettled, 2)),
+                                'receivable_total'     => $receivableTotal,
+                                'receivable_settled'   => $receivableSettled,
+                                'receivable_remaining' => max(0, round($receivableTotal - $receivableSettled, 2)),
                             ],
                         ])
                             ->setPaper('a4', 'portrait')
@@ -445,16 +473,26 @@ class CashFlowsTable
             ->where('merchant_id', $record->merchant_id)
             ->where('party_type', $record->party_type)
             ->where('party_id', $record->party_id)
+            ->with(['settlements' => fn ($q) => $q->withoutTrashed()])
             ->get();
 
-        $totalAmount = round((float) $entries->sum('amount'), 2);
-        $settledAmount = round((float) $entries->sum(fn (CashFlow $entry) => self::settledAmount($entry)), 2);
+        $payable = $entries->where('flow_type', 'advance');
+        $receivable = $entries->where('flow_type', 'loan');
+
+        $payableTotal = round((float) $payable->sum('amount'), 2);
+        $payableSettled = round((float) $payable->sum(fn (CashFlow $e) => self::settledAmount($e)), 2);
+
+        $receivableTotal = round((float) $receivable->sum('amount'), 2);
+        $receivableSettled = round((float) $receivable->sum(fn (CashFlow $e) => self::settledAmount($e)), 2);
 
         return $cache[$cacheKey] = [
-            'entries_count' => $entries->count(),
-            'total_amount' => $totalAmount,
-            'settled_amount' => $settledAmount,
-            'remaining_amount' => max(0, round($totalAmount - $settledAmount, 2)),
+            'entries_count'       => $entries->count(),
+            'payable_total'       => $payableTotal,
+            'payable_settled'     => $payableSettled,
+            'payable_remaining'   => max(0, round($payableTotal - $payableSettled, 2)),
+            'receivable_total'    => $receivableTotal,
+            'receivable_settled'  => $receivableSettled,
+            'receivable_remaining' => max(0, round($receivableTotal - $receivableSettled, 2)),
         ];
     }
 
@@ -462,6 +500,10 @@ class CashFlowsTable
     {
         if (! $record->isPrimaryTransaction()) {
             return 0.0;
+        }
+
+        if ($record->relationLoaded('settlements')) {
+            return round((float) $record->settlements->sum('amount'), 2);
         }
 
         return round((float) $record->settlements()->withoutTrashed()->sum('amount'), 2);

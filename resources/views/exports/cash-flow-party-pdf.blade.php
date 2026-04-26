@@ -97,18 +97,28 @@
     </table>
 
     <table class="totals">
+        <thead>
+            <tr>
+                <th></th>
+                <th class="right">Payable</th>
+                <th class="right">Receivable</th>
+            </tr>
+        </thead>
         <tbody>
             <tr>
                 <th>Total</th>
-                <td class="right">{{ number_format((float) $totals['total_amount'], 2) }}</td>
+                <td class="right">{{ number_format((float) $totals['payable_total'], 2) }}</td>
+                <td class="right">{{ number_format((float) $totals['receivable_total'], 2) }}</td>
             </tr>
             <tr>
                 <th>Settled</th>
-                <td class="right">{{ number_format((float) $totals['settled_amount'], 2) }}</td>
+                <td class="right">{{ number_format((float) $totals['payable_settled'], 2) }}</td>
+                <td class="right">{{ number_format((float) $totals['receivable_settled'], 2) }}</td>
             </tr>
             <tr>
                 <th>Remaining</th>
-                <td class="right">{{ number_format((float) $totals['remaining_amount'], 2) }}</td>
+                <td class="right">{{ number_format((float) $totals['payable_remaining'], 2) }}</td>
+                <td class="right">{{ number_format((float) $totals['receivable_remaining'], 2) }}</td>
             </tr>
         </tbody>
     </table>
