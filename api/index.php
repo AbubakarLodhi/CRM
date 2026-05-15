@@ -41,7 +41,10 @@ $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
 
 try {
     require dirname(__DIR__) . '/vendor/autoload.php';
+    
     $app = require_once dirname(__DIR__) . '/bootstrap/app.php';
+    $app->useStoragePath($tmpBase . '/storage');
+    
     $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
     $request = Illuminate\Http\Request::capture();
     $response = $kernel->handle($request);
