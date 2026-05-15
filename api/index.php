@@ -4,7 +4,6 @@ error_reporting(E_ALL);
 
 $tmpBase = '/tmp/laravel';
 
-// Create writable directories
 $dirs = [
     $tmpBase . '/storage/app/public',
     $tmpBase . '/storage/framework/cache/data',
@@ -19,7 +18,7 @@ foreach ($dirs as $dir) {
     }
 }
 
-// Write .env to /tmp from environment variables
+// Write .env to /tmp
 $envPath = $tmpBase . '/.env';
 $envContent = '';
 foreach ($_ENV as $key => $value) {
@@ -30,17 +29,11 @@ foreach ($_ENV as $key => $value) {
 }
 file_put_contents($envPath, $envContent);
 
-// Tell Laravel to use /tmp/.env
-putenv('APP_BASE_PATH=' . dirname(__DIR__));
-
 chdir(dirname(__DIR__));
 
-$_SERVER['DOCUMENT_ROOT'] = __DIR__ . '/../public';
-$_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/../public/index.php';
+$_SERVER['DOCUMENT_ROOT'] = dirname(__DIR__) . '/public';
+$_SERVER['SCRIPT_FILENAME'] = dirname(__DIR__) . '/public/index.php';
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['PHP_SELF'] = '/index.php';
 
-// Override the env file location
-define('LARAVEL_ENV_FILE', $tmpBase . '/.env');
-
-require __DIR__ . '/../public/index.php';
+require dirname(__DIR__) . '/public/index.php';
