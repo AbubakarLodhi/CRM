@@ -2,18 +2,48 @@
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-echo "<h3>Environment Variables:</h3>";
-echo "<pre>";
-foreach ($_ENV as $key => $value) {
-    // Hide sensitive values
-    if (str_contains(strtolower($key), 'password') || str_contains(strtolower($key), 'secret') || str_contains(strtolower($key), 'key')) {
-        echo $key . " = [HIDDEN]\n";
-    } else {
-        echo $key . " = " . $value . "\n";
+$tmpBase = '/tmp/laravel';
+
+$dirs = [
+    $tmpBase . '/storage/app/public',
+    $tmpBase . '/storage/framework/cache/data',
+    $tmpBase . '/storage/framework/sessions',
+    $tmpBase . '/storage/framework/views',
+    $tmpBase . '/storage/logs',
+    $tmpBase . '/bootstrap/cache',
+];
+foreach ($dirs as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0775, true);
     }
 }
-echo "</pre>";
 
-echo "<h3>APP_KEY set: " . (getenv('APP_KEY') ? 'YES' : 'NO') . "</h3>";
-echo "<h3>DB_HOST set: " . (getenv('DB_HOST') ? 'YES' : 'NO') . "</h3>";
-echo "<h3>/tmp writable: " . (is_writable('/tmp') ? 'YES' : 'NO') . "</h3>";
+// Write .env to /tmp
+$envPath = $tmpBase . '/.env';
+$envContent = '';
+foreach ($_ENV as $key => $value) {
+    if (is_string($value)) {
+        $value = str_replace('"', '\\"', $value);
+        $envContent .= $key . '="' . $value . '"' . PHP_EOL;
+    }
+}
+file_put_contents($envPath, $envContent);
+
+echo ".env written: " . (file_exists($envPath) ? 'YES' : 'NO') . "<br>";
+echo ".env size: " . filesize($envPath) . " bytes<br>";
+echo "storage writable: " . (is_writable($tmpBase . '/storage') ? 'YES' : 'NO') . "<br>";
+echo "bootstrap/cache writable: " . (is_writable($tmpBase . '/bootstrap/cache') ? 'YES' : 'NO') . "<br>";
+
+// Try loading Laravel
+try {
+    chdir(dirname(__DIR__));
+    require __DIR__ . '/../vendor/autoload.php';
+    echo "Autoload: OK<br>";
+    
+    $app = require __DIR__ . '/../bootstrap/app.php';
+    echo "App bootstrap: OK<br>";
+} catch (\Throwable $e) {
+    echo "Error: " . $e->getMessage() . "<br>";
+    echo "File: " . $e->getFile() . "<br>";
+    echo "Line: " . $e->getLine() . "<br>";
+}
