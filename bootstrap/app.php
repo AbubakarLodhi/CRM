@@ -24,8 +24,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         //
     })->create();
 
-if (str_starts_with(php_uname('s'), 'Linux') && is_dir('/tmp')) {
+if (is_dir('/tmp')) {
     $app->useStoragePath('/tmp/laravel/storage');
+    $app->useEnvironmentPath('/tmp/laravel');
 }
 
 return $app;
