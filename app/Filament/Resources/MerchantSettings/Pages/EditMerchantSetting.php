@@ -13,8 +13,13 @@ use Illuminate\Database\Eloquent\Model;
 class EditMerchantSetting extends EditRecord
 {
     protected static string $resource = MerchantSettingResource::class;
-
     protected static ?string $title = 'Merchant Settings';
+
+    /** Processed logo path captured in mutateFormDataBeforeSave (file already moved by Filament) */
+    private ?string $pendingLogoPath = null;
+
+    /** True when the user explicitly cleared the logo */
+    private bool $clearLogo = false;
 
     protected function resolveRecord($key): Model
     {
@@ -25,19 +30,19 @@ class EditMerchantSetting extends EditRecord
             )->firstOrFail();
         }
 
-        return parent::resolveRecord($key); // admin
+        return parent::resolveRecord($key);
     }
 
     protected function getHeaderActions(): array
     {
         return auth('merchant')->check()
-            ? []   // no delete for merchant
+            ? []
             : [DeleteAction::make()];
     }
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // ✅ MERCHANT PANEL
+        // ── MERCHANT PANEL ──
         if (auth('merchant')->check()) {
             $merchant = auth('merchant')->user();
 
@@ -55,7 +60,7 @@ class EditMerchantSetting extends EditRecord
             return $data;
         }
 
-        // ✅ ADMIN PANEL
+        // ── ADMIN PANEL ──
         if ($this->record?->merchant) {
             $data['merchant_logo'] = $this->record->merchant->logo
                 ? [$this->record->merchant->logo->photo_url]
@@ -69,48 +74,44 @@ class EditMerchantSetting extends EditRecord
         return $data;
     }
 
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // Capture the processed logo path here — Filament has already moved the file
+        // from livewire-tmp to public/merchants/logos by the time this runs.
+        // We unset it so it never hits MerchantSetting::save() (no column in the table).
+        if (array_key_exists('merchant_logo', $data)) {
+            $path = collect($data['merchant_logo'])->filter()->first();
+            if ($path) {
+                $this->pendingLogoPath = $path;
+            } else {
+                $this->clearLogo = true;
+            }
+            unset($data['merchant_logo']);
+        }
 
-
+        return $data;
+    }
 
     protected function afterSave(): void
     {
+        $merchant = $this->record->merchant ?? auth('merchant')->user();
+        if (! $merchant) return;
+
+        /* ── MERCHANT LOGO ── */
+        if ($this->pendingLogoPath) {
+            $merchant->logo()?->delete();
+            $merchant->logo()->create([
+                'merchant_id' => $merchant->id,
+                'type'        => AttachmentType::IMAGE,
+                'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
+                'photo_url'   => $this->pendingLogoPath,
+            ]);
+        } elseif ($this->clearLogo) {
+            $merchant->logo()?->delete();
+        }
+
+        /* ── CASH ACCOUNTS ── */
         $state = $this->form->getRawState();
-        $merchant = auth('merchant')->user();
-
-        /* ===== PROFILE PHOTO ===== */
-        if (array_key_exists('profile_photo', $state)) {
-            if ($profile = collect($state['profile_photo'])->first()) {
-                $merchant->profilePhoto()?->delete();
-
-                $merchant->profilePhoto()->create([
-                    'merchant_id' => $merchant->id,
-                    'type'        => AttachmentType::IMAGE,
-                    'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                    'photo_url'   => $profile,
-                ]);
-            } else {
-                // ✅ REMOVED
-                $merchant->profilePhoto()?->delete();
-            }
-        }
-
-        /* ===== MERCHANT LOGO ===== */
-        if (array_key_exists('merchant_logo', $state)) {
-            if ($logo = collect($state['merchant_logo'])->first()) {
-                $merchant->logo()?->delete();
-
-                $merchant->logo()->create([
-                    'merchant_id' => $merchant->id,
-                    'type'        => AttachmentType::IMAGE,
-                    'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
-                    'photo_url'   => $logo,
-                ]);
-            } else {
-                // ✅ THIS WAS MISSING
-                $merchant->logo()?->delete();
-            }
-        }
-
         if (array_key_exists('cash_in_hand', $state) || array_key_exists('cash_in_bank', $state)) {
             $merchant->update([
                 'cash_in_hand' => array_key_exists('cash_in_hand', $state)

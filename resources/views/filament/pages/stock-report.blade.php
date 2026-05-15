@@ -4,12 +4,15 @@
         $user  = \Filament\Facades\Filament::auth()->user();
         $guard = \Filament\Facades\Filament::getCurrentPanel()->getAuthGuard();
 
-        // User can view inventory if they can view sales OR purchases
-        $canView = $user
-            && \App\Models\PermissionModule::isEnabledForCurrentMerchant('reports')
-            && (
-                $user->hasPermissionTo('reports.view', $guard)
-            );
+        // Merchant account owners always have full access.
+        // Staff users must have the reports.view permission.
+        $canView = $user && (
+            $user instanceof \App\Models\Merchant
+            || (
+                \App\Models\PermissionModule::isEnabledForCurrentMerchant('reports')
+                && $user->hasPermissionTo('reports.view', $guard)
+            )
+        );
     @endphp
 
     {{-- ========================= --}}

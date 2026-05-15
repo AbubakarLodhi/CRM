@@ -1,17 +1,22 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE customers ALTER COLUMN email DROP NOT NULL');
+        Schema::table('customers', function (Blueprint $table) {
+            $table->string('email')->nullable()->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE customers ALTER COLUMN email SET NOT NULL');
+        Schema::table('customers', function (Blueprint $table) {
+            $table->string('email')->nullable(false)->change();
+        });
     }
 };

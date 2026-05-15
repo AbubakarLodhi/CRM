@@ -59,7 +59,7 @@ class BrandsForm
                         };
 
                         return Category::query()
-                            ->whereNotNull('parent_id')
+                            ->whereNull('parent_id')
                             ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId))
                             ->orderBy('name')
                             ->pluck('name', 'id')

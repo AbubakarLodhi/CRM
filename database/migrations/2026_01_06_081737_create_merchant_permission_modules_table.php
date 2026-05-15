@@ -16,7 +16,7 @@ return new class extends Migration {
             $table->timestamps();
 
             // Prevent duplicate assignments
-            $table->unique(['merchant_id', 'permission_module_id']);
+            $table->unique(['merchant_id', 'permission_module_id'], 'mpm_merchant_module_unique');
 
             // Foreign keys
             $table->foreign('merchant_id')

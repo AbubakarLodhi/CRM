@@ -1,19 +1,24 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE purchase_items ALTER COLUMN discount TYPE numeric(12,6)');
-        DB::statement('ALTER TABLE purchase_items ALTER COLUMN tax TYPE numeric(12,6)');
+        Schema::table('purchase_items', function (Blueprint $table) {
+            $table->decimal('discount', 12, 6)->change();
+            $table->decimal('tax', 12, 6)->change();
+        });
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE purchase_items ALTER COLUMN discount TYPE numeric(12,2)');
-        DB::statement('ALTER TABLE purchase_items ALTER COLUMN tax TYPE numeric(12,2)');
+        Schema::table('purchase_items', function (Blueprint $table) {
+            $table->decimal('discount', 12, 2)->change();
+            $table->decimal('tax', 12, 2)->change();
+        });
     }
 };

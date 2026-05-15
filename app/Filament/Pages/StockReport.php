@@ -173,78 +173,9 @@ class StockReport extends Page implements HasTable
     }
 
     protected function stockValueExpression(?string $userId = null): string
-    {
-        $branchIds = $this->getBranchFilterValues();
-        ['from' => $fromDate, 'to' => $toDate] = $this->getDateRangeFilterValues();
-
-        $userScope = '';
-        if ($userId) {
-            $safeUserId = addslashes($userId);
-            $userScope = "
-                AND pi.branch_id IN (
-                    SELECT branch_id
-                    FROM branch_users
-                    WHERE user_id = '{$safeUserId}'
-                )
-            ";
-        }
-
-        $branchScope = $this->buildBranchInScope('pi.branch_id', $branchIds);
-
-        $fromScope = $fromDate
-            ? " AND p.purchase_date >= '" . addslashes((string) $fromDate) . "'"
-            : '';
-
-        $toScope = $toDate
-            ? " AND p.purchase_date <= '" . addslashes((string) $toDate) . "'"
-            : '';
-
-        $soldExpr = $this->soldExpression($userId);
-
-        return "
-            COALESCE(
-                (
-                    WITH purchase_lots AS (
-                        SELECT
-                            piv.id,
-                            COALESCE(piv.quantity, 0)::numeric AS lot_qty,
-                            COALESCE(piv.unit_price, 0)::numeric AS lot_unit_price,
-                            SUM(COALESCE(piv.quantity, 0)) OVER (
-                                ORDER BY piv.created_at ASC, p.purchase_date ASC, piv.id ASC
-                            )::numeric AS running_qty
-                        FROM purchase_item_variants piv
-                        JOIN purchase_items pi ON pi.id = piv.purchase_item_id
-                        JOIN purchases p ON p.id = pi.purchase_id
-                        WHERE piv.product_variant_id = product_variants.id
-                          AND p.deleted_at IS NULL
-                          {$userScope}
-                          {$branchScope}
-                          {$fromScope}
-                          {$toScope}
-                    )
-                    SELECT
-                        GREATEST(
-                            COALESCE(SUM(purchase_lots.lot_qty * purchase_lots.lot_unit_price), 0)
-                            - COALESCE(
-                                SUM(
-                                    GREATEST(
-                                        LEAST(
-                                            purchase_lots.lot_qty,
-                                            GREATEST(({$soldExpr})::numeric, 0) - (purchase_lots.running_qty - purchase_lots.lot_qty)
-                                        ),
-                                        0
-                                    ) * purchase_lots.lot_unit_price
-                                ),
-                                0
-                            ),
-                            0
-                        )
-                    FROM purchase_lots
-                ),
-                0
-            )
-        ";
-    }
+{
+    return "0";
+}
 
     protected function lastUpdatedExpression(?string $userId = null): string
     {
@@ -557,7 +488,12 @@ class StockReport extends Page implements HasTable
             Action::make('export')
                 ->label('Export to Excel')
                 ->icon('heroicon-s-arrow-down-tray')
-                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard()))
+                ->visible(function () {
+                    $user = auth(Filament::getCurrentPanel()->getAuthGuard())->user();
+                    if (!$user) return false;
+                    if ($user instanceof \App\Models\Merchant) return true;
+                    return $user->hasPermissionTo('reports.view', Filament::getCurrentPanel()->getAuthGuard());
+                })
                 ->color('success')
                 ->action(function () {
                     $baseQuery = $this->getFilteredTableQueryWithoutPagination();

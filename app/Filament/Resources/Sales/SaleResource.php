@@ -99,19 +99,8 @@ class SaleResource extends Resource
             return $query->whereRaw('1 = 0');
         }
 
-        // 🟢 Merchant → all sales
-        if ($user instanceof \App\Models\Merchant) {
-            return $query->where('merchant_id', $merchantId);
-        }
-
-        return $query
-            ->where('merchant_id', $merchantId)
-            ->whereHas('items.business.users', fn ($q) =>
-            $q->where('users.id', $user->id)
-            )
-            ->whereHas('items.branch.users', fn ($q) =>
-            $q->where('users.id', $user->id)
-            );
+        // All users (merchant or staff) see all sales for their merchant
+        return $query->where('merchant_id', $merchantId);
     }
 
 

@@ -73,10 +73,10 @@ class SaleForm
                                 ->relationship(
                                     'activeCustomer',
                                     'name',
-                                    fn (Builder $query, callable $get) => CustomerResource::scopeVisibleCustomers(
+                                    fn (Builder $query) => CustomerResource::scopeVisibleCustomers(
                                         $query->withoutTrashed(),
                                         Filament::auth()->user(),
-                                        self::selectedCustomerBranchIds($get),
+                                        // ← No branch filter, show all visible customers
                                     )
                                 )
                                 ->searchable()
@@ -337,8 +337,6 @@ class SaleForm
                                         return;
                                     }
 
-                                    $user = Filament::auth()->user();
-
                                     // Find branches where THIS product exists
                                     $branchQuery = \App\Models\Branch::query()
                                         ->withoutTrashed()
@@ -349,14 +347,6 @@ class SaleForm
                                                 ->whereColumn('branch_products.branch_id', 'branches.id')
                                                 ->where('branch_products.product_id', $state);
                                         });
-
-                                    // Staff restriction
-                                    if ($user instanceof \App\Models\User) {
-                                        $branchQuery->whereIn(
-                                            'branches.id',
-                                            $user->branches()->pluck('branches.id')
-                                        );
-                                    }
 
                                     $branchIds = $branchQuery->pluck('branches.id');
 
@@ -375,7 +365,8 @@ class SaleForm
                                 ->required()
                                 ->live()
                                 ->reactive()
-                                ->allowHtml() // ✅ REQUIRED for indentation
+                                ->allowHtml()
+                                ->getOptionLabelUsing(fn ($value) => \App\Models\Branch::withTrashed()->find($value)?->name ?? $value)
                                 ->options(function (callable $get): array {
 
                                     $productId = $get('product_id');
@@ -383,25 +374,22 @@ class SaleForm
                                         return [];
                                     }
 
-                                    $user = Filament::auth()->user();
+                                    $hasBranchAssignments = \Illuminate\Support\Facades\DB::table('branch_products')
+                                        ->where('product_id', $productId)
+                                        ->exists();
 
                                     $query = \App\Models\Branch::query()
                                         ->withoutTrashed()
                                         ->with('business')
-                                        ->where('merchant_id', self::merchantId())
-                                        ->whereExists(function ($q) use ($productId) {
+                                        ->where('merchant_id', self::merchantId());
+
+                                    if ($hasBranchAssignments) {
+                                        $query->whereExists(function ($q) use ($productId) {
                                             $q->selectRaw(1)
                                                 ->from('branch_products')
                                                 ->whereColumn('branch_products.branch_id', 'branches.id')
                                                 ->where('branch_products.product_id', $productId);
                                         });
-
-                                    // Staff → only assigned branches
-                                    if ($user instanceof \App\Models\User) {
-                                        $query->whereIn(
-                                            'branches.id',
-                                            $user->branches()->pluck('branches.id')
-                                        );
                                     }
 
                                     return $query
@@ -411,7 +399,7 @@ class SaleForm
                                         ->groupBy(fn ($branch) => $branch->business?->name ?? 'Other')
                                         ->map(fn ($group) =>
                                         $group->pluck('name', 'id')
-                                            ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;' . e($name)) // 👈 indent
+                                            ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;' . e($name))
                                             ->toArray()
                                         )
                                         ->toArray();
@@ -947,17 +935,6 @@ class SaleForm
             ->withoutTrashed()
             ->where('products.is_active', true)
             ->where('products.merchant_id', self::merchantId());
-
-        if ($user instanceof \App\Models\User) {
-            $branchIds = $user->branches()->pluck('branches.id');
-
-            $query->whereExists(function ($q) use ($branchIds) {
-                $q->selectRaw(1)
-                    ->from('branch_products')
-                    ->whereColumn('branch_products.product_id', 'products.id')
-                    ->whereIn('branch_products.branch_id', $branchIds);
-            });
-        }
 
         if (filled($search)) {
             $term = '%'.mb_strtolower(trim($search)).'%';

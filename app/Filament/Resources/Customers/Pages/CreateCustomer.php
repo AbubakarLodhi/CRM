@@ -48,11 +48,26 @@ class CreateCustomer extends CreateRecord
     }
 
     protected function afterCreate(): void
-    {
-        CustomerResource::syncCustomerBranches(
-            $this->record,
-            $this->branchIds,
-            Filament::auth()->user(),
-        );
+{
+    $user = Filament::auth()->user();
+
+    CustomerResource::syncCustomerBranches(
+        $this->record,
+        $this->branchIds,
+        $user,
+    );
+
+    // ✅ Also attach user to those branches and their businesses
+    if ($user instanceof \App\Models\User && ! empty($this->branchIds)) {
+        $branches = \App\Models\Branch::whereIn('id', $this->branchIds)->get();
+
+        foreach ($branches as $branch) {
+            // Attach to business if not already
+            $user->businesses()->syncWithoutDetaching([$branch->business_id]);
+
+            // Attach to branch if not already
+            $user->branches()->syncWithoutDetaching([$branch->id]);
+        }
     }
+}
 }

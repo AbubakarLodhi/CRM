@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Categories\Tables;
 
+use Illuminate\Support\Facades\Storage;
 use App\Filament\Resources\Brands\BrandsResource;
 use App\Filament\Resources\Categories\CategoryResource;
 use App\Models\BrandCategory;
@@ -164,9 +165,9 @@ class CategoriesTable
                 ->size(50)
                 ->square()
                 ->getStateUsing(fn (Category $record) =>
-                $record->icon
-                    ? asset('storage/' . $record->icon->photo_url)
-                    : asset('images/placeholder.jpg')
+                    $record->icon
+                        ? Storage::disk('public')->url($record->icon->photo_url)
+                        : null
                 ),
 
 

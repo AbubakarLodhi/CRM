@@ -153,75 +153,50 @@ class ReportsStatsWidget extends Widget
     }
 
     protected function stockValueExpression(?string $merchantId, array $filters, array $staffBusinessIds = [], array $staffBranchIds = []): string
-    {
-        if (! $merchantId) {
-            return '0';
-        }
-
-        $merchantScope = " AND p.merchant_id = '" . addslashes($merchantId) . "'";
-        $businessScope = filled($filters['business_id'] ?? null)
-            ? " AND pi.business_id = '" . addslashes((string) $filters['business_id']) . "'"
-            : '';
-        $branchScope = filled($filters['branch_id'] ?? null)
-            ? " AND pi.branch_id = '" . addslashes((string) $filters['branch_id']) . "'"
-            : '';
-        $staffBusinessScope = $this->sqlInScope('pi.business_id', $staffBusinessIds);
-        $staffBranchScope = $this->sqlInScope('pi.branch_id', $staffBranchIds);
-        $fromScope = filled($filters['date_from'] ?? null)
-            ? " AND p.purchase_date >= '" . addslashes((string) $filters['date_from']) . "'"
-            : '';
-        $toScope = filled($filters['date_to'] ?? null)
-            ? " AND p.purchase_date <= '" . addslashes((string) $filters['date_to']) . "'"
-            : '';
-        $soldExpr = $this->stockSoldExpression($merchantId, $filters, $staffBusinessIds, $staffBranchIds);
-
-        return "
-            COALESCE(
-                (
-                    WITH purchase_lots AS (
-                        SELECT
-                            piv.id,
-                            COALESCE(piv.quantity, 0)::numeric AS lot_qty,
-                            COALESCE(piv.unit_price, 0)::numeric AS lot_unit_price,
-                            SUM(COALESCE(piv.quantity, 0)) OVER (
-                                ORDER BY piv.created_at ASC, p.purchase_date ASC, piv.id ASC
-                            )::numeric AS running_qty
-                        FROM purchase_item_variants piv
-                        JOIN purchase_items pi ON pi.id = piv.purchase_item_id
-                        JOIN purchases p ON p.id = pi.purchase_id
-                        WHERE piv.product_variant_id = product_variants.id
-                          AND p.deleted_at IS NULL
-                          {$merchantScope}
-                          {$businessScope}
-                          {$branchScope}
-                          {$staffBusinessScope}
-                          {$staffBranchScope}
-                          {$fromScope}
-                          {$toScope}
-                    )
-                    SELECT
-                        GREATEST(
-                            COALESCE(SUM(purchase_lots.lot_qty * purchase_lots.lot_unit_price), 0)
-                            - COALESCE(
-                                SUM(
-                                    GREATEST(
-                                        LEAST(
-                                            purchase_lots.lot_qty,
-                                            GREATEST(({$soldExpr})::numeric, 0) - (purchase_lots.running_qty - purchase_lots.lot_qty)
-                                        ),
-                                        0
-                                    ) * purchase_lots.lot_unit_price
-                                ),
-                                0
-                            ),
-                            0
-                        )
-                    FROM purchase_lots
-                ),
-                0
-            )
-        ";
+{
+    // MySQL does not support CTEs inside subqueries
+    // Return simple purchase cost calculation instead
+    if (! $merchantId) {
+        return '0';
     }
+
+    $merchantScope = " AND p.merchant_id = '" . addslashes($merchantId) . "'";
+    $businessScope = filled($filters['business_id'] ?? null)
+        ? " AND pi.business_id = '" . addslashes((string) $filters['business_id']) . "'"
+        : '';
+    $branchScope = filled($filters['branch_id'] ?? null)
+        ? " AND pi.branch_id = '" . addslashes((string) $filters['branch_id']) . "'"
+        : '';
+    $staffBusinessScope = $this->sqlInScope('pi.business_id', $staffBusinessIds);
+    $staffBranchScope   = $this->sqlInScope('pi.branch_id', $staffBranchIds);
+    $fromScope = filled($filters['date_from'] ?? null)
+        ? " AND p.purchase_date >= '" . addslashes((string) $filters['date_from']) . "'"
+        : '';
+    $toScope = filled($filters['date_to'] ?? null)
+        ? " AND p.purchase_date <= '" . addslashes((string) $filters['date_to']) . "'"
+        : '';
+
+    return "
+        COALESCE(
+            (
+                SELECT SUM(piv.quantity * piv.unit_price)
+                FROM purchase_item_variants piv
+                JOIN purchase_items pi ON pi.id = piv.purchase_item_id
+                JOIN purchases p ON p.id = pi.purchase_id
+                WHERE piv.product_variant_id = product_variants.id
+                  AND p.deleted_at IS NULL
+                  {$merchantScope}
+                  {$businessScope}
+                  {$branchScope}
+                  {$staffBusinessScope}
+                  {$staffBranchScope}
+                  {$fromScope}
+                  {$toScope}
+            ),
+            0
+        )
+    ";
+}
 
     protected function salesBaseQuery($user, string $merchantId): EloquentBuilder
     {

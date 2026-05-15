@@ -58,7 +58,7 @@
 //                Select::make('unit')
 //                    ->required()
 //                    ->options([
-//                        'pcs'   => 'Pieces',
+//                        'pieces'   => 'Pieces',
 //                        'liter' => 'Liter',
 //                        'gram'  => 'Gram',
 //                        'kg'    => 'Kilogram',
@@ -68,7 +68,18 @@
 //                        'sqm'   => 'Square Meter',
 //                        'set'   => 'Set',
 //                    ]),
-//
+
+//                    TextInput::make('purchase_price')
+//    ->label('Purchase Price')
+//    ->numeric()
+//    ->prefix('PKR')
+//    ->nullable(),
+
+//TextInput::make('selling_price')
+//    ->label('Selling Price')
+//    ->numeric()
+//    ->prefix('PKR')
+//    ->nullable(),
 //
 //
 //                /* -------------------------
@@ -480,7 +491,7 @@ class ProductForm
                             Select::make('unit')
                                 ->required()
                                 ->options([
-                                    'pcs' => 'Pieces',
+                                    'pieces' => 'Pieces',
                                     'liter'  => 'Liter',
                                     'gram'   => 'Gram',
                                     'kg'     => 'Kilogram',
@@ -490,7 +501,19 @@ class ProductForm
                                     'sqm'    => 'Square Meter',
                                     'set'    => 'Set',
                                 ]),
-                        ]),
+
+                                TextInput::make('purchase_price')
+                                ->label('Purchase Price')
+                                ->numeric()
+                                ->prefix('PKR')
+                                ->nullable(),
+
+                            TextInput::make('selling_price')
+                                ->label('Selling Price')
+                                ->numeric()
+                                ->prefix('PKR')
+                                ->nullable(),
+                            ]),
 
 //            Section::make('Custom Fields')
 //                ->columnSpanFull()

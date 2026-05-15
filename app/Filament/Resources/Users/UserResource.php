@@ -49,14 +49,37 @@ class UserResource extends Resource
     }
 
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-    {
-        $user = Filament::auth()->user();
-        $query = parent::getEloquentQuery();
+{
+    $user = Filament::auth()->user();
+    $query = parent::getEloquentQuery();
 
+    // Scope to merchant
+    $query->where('merchant_id', $user->merchant_id ?? $user->id);
 
-        // Merchant can see only their businesses
-        return $query->where('merchant_id', $user->merchant_id ?? $user->id);
+    // If logged in user is Admin, hide other Admin accounts
+    // Admin cannot see the merchant account (merchants are in a different table)
+    // But hide users with Admin role from being seen by non-admin staff
+    $isAdmin = $user->hasRole('Admin', 'staff');
+
+    if (! $isAdmin) {
+        // Non-admin staff cannot see Admin accounts
+        $adminRoleId = \DB::table('roles')
+            ->where('name', 'Admin')
+            ->where('guard_name', 'staff')
+            ->value('id');
+
+        if ($adminRoleId) {
+            $adminUserIds = \DB::table('model_has_roles')
+                ->where('role_id', $adminRoleId)
+                ->where('model_type', 'App\\Models\\User')
+                ->pluck('model_id');
+
+            $query->whereNotIn('id', $adminUserIds);
+        }
     }
+
+    return $query;
+}
 
     public static function form(Schema $schema): Schema
     {

@@ -4,9 +4,13 @@
         $user  = \Filament\Facades\Filament::auth()->user();
         $guard = \Filament\Facades\Filament::getCurrentPanel()->getAuthGuard();
 
-        $canView = $user
-            && \App\Models\PermissionModule::isEnabledForCurrentMerchant('reports')
-            && $user->hasPermissionTo('reports.view', $guard);
+        $canView = $user && (
+            $user instanceof \App\Models\Merchant
+            || (
+                \App\Models\PermissionModule::isEnabledForCurrentMerchant('reports')
+                && $user->hasPermissionTo('reports.view', $guard)
+            )
+        );
     @endphp
 
     @if (! $canView)

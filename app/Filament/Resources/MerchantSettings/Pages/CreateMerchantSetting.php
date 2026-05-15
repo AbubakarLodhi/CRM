@@ -14,6 +14,9 @@ class CreateMerchantSetting extends CreateRecord
     protected static string $resource = MerchantSettingResource::class;
     protected static ?string $title = 'Merchant Settings';
 
+    /** Holds the processed logo path captured before create (Filament moves file during getState()) */
+    private ?string $pendingLogoPath = null;
+
     protected function getFormActions(): array
     {
         return [
@@ -36,12 +39,13 @@ class CreateMerchantSetting extends CreateRecord
             )->first();
 
             if ($existing) {
-                redirect(
+                $this->redirect(
                     static::getResource()::getUrl('edit', [
                         'record' => $existing,
-                        'panel' => 'merchant',
+                        'panel'  => 'merchant',
                     ])
                 );
+                return;
             }
         }
 
@@ -62,28 +66,34 @@ class CreateMerchantSetting extends CreateRecord
             $data['merchant_id'] = auth('merchant')->id();
         }
 
+        // Capture the processed logo path here — by this point Filament has already
+        // moved the file from livewire-tmp to public/merchants/logos, so $data has
+        // the real final path. We unset it so it doesn't hit MerchantSetting::create()
+        // (no such column exists in merchant_settings table).
+        $this->pendingLogoPath = collect($data['merchant_logo'] ?? null)->first() ?: null;
+        unset($data['merchant_logo']);
+
         return $data;
     }
 
     protected function afterCreate(): void
     {
-        $state = $this->form->getRawState();
         $merchant = auth('merchant')->user();
+        if (! $merchant) return;
 
-//        dd($merchant);
-        /* ===== MERCHANT LOGO ===== */
-        if ($logo = collect($state['merchant_logo'] ?? null)->first()) {
+        /* ── MERCHANT LOGO ── */
+        if ($this->pendingLogoPath) {
             $merchant->logo()?->delete();
-
             $merchant->logo()->create([
                 'merchant_id' => $merchant->id,
                 'type'        => AttachmentType::IMAGE,
                 'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
-                'photo_url'   => $logo,
+                'photo_url'   => $this->pendingLogoPath,
             ]);
+        }
 
-        }else{}
-
+        /* ── CASH ACCOUNTS ── */
+        $state = $this->form->getRawState();
         if (array_key_exists('cash_in_hand', $state) || array_key_exists('cash_in_bank', $state)) {
             $merchant->update([
                 'cash_in_hand' => array_key_exists('cash_in_hand', $state)
@@ -94,7 +104,6 @@ class CreateMerchantSetting extends CreateRecord
                     : $merchant->cash_in_bank,
             ]);
         }
-
     }
 
     private function cashAccountAmount(mixed $value): float

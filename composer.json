@@ -11,9 +11,11 @@
         "filament/filament": "^4.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "league/flysystem-aws-s3-v3": "*",
         "maatwebsite/excel": "^3.1",
         "owen-it/laravel-auditing": "^14.0",
-        "spatie/laravel-permission": "^6.24"
+        "spatie/laravel-permission": "^6.24",
+        "symfony/html-sanitizer": ">=7.1 <7.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -86,6 +88,9 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.3.0"
         }
     },
     "minimum-stability": "stable",

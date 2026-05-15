@@ -11,10 +11,11 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        DB::statement(
-            'ALTER TABLE IF EXISTS varients
-             DROP CONSTRAINT IF EXISTS variants_merchant_id_name_unique'
-        );
+        try {
+    DB::statement('ALTER TABLE varients DROP INDEX variants_merchant_id_name_unique');
+} catch (\Exception $e) {
+    // Table or index doesn't exist, continue
+};
 
         Schema::create('variants', function (Blueprint $table) {
             $table->uuid('id')->primary();

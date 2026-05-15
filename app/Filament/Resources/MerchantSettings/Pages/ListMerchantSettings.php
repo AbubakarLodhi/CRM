@@ -19,31 +19,33 @@ class ListMerchantSettings extends ListRecords
 //    }
 
     public function mount(): void
-    {
-        if (auth('merchant')->check()) {
-            $setting = MerchantSetting::where(
-                'merchant_id',
-                auth('merchant')->id()
-            )->first();
+{
+    if (auth('merchant')->check()) {
+        $setting = MerchantSetting::where(
+            'merchant_id',
+            auth('merchant')->id()
+        )->first();
 
-            if ($setting) {
-                redirect(
-                    static::getResource()::getUrl('edit', [
-                        'record' => $setting,
-                        'panel' => 'merchant',
-                    ])
-                );
-            }
-
-            redirect(
-                static::getResource()::getUrl('create', [
+        if ($setting) {
+            $this->redirect(
+                static::getResource()::getUrl('edit', [
+                    'record' => $setting,
                     'panel' => 'merchant',
                 ])
             );
+            return;
         }
 
-        parent::mount(); // admin flow
+        $this->redirect(
+            static::getResource()::getUrl('create', [
+                'panel' => 'merchant',
+            ])
+        );
+        return;
     }
+
+    parent::mount();
+}
 
     protected function getHeaderActions(): array
     {

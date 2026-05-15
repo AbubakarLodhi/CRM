@@ -28,7 +28,7 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique(['product_variant_id', 'product_option_id']);
+            $table->unique(['product_variant_id', 'product_option_id'], 'pvv_variant_option_unique');
         });
     }
 

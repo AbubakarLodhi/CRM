@@ -113,12 +113,7 @@ class CustomerResource extends Resource
                 fn (Builder $query) => $query->whereRaw('1 = 0')
             );
 
-        if ($user instanceof User) {
-            $query
-                ->whereHas('users', fn (Builder $query) => $query->where('users.id', $user->id))
-                ->whereHas('business.users', fn (Builder $query) => $query->where('users.id', $user->id));
-        }
-
+        // All staff see all merchant branches (no per-user branch restriction)
         return $query;
     }
 
@@ -165,34 +160,13 @@ class CustomerResource extends Resource
 
         $branchIds = static::normalizeIds($limitToBranchIds);
 
-        if ($user instanceof Merchant) {
-            if ($branchIds->isNotEmpty()) {
-                $query->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds));
-            }
-
-            return $query;
-        }
-
-        $staffBusinessIds = $user->businesses()->pluck('businesses.id')->values();
-        $staffBranchIds = $user->branches()->pluck('branches.id')->values();
-
-        if ($staffBusinessIds->isEmpty() || $staffBranchIds->isEmpty()) {
-            return $query->whereRaw('1 = 0');
-        }
-
+        // Both merchant and staff see all customers for their merchant.
+        // If a specific branch filter is passed, honour it regardless of user type.
         if ($branchIds->isNotEmpty()) {
-            $staffBranchIds = $staffBranchIds
-                ->intersect($branchIds)
-                ->values();
+            $query->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $branchIds));
         }
 
-        if ($staffBranchIds->isEmpty()) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        return $query
-            ->whereHas('businesses', fn (Builder $query) => $query->whereIn('businesses.id', $staffBusinessIds))
-            ->whereHas('branches', fn (Builder $query) => $query->whereIn('branches.id', $staffBranchIds));
+        return $query;
     }
 
     public static function syncCustomerBranches(
