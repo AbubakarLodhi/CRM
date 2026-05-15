@@ -18,7 +18,6 @@ foreach ($dirs as $dir) {
     }
 }
 
-// Write .env to /tmp
 $envPath = $tmpBase . '/.env';
 $envContent = '';
 foreach ($_ENV as $key => $value) {
@@ -40,12 +39,18 @@ $_SERVER['SERVER_PORT'] = 443;
 $_SERVER['HTTPS'] = 'on';
 $_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
 
-require dirname(__DIR__) . '/vendor/autoload.php';
-
-$app = require_once dirname(__DIR__) . '/bootstrap/app.php';
-
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-$request = Illuminate\Http\Request::capture();
-$response = $kernel->handle($request);
-$response->send();
-$kernel->terminate($request, $response);
+try {
+    require dirname(__DIR__) . '/vendor/autoload.php';
+    $app = require_once dirname(__DIR__) . '/bootstrap/app.php';
+    $kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+    $request = Illuminate\Http\Request::capture();
+    $response = $kernel->handle($request);
+    $response->send();
+    $kernel->terminate($request, $response);
+} catch (\Throwable $e) {
+    http_response_code(500);
+    echo "<h1>Error</h1>";
+    echo "<p>" . $e->getMessage() . "</p>";
+    echo "<p>File: " . $e->getFile() . " Line: " . $e->getLine() . "</p>";
+    echo "<pre>" . $e->getTraceAsString() . "</pre>";
+}
