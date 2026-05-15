@@ -35,5 +35,17 @@ $_SERVER['DOCUMENT_ROOT'] = dirname(__DIR__) . '/public';
 $_SERVER['SCRIPT_FILENAME'] = dirname(__DIR__) . '/public/index.php';
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['PHP_SELF'] = '/index.php';
+$_SERVER['SERVER_NAME'] = $_SERVER['HTTP_HOST'] ?? 'crm-walt.vercel.app';
+$_SERVER['SERVER_PORT'] = 443;
+$_SERVER['HTTPS'] = 'on';
+$_SERVER['REQUEST_URI'] = $_SERVER['REQUEST_URI'] ?? '/';
 
-require dirname(__DIR__) . '/public/index.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
+
+$app = require_once dirname(__DIR__) . '/bootstrap/app.php';
+
+$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+$request = Illuminate\Http\Request::capture();
+$response = $kernel->handle($request);
+$response->send();
+$kernel->terminate($request, $response);
