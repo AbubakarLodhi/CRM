@@ -146,7 +146,7 @@ class MerchantsTable
                     ->visible(fn () =>
                     auth(Filament::getCurrentPanel()->getAuthGuard())
                         ->user()
-                        ?->hasPermissionTo('merchants.update', 'admin')
+                        ?->hasPermissionTo('merchants.update', Filament::getCurrentPanel()->getAuthGuard())
                     )
 
                     // ================= FORM =================

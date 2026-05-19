@@ -21,14 +21,22 @@ class PermissionModuleResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::Key;
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
+
     protected static ?int $navigationSort = 8;
     protected static ?string $recordTitleAttribute = 'PermissionModule';
 
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
-        return false;
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('merchants.view', $guard)
+            || $user->hasPermissionTo('merchants.update', $guard);
     }
 
     public static function form(Schema $schema): Schema

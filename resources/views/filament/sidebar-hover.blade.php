@@ -1,10 +1,16 @@
 <style>
     .fi-sidebar {
+        width: 17rem !important;
+        min-width: 17rem !important;
+        transition: width 0.25s ease !important;
+        overflow: visible !important;
+        position: relative !important;
+    }
+
+    .fi-sidebar:not(.sidebar-pinned) {
         width: 5rem !important;
         min-width: 5rem !important;
-        transition: width 0.25s ease !important;
         overflow: hidden !important;
-        position: relative !important;
     }
 
     .fi-sidebar.sidebar-pinned {
@@ -19,12 +25,12 @@
         overflow: visible !important;
     }
 
-    .fi-nav-item-label,
-    .fi-sidebar-group-label,
-    .fi-brand-name,
-    .fi-sidebar-header .truncate,
-    .fi-sidebar .fi-sidebar-group > button > span,
-    .fi-sidebar .fi-nav-item > a > span {
+    .fi-sidebar:not(.sidebar-pinned) .fi-nav-item-label,
+    .fi-sidebar:not(.sidebar-pinned) .fi-sidebar-group-label,
+    .fi-sidebar:not(.sidebar-pinned) .fi-brand-name,
+    .fi-sidebar:not(.sidebar-pinned) .fi-sidebar-header .truncate,
+    .fi-sidebar:not(.sidebar-pinned) .fi-sidebar-group > button > span,
+    .fi-sidebar:not(.sidebar-pinned) .fi-nav-item > a > span {
         opacity: 0 !important;
         width: 0 !important;
         overflow: hidden !important;
@@ -206,10 +212,12 @@
             }
         }
 
-        // Restore persisted state
-        const isPinned = localStorage.getItem('sidebar-pinned') === 'true';
+        // Restore persisted state — default to pinned open on first visit
+        const saved = localStorage.getItem('sidebar-pinned');
+        const isPinned = saved === null ? true : saved === 'true';
         if (isPinned) {
             sidebar.classList.add('sidebar-pinned');
+            localStorage.setItem('sidebar-pinned', 'true');
         }
         updateIcon(isPinned);
 

@@ -21,6 +21,9 @@ class MerchantResource extends Resource
     protected static ?string $model = Merchant::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::BuildingStorefront;
+
+    protected static string|\UnitEnum|null $navigationGroup = 'Configurations';
+
     protected static ?int $navigationSort = 2;
 
     protected static ?string $recordTitleAttribute = 'name';
@@ -28,8 +31,13 @@ class MerchantResource extends Resource
     public static function canViewAny(): bool
     {
         $user = Filament::auth()->user();
-        return false;
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
 
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasPermissionTo('merchants.view', $guard);
     }
 
     public static function form(Schema $schema): Schema

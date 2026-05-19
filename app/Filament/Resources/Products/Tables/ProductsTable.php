@@ -17,9 +17,24 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ProductsTable
 {
+    private static function resolveImageUrl(?string $photoUrl): string
+    {
+        if (! $photoUrl) {
+            return asset('images/placeholder.jpg');
+        }
+
+        if (Storage::disk('public')->exists($photoUrl)) {
+            return asset('storage/' . $photoUrl);
+        }
+
+        // Fallback: image was stored on Supabase S3
+        return 'https://hdojyhoqzioxnbkuxjno.supabase.co/storage/v1/object/public/product-images/' . $photoUrl;
+    }
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -33,9 +48,7 @@ class ProductsTable
                     ->size(50)
                     ->square()
                     ->getStateUsing(fn (Product $record) =>
-                    $record->productImage
-                        ? asset('storage/' . $record->productImage->photo_url)
-                        : asset('images/placeholder.jpg')
+                        self::resolveImageUrl($record->productImage?->photo_url)
                     ),
 
 
