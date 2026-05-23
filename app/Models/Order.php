@@ -1,0 +1,39 @@
+<?php
+
+namespace App\Models;
+
+use OwenIt\Auditing\Contracts\Auditable;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Order extends Model implements Auditable
+{
+    use \OwenIt\Auditing\Auditable;
+    use HasUuids;
+
+    /** @var string[] */
+    protected $fillable = ['merchant_id', 'sale_id', 'status', 'status_notes'];
+
+    /** @var bool */
+    public $incrementing = false;
+
+    /** @var string */
+    protected $keyType = 'string';
+
+    /** @var string[] */
+    protected $casts = [
+        'status' => 'string',
+    ];
+
+    public function merchant(): BelongsTo
+    {
+        return $this->belongsTo(Merchant::class);
+    }
+
+
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
+    }
+}

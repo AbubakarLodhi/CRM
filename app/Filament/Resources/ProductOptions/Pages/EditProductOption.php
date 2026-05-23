@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Filament\Resources\ProductOptions\Pages;
+
+use App\Filament\Resources\ProductOptions\ProductOptionResource;
+use Filament\Actions\DeleteAction;
+use Filament\Resources\Pages\EditRecord;
+
+class EditProductOption extends EditRecord
+{
+    protected static string $resource = ProductOptionResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            DeleteAction::make()
+                ->color('danger'),
+        ];
+    }
+}

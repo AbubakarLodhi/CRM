@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Filament\Resources\Payrolls\Pages;
+
+use App\Filament\Resources\Payrolls\PayrollResource;
+use Filament\Actions\CreateAction;
+use Filament\Facades\Filament;
+use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Builder;
+
+class ListPayrolls extends ListRecords
+{
+    protected static string $resource = PayrollResource::class;
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+
+    protected function getTableQuery(): Builder
+    {
+        $query = static::getResource()::getEloquentQuery();
+
+        // Filter by user_id if provided in query parameter
+        if (request()->filled('user_id')) {
+            $query->where('user_id', request()->get('user_id'));
+        }
+
+        return $query;
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            CreateAction::make()
+                ->visible(fn () => auth(Filament::getCurrentPanel()->getAuthGuard())->user()?->hasPermissionTo('payrolls.create', Filament::getCurrentPanel()->getAuthGuard())),
+        ];
+    }
+}

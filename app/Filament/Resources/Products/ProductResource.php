@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Filament\Resources\Products;
+
+use App\Filament\Resources\Products\Pages\CreateProduct;
+use App\Filament\Resources\Products\Pages\EditProduct;
+use App\Filament\Resources\Products\Pages\ListProducts;
+use App\Filament\Resources\Products\Schemas\ProductForm;
+use App\Filament\Resources\Products\Tables\ProductsTable;
+use App\Models\PermissionModule;
+use App\Models\Product;
+use BackedEnum;
+use Filament\Facades\Filament;
+use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Table;
+
+class ProductResource extends Resource
+{
+    protected static ?string $model = Product::class;
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::ShoppingBag;
+    protected static string | \UnitEnum | null $navigationGroup = 'Inventory';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $recordTitleAttribute = 'Product';
+
+    public static function canViewAny(): bool
+    {
+        $user = Filament::auth()->user();
+        $guard = Filament::getCurrentPanel()->getAuthGuard();
+
+        if (! $user) {
+            return false;
+        }
+        // 🔐 Module gate
+        if (! PermissionModule::isEnabledForCurrentMerchant('products')) {
+            return false;
+        }
+
+        // 🔐 Permission gate
+        return $user->hasPermissionTo('products.view', $guard);
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $user = Filament::auth()->user();
+
+        $merchantId = match (true) {
+            $user instanceof \App\Models\Merchant => $user->id,
+            $user instanceof \App\Models\User     => $user->merchant_id,
+            default                               => null,
+        };
+
+        return parent::getEloquentQuery()
+            ->when($merchantId, fn ($q) => $q->where('merchant_id', $merchantId));
+    }
+
+
+    public static function form(Schema $schema): Schema
+    {
+        return ProductForm::configure($schema);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return ProductsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+           // \App\Filament\Resources\Products\RelationManagers\ProductOptionsRelationManager::class,
+            \App\Filament\Resources\Products\RelationManagers\ProductVariantsRelationManager::class,        ];
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => ListProducts::route('/'),
+            'create' => CreateProduct::route('/create'),
+            'edit' => EditProduct::route('/{record}/edit'),
+        ];
+    }
+}

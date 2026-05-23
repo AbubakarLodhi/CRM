@@ -1,0 +1,84 @@
+<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#0f172a;">
+    Dear <strong>{{ $customer_name ?? 'Customer' }}</strong>,
+</p>
+
+<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#334155;">
+    This is a payment reminder for invoice <strong>{{ $sale_no }}</strong>.
+    The outstanding balance is <strong style="color:#b45309;">PKR {{ $due_amount }}</strong>
+    and payment is due by <strong>{{ $due_date }}</strong>.
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;font-size:14px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
+    <tr>
+        <td style="padding:14px 16px;">
+            <strong style="color:#1e40af;display:block;margin-bottom:8px;">Reminder details</strong>
+            <span style="color:#64748b;">Reminder:</span> {{ $reminder_name ?? 'Payment reminder' }}<br>
+            <span style="color:#64748b;">Scheduled for:</span> {{ $remind_at }}<br>
+            @if(!empty($schedule_label))
+            <span style="color:#64748b;">Schedule:</span> {{ $schedule_label }}<br>
+            @endif
+        </td>
+    </tr>
+</table>
+
+<h2 style="font-size:16px;margin:24px 0 12px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Customer information</h2>
+<table width="100%" style="font-size:14px;margin-bottom:20px;border-collapse:collapse;">
+    <tr><td style="padding:6px 0;color:#64748b;width:160px;">Name</td><td style="padding:6px 0;">{{ $customer_name ?? '—' }}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Email</td><td style="padding:6px 0;">{{ $customer_email ?? '—' }}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Phone</td><td style="padding:6px 0;">{{ $customer_phone_no ?? '—' }}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Reference</td><td style="padding:6px 0;">{{ $customer_reference ?? '—' }}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Address</td><td style="padding:6px 0;">{{ $customer_address ?? '—' }}</td></tr>
+</table>
+
+<h2 style="font-size:16px;margin:24px 0 12px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Invoice information</h2>
+<table width="100%" style="font-size:14px;margin-bottom:20px;border-collapse:collapse;">
+    <tr><td style="padding:6px 0;color:#64748b;width:160px;">Invoice number</td><td style="padding:6px 0;"><strong>{{ $sale_no }}</strong></td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Sale date</td><td style="padding:6px 0;">{{ $sale_date }}</td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Due date</td><td style="padding:6px 0;"><strong>{{ $due_date }}</strong></td></tr>
+    <tr><td style="padding:6px 0;color:#64748b;">Payment type</td><td style="padding:6px 0;">{{ $payment_type_label ?? 'Credit' }}</td></tr>
+    @if(!empty($sale_notes))
+    <tr><td style="padding:6px 0;color:#64748b;vertical-align:top;">Notes</td><td style="padding:6px 0;">{{ $sale_notes }}</td></tr>
+    @endif
+</table>
+
+<h2 style="font-size:16px;margin:24px 0 12px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Payment summary</h2>
+<table width="100%" style="font-size:14px;margin-bottom:20px;border-collapse:collapse;background:#f8fafc;border-radius:8px;">
+    <tr>
+        <td style="padding:10px 16px;color:#64748b;">Subtotal</td>
+        <td style="padding:10px 16px;text-align:right;">PKR {{ $subtotal }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 16px;color:#64748b;">Grand total</td>
+        <td style="padding:10px 16px;text-align:right;"><strong>PKR {{ $total_amount }}</strong></td>
+    </tr>
+    <tr>
+        <td style="padding:10px 16px;color:#64748b;">Amount paid</td>
+        <td style="padding:10px 16px;text-align:right;">PKR {{ $paid_amount }}</td>
+    </tr>
+    <tr>
+        <td style="padding:10px 16px;color:#64748b;border-top:2px solid #e2e8f0;">Outstanding balance</td>
+        <td style="padding:10px 16px;text-align:right;border-top:2px solid #e2e8f0;color:#b45309;font-weight:bold;font-size:16px;">PKR {{ $due_amount }}</td>
+    </tr>
+</table>
+
+@if(!empty($payment_history_html))
+<h2 style="font-size:16px;margin:24px 0 12px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Payment history</h2>
+<div style="margin-bottom:24px;">
+    {!! $payment_history_html !!}
+</div>
+@endif
+
+<h2 style="font-size:16px;margin:24px 0 12px;color:#1e40af;border-bottom:2px solid #e2e8f0;padding-bottom:8px;">Products &amp; line items</h2>
+<div style="margin-bottom:24px;">
+    {!! $invoice_html !!}
+</div>
+
+<p style="margin:0;font-size:14px;color:#475569;line-height:1.6;">
+    Please arrange payment by the due date above. If you have already paid, please disregard this message or contact us with your payment reference.
+</p>
+
+<p style="margin:16px 0 0;font-size:14px;color:#475569;line-height:1.6;">
+    Thank you,<br>
+    <strong>{{ $merchant_name }}</strong><br>
+    {{ $merchant_email }} · {{ $merchant_phone_no }}
+</p>
