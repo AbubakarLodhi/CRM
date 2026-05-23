@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l /home/zeeshan/Documents/zgn-crm/zgn-crm/app/Filament/Resources/Customers/Tables/CustomersTable.php)",
+      "Bash(php -l /home/zeeshan/Documents/zgn-crm/zgn-crm/app/Filament/Resources/Vendors/Tables/VendorsTable.php)",
+      "Bash(grep -r 'getAuditExclude\\\\|audit.*exclude\\\\|$auditable' /home/zeeshan/Documents/zgn-crm/zgn-crm/app/Models '--include=*.php')",
+      "Bash(php artisan *)"
+    ]
+  }
+}
