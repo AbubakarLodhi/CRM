@@ -771,3 +771,119 @@
     border-color: rgba(148, 163, 184, 0.35);
     background-color: #0b1220;
 }
+
+/* --------------------------------------------
+ | Sidebar: fixed on desktop; main area scrolls independently
+ | (body height accounts for topbar so footers/actions are not clipped)
+ |--------------------------------------------- */
+@media (min-width: 1024px) {
+    body.fi-body {
+        display: flex;
+        flex-direction: column;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    body.fi-body > .fi-topbar-ctn {
+        flex-shrink: 0;
+    }
+
+    .fi-layout {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+        align-items: stretch;
+    }
+
+    /* Livewire wrapper around the sidebar */
+    .fi-layout > div:has(> aside.fi-main-sidebar) {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        align-self: stretch;
+    }
+
+    aside.fi-sidebar.fi-main-sidebar {
+        position: sticky;
+        top: 0;
+        flex: 1 1 auto;
+        min-height: 0;
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    aside.fi-sidebar.fi-main-sidebar .fi-sidebar-header-ctn,
+    aside.fi-sidebar.fi-main-sidebar .fi-sidebar-footer,
+    aside.fi-sidebar.fi-main-sidebar .sidebar-pin-bar {
+        flex-shrink: 0;
+    }
+
+    aside.fi-sidebar.fi-main-sidebar .fi-sidebar-nav {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+        padding-bottom: 0.5rem;
+    }
+
+    .fi-main-ctn {
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 0;
+        height: 100%;
+        max-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .fi-main {
+        padding-bottom: 1.5rem;
+    }
+}
+
+/* --------------------------------------------
+ | POS sale — full-height layout
+ |--------------------------------------------- */
+.fi-page.fi-pos-sales-page.fi-height-full {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+.fi-page.fi-pos-sales-page .fi-page-header-main-ctn {
+    flex-shrink: 0;
+}
+
+.fi-page.fi-pos-sales-page .fi-page-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.fi-page.fi-pos-sales-page .fi-page-content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    max-width: none;
+    width: 100%;
+}
+
+.fi-main-ctn:has(.fi-pos-sales-page) .fi-main {
+    padding-bottom: 0;
+}
+
+.fi-main-ctn:has(.fi-pos-sales-page) {
+    overflow: hidden;
+}

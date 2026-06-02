@@ -5,20 +5,28 @@ namespace App\Mail;
 use App\Models\CreditReminder;
 use App\Models\NotificationTemplate;
 use App\Models\Sale;
+use App\Services\CreditReminderPdfGenerator;
+use App\Support\CreditReminderEmailCaption;
 use App\Support\NotificationMessageRenderer;
 use App\Support\NotificationTemplateVariableBuilder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\HtmlString;
 
 class CreditSaleReminderMailable extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public HtmlString $templateHtml;
+    public string $emailCaption;
+
+    public string $pdfFooterLine;
+
+    protected string $pdfBytes;
+
+    protected string $pdfFilename;
 
     /** @var array<string, mixed> */
     protected array $variables;
@@ -46,9 +54,22 @@ class CreditSaleReminderMailable extends Mailable
             $this->recipientRole,
         );
 
-        $this->templateHtml = new HtmlString(
-            NotificationMessageRenderer::renderHtmlBody($this->template, $this->variables)
+        $this->emailCaption = CreditReminderEmailCaption::fromVariables(
+            $this->variables,
+            $this->recipientRole,
         );
+
+        $this->pdfFooterLine = CreditReminderEmailCaption::PDF_FOOTER_LINE;
+
+        $pdf = app(CreditReminderPdfGenerator::class)->generate(
+            $this->sale,
+            $this->reminder,
+            $this->template,
+            $this->recipientRole,
+        );
+
+        $this->pdfBytes = $pdf['bytes'];
+        $this->pdfFilename = $pdf['filename'];
     }
 
     public function envelope(): Envelope
@@ -71,9 +92,21 @@ class CreditSaleReminderMailable extends Mailable
                 'reminder' => $this->reminder,
                 'recipientRole' => $this->recipientRole,
                 'merchantLogoUrl' => $this->variables['merchant_logo_url'] ?? null,
-                'items' => $this->sale->items,
-                'templateHtml' => $this->templateHtml,
+                'merchant' => $this->sale->merchant,
+                'emailCaption' => $this->emailCaption,
+                'pdfFooterLine' => $this->pdfFooterLine,
             ],
         );
+    }
+
+    /**
+     * @return array<int, Attachment>
+     */
+    public function attachments(): array
+    {
+        return [
+            Attachment::fromData(fn () => $this->pdfBytes, $this->pdfFilename)
+                ->withMime('application/pdf'),
+        ];
     }
 }

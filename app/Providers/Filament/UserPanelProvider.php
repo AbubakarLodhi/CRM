@@ -77,6 +77,24 @@ class UserPanelProvider extends PanelProvider
             ])
 
             ->renderHook(
+                'panels::head.end',
+                function () {
+                    $user = Filament::auth()->user();
+                    $settings = $user?->merchant?->settings;
+
+                    return view('filament.merchant.theme-vars', [
+                        'primary' => Color::generatePalette($settings?->primary_color ?? '#1E3A8A'),
+                        'success' => Color::generatePalette($settings?->success_color ?? '#22C55E'),
+                        'secondary' => Color::generatePalette($settings?->secondary_color ?? '#64748B'),
+                        'danger' => Color::generatePalette($settings?->danger_color ?? '#DC2626'),
+                        'warning' => Color::generatePalette($settings?->warning_color ?? '#FACC15'),
+                        'default' => Color::generatePalette($settings?->default_color ?? '#E5E7EB'),
+                        'sidebarPrimary' => $settings?->primary_color,
+                        'sidebarSecondary' => $settings?->secondary_color,
+                    ]);
+                }
+            )
+            ->renderHook(
                 'panels::body.end',
                 fn () => view('filament.sidebar-hover')
             )

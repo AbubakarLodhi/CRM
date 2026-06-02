@@ -46,7 +46,13 @@ class TestWhatsAppNotificationsCommand extends Command
             $this->newLine();
         }
 
-        $this->info('Done. Check storage/logs/laravel.log when driver=log.');
+        if (config('whatsapp.driver') === 'log') {
+            $this->comment('Driver is log — check storage/logs/laravel.log (no real WhatsApp delivery).');
+        } elseif (config('whatsapp.driver') === 'twilio') {
+            $this->comment('Twilio: ensure +923461000454 joined the sandbox (send join code to +14155238886 in WhatsApp).');
+        }
+
+        $this->info('Done.');
 
         return self::SUCCESS;
     }

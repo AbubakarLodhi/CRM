@@ -434,7 +434,8 @@ class CreditReminderScheduler
      *     reason: string|null,
      *     customer_email: string|null,
      *     admin_email: string|null,
-     *     recipients: list<string>
+     *     recipients: list<string>,
+     *     skipped?: list<string>
      * }
      */
     public function sendReminder(CreditReminder $reminder): array
@@ -462,6 +463,7 @@ class CreditReminderScheduler
             'customer_email' => $sale?->customer?->email,
             'admin_email' => $sale?->merchant?->email,
             'recipients' => [],
+            'skipped' => [],
         ];
 
         if (
@@ -559,6 +561,7 @@ class CreditReminderScheduler
             }
 
             $report['recipients'] = $allSent;
+            $report['skipped'] = $allSkipped;
             $now = now();
 
             $reminder->update([
@@ -589,13 +592,19 @@ class CreditReminderScheduler
     public function formatReminderReportLine(array $report, ?string $dueOn = null): string
     {
         if ($report['success']) {
-            $emails = $report['recipients'] !== []
+            $delivered = $report['recipients'] !== []
                 ? implode(', ', $report['recipients'])
                 : 'no recipients';
 
-            return "SENT — {$report['sale_no']} / {$report['template_name']}"
+            $line = "SENT — {$report['sale_no']} / {$report['template_name']}"
                 . ($dueOn ? " (due {$dueOn})" : '')
-                . " → {$emails}";
+                . " → {$delivered}";
+
+            if (filled($report['skipped'] ?? null)) {
+                $line .= ' | WhatsApp/email skipped: ' . implode(', ', $report['skipped']);
+            }
+
+            return $line;
         }
 
         $emails = collect([

@@ -3,7 +3,8 @@
         $hasSidebarTheme = filled($sidebarPrimary ?? null) && filled($sidebarSecondary ?? null);
     @endphp
 
-    body.fi-panel-merchant {
+    body.fi-panel-merchant,
+    body.fi-panel-user {
         @foreach ($primary as $shade => $value)
             --primary-{{ $shade }}: {{ $value }};
             --fi-color-primary-{{ $shade }}: {{ $value }};

@@ -16,17 +16,19 @@ class WhatsAppService
 
     public function usesLogDriver(): bool
     {
-        return config('whatsapp.driver', 'log') !== 'api';
+        return config('whatsapp.driver', 'log') === 'log';
     }
 
     public function canDeliverToPhones(): bool
     {
-        if ($this->usesLogDriver()) {
-            return false;
-        }
-
-        return filled(config('whatsapp.access_token'))
-            && filled(config('whatsapp.phone_number_id'));
+        return match (config('whatsapp.driver', 'log')) {
+            'api' => filled(config('whatsapp.access_token'))
+                && filled(config('whatsapp.phone_number_id')),
+            'twilio' => filled(config('whatsapp.twilio.sid'))
+                && filled(config('whatsapp.twilio.token'))
+                && filled(config('whatsapp.twilio.whatsapp_from')),
+            default => false,
+        };
     }
 
     public function resolveRecipient(?string $phone): ?string
@@ -59,10 +61,11 @@ class WhatsAppService
         try {
             $providerMessageId = match ($driver) {
                 'api' => $this->sendViaApi($normalizedTo, $body),
+                'twilio' => $this->sendViaTwilio($normalizedTo, $body),
                 default => $this->sendViaLog($normalizedTo, $body),
             };
 
-            $simulated = $driver !== 'api';
+            $simulated = $driver === 'log';
 
             $this->recordOutbound(
                 merchantId: $merchantId,
@@ -90,6 +93,7 @@ class WhatsAppService
 
             Log::error('WhatsApp send failed', [
                 'to' => $normalizedTo,
+                'driver' => $driver,
                 'error' => $exception->getMessage(),
             ]);
 
@@ -118,12 +122,8 @@ class WhatsAppService
         $phoneNumberId = config('whatsapp.phone_number_id');
 
         if (! filled($token) || ! filled($phoneNumberId)) {
-            $sender = config('whatsapp.sender_phone');
-
             throw new \RuntimeException(
-                'WhatsApp API is not configured. Register sender ' . $sender
-                . ' in Meta Business (developers.facebook.com), then set WHATSAPP_ACCESS_TOKEN'
-                . ' and WHATSAPP_PHONE_NUMBER_ID (numeric Phone number ID from Meta, not the phone digits).'
+                'Meta WhatsApp API is not configured. Set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID, or use WHATSAPP_DRIVER=twilio.'
             );
         }
 
@@ -149,6 +149,50 @@ class WhatsAppService
         }
 
         return (string) ($response->json('messages.0.id') ?? Str::uuid()->toString());
+    }
+
+    private function sendViaTwilio(string $to, string $body): string
+    {
+        $sid = config('whatsapp.twilio.sid');
+        $token = config('whatsapp.twilio.token');
+        $from = config('whatsapp.twilio.whatsapp_from');
+
+        if (! filled($sid) || ! filled($token) || ! filled($from)) {
+            throw new \RuntimeException(
+                'Twilio WhatsApp is not configured. Set TWILIO_SID, TWILIO_TOKEN, and TWILIO_WHATSAPP_FROM in .env.'
+            );
+        }
+
+        $url = "https://api.twilio.com/2010-04-01/Accounts/{$sid}/Messages.json";
+
+        $response = Http::withBasicAuth($sid, $token)
+            ->asForm()
+            ->post($url, [
+                'From' => self::twilioWhatsAppAddress($from),
+                'To' => self::twilioWhatsAppAddress('+' . $to),
+                'Body' => $body,
+            ]);
+
+        if (! $response->successful()) {
+            $message = $response->json('message') ?? $response->body();
+
+            throw new \RuntimeException('Twilio WhatsApp error: ' . $message);
+        }
+
+        return (string) ($response->json('sid') ?? Str::uuid()->toString());
+    }
+
+    private static function twilioWhatsAppAddress(string $phone): string
+    {
+        $phone = trim($phone);
+
+        if (str_starts_with(strtolower($phone), 'whatsapp:')) {
+            return $phone;
+        }
+
+        $normalized = self::normalizePhone($phone);
+
+        return 'whatsapp:+' . ($normalized ?? ltrim($phone, '+'));
     }
 
     /**

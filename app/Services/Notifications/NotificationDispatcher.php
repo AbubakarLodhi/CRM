@@ -158,6 +158,7 @@ class NotificationDispatcher
             phone: $phone,
             role: $recipientRole,
             mailableFactory: fn () => new CreditSaleReminderMailable($sale, $reminder, $template, $recipientRole),
+            sale: $sale,
         );
     }
 
@@ -174,6 +175,7 @@ class NotificationDispatcher
         ?string $phone,
         string $role,
         ?callable $mailableFactory = null,
+        ?Sale $sale = null,
     ): NotificationDispatchResult {
         $result = new NotificationDispatchResult;
         $channels = NotificationTemplateChannels::normalize($template->channels);
@@ -227,7 +229,9 @@ class NotificationDispatcher
                     $variables,
                     ucfirst(str_replace('_', ' ', $event)),
                 );
-                $body = NotificationMessageRenderer::renderWhatsAppBody($template, $variables);
+                $body = ($event === 'credit_payment_reminder' && $sale !== null)
+                    ? NotificationMessageRenderer::renderCreditReminderWhatsAppBody($sale, $variables, $role)
+                    : NotificationMessageRenderer::renderWhatsAppBody($template, $variables);
                 $waResult = $this->whatsApp->sendText(
                     to: $phone ?? '',
                     body: $body,
@@ -244,7 +248,8 @@ class NotificationDispatcher
                     if ($waResult->simulated) {
                         $label = "whatsapp/{$role}: +{$waResult->to} (logged only — not delivered to WhatsApp app)";
                     } elseif (config('whatsapp.test_mode')) {
-                        $label = "whatsapp/{$role}: +{$waResult->to} (test mode)";
+                        $driver = config('whatsapp.driver');
+                        $label = "whatsapp/{$role}: +{$waResult->to} (test mode via {$driver})";
                     } else {
                         $label = "whatsapp/{$role}: +{$waResult->to}";
                     }

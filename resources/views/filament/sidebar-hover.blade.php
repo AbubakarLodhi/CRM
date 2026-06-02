@@ -3,66 +3,101 @@
         width: 17rem !important;
         min-width: 17rem !important;
         transition: width 0.25s ease !important;
-        overflow: visible !important;
         position: relative !important;
     }
 
     .fi-sidebar:not(.sidebar-pinned) {
         width: 5rem !important;
         min-width: 5rem !important;
-        overflow: hidden !important;
     }
 
     .fi-sidebar.sidebar-pinned {
         width: 17rem !important;
         min-width: 17rem !important;
-        overflow: visible !important;
     }
 
     .fi-sidebar:not(.sidebar-pinned):hover {
         width: 17rem !important;
         min-width: 17rem !important;
-        overflow: visible !important;
     }
 
-    .fi-sidebar:not(.sidebar-pinned) .fi-nav-item-label,
-    .fi-sidebar:not(.sidebar-pinned) .fi-sidebar-group-label,
-    .fi-sidebar:not(.sidebar-pinned) .fi-brand-name,
-    .fi-sidebar:not(.sidebar-pinned) .fi-sidebar-header .truncate,
-    .fi-sidebar:not(.sidebar-pinned) .fi-sidebar-group > button > span,
-    .fi-sidebar:not(.sidebar-pinned) .fi-nav-item > a > span {
-        opacity: 0 !important;
+    /* Unpinned: icons only — hide all labels/badges (Filament v4 class names) */
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-item-label,
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-group-label,
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-item-badge-ctn,
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-brand-name,
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-header .truncate {
+        display: none !important;
+        visibility: hidden !important;
         width: 0 !important;
+        max-width: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
         overflow: hidden !important;
-        transition: opacity 0.2s ease, width 0.2s ease !important;
-        white-space: nowrap;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
 
-    .fi-sidebar:hover .fi-nav-item-label,
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-group-collapse-btn {
+        display: none !important;
+    }
+
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-item-grouped-border {
+        display: none !important;
+    }
+
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-item-btn,
+    .fi-sidebar:not(.sidebar-pinned):not(:hover) .fi-sidebar-group-btn {
+        justify-content: center !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    .fi-sidebar:hover .fi-sidebar-item-label,
     .fi-sidebar:hover .fi-sidebar-group-label,
+    .fi-sidebar:hover .fi-sidebar-item-badge-ctn,
     .fi-sidebar:hover .fi-brand-name,
     .fi-sidebar:hover .fi-sidebar-header .truncate,
-    .fi-sidebar:hover .fi-sidebar-group > button > span,
-    .fi-sidebar:hover .fi-nav-item > a > span,
-    .fi-sidebar.sidebar-pinned .fi-nav-item-label,
+    .fi-sidebar.sidebar-pinned .fi-sidebar-item-label,
     .fi-sidebar.sidebar-pinned .fi-sidebar-group-label,
+    .fi-sidebar.sidebar-pinned .fi-sidebar-item-badge-ctn,
     .fi-sidebar.sidebar-pinned .fi-brand-name,
-    .fi-sidebar.sidebar-pinned .fi-sidebar-header .truncate,
-    .fi-sidebar.sidebar-pinned .fi-sidebar-group > button > span,
-    .fi-sidebar.sidebar-pinned .fi-nav-item > a > span {
-        opacity: 1 !important;
+    .fi-sidebar.sidebar-pinned .fi-sidebar-header .truncate {
+        display: revert !important;
+        visibility: visible !important;
         width: auto !important;
+        max-width: none !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
     }
 
-    .fi-sidebar .fi-nav-item > a,
-    .fi-sidebar .fi-sidebar-group > button {
+    .fi-sidebar:hover .fi-sidebar-group-collapse-btn,
+    .fi-sidebar.sidebar-pinned .fi-sidebar-group-collapse-btn {
+        display: revert !important;
+    }
+
+    .fi-sidebar:hover .fi-sidebar-item-grouped-border,
+    .fi-sidebar.sidebar-pinned .fi-sidebar-item-grouped-border {
+        display: revert !important;
+    }
+
+    .fi-sidebar .fi-sidebar-item-btn,
+    .fi-sidebar .fi-sidebar-group-btn {
         display: flex !important;
         align-items: center !important;
         justify-content: flex-start !important;
-        padding-left: 1rem !important;
     }
 
-    .fi-sidebar .fi-nav-item-icon,
+    .fi-sidebar:hover .fi-sidebar-item-btn,
+    .fi-sidebar:hover .fi-sidebar-group-btn,
+    .fi-sidebar.sidebar-pinned .fi-sidebar-item-btn,
+    .fi-sidebar.sidebar-pinned .fi-sidebar-group-btn {
+        justify-content: flex-start !important;
+        padding-left: 1rem !important;
+        padding-right: 0.75rem !important;
+    }
+
+    .fi-sidebar .fi-sidebar-item-icon,
     .fi-sidebar svg:not(.sidebar-pin-btn svg) {
         flex-shrink: 0 !important;
         min-width: 1.25rem !important;
@@ -229,23 +264,17 @@
             updateIcon(pinned);
         });
 
-        // Hover expand / collapse (only when not pinned)
+        // Hover expand / collapse (only when not pinned) — CSS handles labels; width only here
         sidebar.addEventListener('mouseenter', function () {
             if (sidebar.classList.contains('sidebar-pinned')) return;
             sidebar.style.width = '17rem';
             sidebar.style.minWidth = '17rem';
-            sidebar.style.overflow = 'visible';
-            sidebar.querySelectorAll('.fi-nav-item-label, .fi-sidebar-group-label, .fi-brand-name, .fi-sidebar-header .truncate')
-                .forEach(el => { el.style.opacity = '1'; el.style.width = 'auto'; });
         });
 
         sidebar.addEventListener('mouseleave', function () {
             if (sidebar.classList.contains('sidebar-pinned')) return;
             sidebar.style.width = '5rem';
             sidebar.style.minWidth = '5rem';
-            sidebar.style.overflow = 'hidden';
-            sidebar.querySelectorAll('.fi-nav-item-label, .fi-sidebar-group-label, .fi-brand-name, .fi-sidebar-header .truncate')
-                .forEach(el => { el.style.opacity = '0'; el.style.width = '0'; });
         });
     });
 </script>

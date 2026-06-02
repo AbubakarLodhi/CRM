@@ -4,12 +4,15 @@ namespace App\Filament\Resources\Sales\Pages;
 
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Sales\SaleResource;
+use App\Models\Customer;
 use App\Services\Notifications\NotificationDispatcher;
 use App\Models\Branch;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Sale;
+use App\Services\CreditReminderScheduler;
 use App\Services\PaymentLedgerService;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -31,10 +34,14 @@ class CreateSale extends CreateRecord
     public array   $posCart          = [];
     public ?string $posCustomerId    = null;
     public string  $posDiscountMode  = 'percent';
-    public string  $posPaymentMethod = 'cash';
-    public float   $posPaidAmount    = 0.0;
+    public string $posPaymentMethod = 'cash';
+
+    /** @var float|int|string|null */
+    public $posPaidAmount = 0;
     public string  $posSaleNo        = '';
     public string  $posSaleDate      = '';
+    public string  $posNotes         = '';
+    public string  $posDueDate       = '';
 
     public function mount(): void
     {
@@ -116,6 +123,22 @@ class CreateSale extends CreateRecord
         return $query->orderBy('name')->get(['id', 'name'])->toArray();
     }
 
+    /** @return array<int, array{id: string, name: string}> */
+    public function getPosCustomers(): array
+    {
+        $user = Filament::auth()->user();
+
+        return CustomerResource::scopeVisibleCustomers(
+            Customer::query(),
+            $user,
+        )
+            ->orderBy('name')
+            ->limit(300)
+            ->get(['id', 'name'])
+            ->map(fn (Customer $c) => ['id' => (string) $c->id, 'name' => $c->name])
+            ->all();
+    }
+
     public function posAddItem(string $productId, string $variantId, string $branchId): void
     {
         $variant = ProductVariant::find($variantId);
@@ -188,20 +211,32 @@ class CreateSale extends CreateRecord
 
     private function recalcPosItem(string $key): void
     {
-        $item     = &$this->posCart[$key];
-        $qty      = (float) ($item['quantity'] ?? 1);
-        $unit     = (float) ($item['unit_price'] ?? 0);
-        $subtotal = $qty * $unit;
-        $discRate = (float) ($item['discount'] ?? 0);
-        $taxRate  = (float) ($item['tax'] ?? 0);
+        $item         = &$this->posCart[$key];
+        $qty          = (float) ($item['quantity'] ?? 1);
+        $unit         = (float) ($item['unit_price'] ?? 0);
+        $lineSubtotal = $qty * $unit;
 
-        $discAmt = $subtotal * ($discRate / 100);
-        $taxable = max(0, $subtotal - $discAmt);
-        $taxAmt  = $taxable * ($taxRate / 100);
+        if ($this->posDiscountMode === 'amount') {
+            $discAmt = min(max(0, (float) ($item['discount_amount'] ?? 0)), $lineSubtotal);
+            $taxable = max(0, $lineSubtotal - $discAmt);
+            $taxAmt  = min(max(0, (float) ($item['tax_amount'] ?? 0)), $lineSubtotal);
+            $discRate = $lineSubtotal > 0 ? ($discAmt / $lineSubtotal) * 100 : 0;
+            $taxRate  = $taxable > 0 ? ($taxAmt / $taxable) * 100 : 0;
+            $item['discount']        = round($discRate, 6);
+            $item['tax']             = round($taxRate, 6);
+            $item['discount_amount'] = round($discAmt, 2);
+            $item['tax_amount']      = round($taxAmt, 2);
+        } else {
+            $discRate = max(0, min(100, (float) ($item['discount'] ?? 0)));
+            $taxRate  = max(0, min(100, (float) ($item['tax'] ?? 0)));
+            $discAmt  = $lineSubtotal * ($discRate / 100);
+            $taxable  = max(0, $lineSubtotal - $discAmt);
+            $taxAmt   = $taxable * ($taxRate / 100);
+            $item['discount_amount'] = round($discAmt, 2);
+            $item['tax_amount']      = round($taxAmt, 2);
+        }
 
-        $item['discount_amount'] = round($discAmt, 2);
-        $item['tax_amount']      = round($taxAmt, 2);
-        $item['line_total']      = round($taxable + $taxAmt, 2);
+        $item['line_total'] = round($taxable + $taxAmt, 2);
     }
 
     private function recalcPosCart(): void
@@ -209,6 +244,88 @@ class CreateSale extends CreateRecord
         foreach (array_keys($this->posCart) as $key) {
             $this->recalcPosItem($key);
         }
+        $this->syncPosPayment();
+    }
+
+    private function syncPosPayment(): void
+    {
+        $total = $this->getPosTotal();
+
+        if ($this->posPaymentMethod === 'cash') {
+            $this->posPaidAmount = $total;
+
+            return;
+        }
+
+        $this->posPaidAmount = max(0, min($total, (float) ($this->posPaidAmount ?? 0)));
+
+        if ($this->getPosDueAmount() > 0 && blank($this->posDueDate)) {
+            $this->posDueDate = \Carbon\Carbon::parse($this->posSaleDate ?: now())
+                ->addDays(30)
+                ->format('Y-m-d');
+        }
+    }
+
+    public function updatedPosDiscountMode(): void
+    {
+        $this->recalcPosCart();
+    }
+
+    public function posSelectPaymentMethod(string $method): void
+    {
+        $this->posPaymentMethod = $method === 'credit' ? 'credit' : 'cash';
+
+        if ($this->posPaymentMethod === 'cash') {
+            $this->posPaidAmount = $this->getPosTotal();
+            $this->posDueDate    = '';
+
+            return;
+        }
+
+        if ((float) $this->posPaidAmount >= $this->getPosTotal()) {
+            $this->posPaidAmount = 0;
+        }
+
+        $this->ensurePosDueDate();
+    }
+
+    public function posPaidAmountChanged($value): void
+    {
+        $total = $this->getPosTotal();
+        $paid  = max(0, min($total, (float) $value));
+
+        $this->posPaidAmount = $paid;
+
+        if ($paid >= $total - 0.001) {
+            $this->posPaymentMethod = 'cash';
+            $this->posDueDate       = '';
+
+            return;
+        }
+
+        $this->posPaymentMethod = 'credit';
+        $this->ensurePosDueDate();
+    }
+
+    private function ensurePosDueDate(): void
+    {
+        if ($this->getPosDueAmount() > 0 && blank($this->posDueDate)) {
+            $this->posDueDate = \Carbon\Carbon::parse($this->posSaleDate ?: now())
+                ->addDays(30)
+                ->format('Y-m-d');
+        }
+    }
+
+    public function posSetFullPayment(): void
+    {
+        $this->posSelectPaymentMethod('cash');
+    }
+
+    public function posSetNoPayment(): void
+    {
+        $this->posPaymentMethod = 'credit';
+        $this->posPaidAmount    = 0;
+        $this->ensurePosDueDate();
     }
 
     public function getPosSubtotal(): float
@@ -231,72 +348,107 @@ class CreateSale extends CreateRecord
         return $this->getPosSubtotal() - $this->getPosDiscount() + $this->getPosTax();
     }
 
+    public function getPosDueAmount(): float
+    {
+        return max(0, round($this->getPosTotal() - (float) $this->posPaidAmount, 2));
+    }
+
     // ─── POS submit ───────────────────────────────────────────────
     public function posSubmit(): void
     {
-        if (empty($this->posCart) || ! $this->posCustomerId) {
-            $this->addError('pos', 'Please select a customer and add at least one item.');
+        if (! $this->validatePosOrder()) {
             return;
         }
 
-        $items = array_values($this->posCart);
+        $sale = $this->handleRecordCreation($this->buildPosSaleData());
+        $this->queueSaleCreatedEmail($sale->fresh(['customer', 'merchant']));
+        $this->resetPosAfterSale();
 
-        $data = [
-            'sale_no'        => $this->posSaleNo,
-            'sale_date'      => $this->posSaleDate,
-            'customer_id'    => $this->posCustomerId,
-            'payment_method' => $this->posPaymentMethod,
-            'paid_amount'    => $this->posPaidAmount,
-            'items'          => $items,
-        ];
-
-        $sale = $this->handleRecordCreation($data);
-
-        // Reset cart
-        $this->posCart          = [];
-        $this->posCustomerId    = null;
-        $this->posPaidAmount    = 0.0;
-        $this->posPaymentMethod = 'cash';
-        $this->posSaleNo        = 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-
-        // Show post-order modal
         $this->dispatch('pos-order-placed', saleId: $sale->id, saleNo: $sale->sale_no);
     }
 
     // ─── POS submit and create another ────────────────────────────
     public function posSubmitAndCreateAnother(): void
     {
-        if (empty($this->posCart) || ! $this->posCustomerId) {
-            $this->addError('pos', 'Please select a customer and add at least one item.');
+        if (! $this->validatePosOrder()) {
             return;
         }
 
-        $items = array_values($this->posCart);
+        $sale = $this->handleRecordCreation($this->buildPosSaleData());
+        $this->queueSaleCreatedEmail($sale->fresh(['customer', 'merchant']));
+        $this->resetPosAfterSale(keepView: true);
 
-        $data = [
+        \Filament\Notifications\Notification::make()
+            ->title('Sale created')
+            ->body('Cart cleared — ready for the next order.')
+            ->success()
+            ->send();
+    }
+
+    private function validatePosOrder(): bool
+    {
+        if (empty($this->posCart) || ! $this->posCustomerId) {
+            $this->addError('pos', 'Select a customer and add at least one product.');
+
+            return false;
+        }
+
+        if ($this->getPosDueAmount() > 0 && blank($this->posDueDate)) {
+            $this->addError('pos', 'Set a payment due date for credit or partial payments.');
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    private function buildPosSaleData(): array
+    {
+        $total = $this->getPosTotal();
+        $paid  = max(0, min($total, (float) $this->posPaidAmount));
+        $due   = max(0, round($total - $paid, 2));
+
+        return [
             'sale_no'        => $this->posSaleNo,
             'sale_date'      => $this->posSaleDate,
             'customer_id'    => $this->posCustomerId,
-            'payment_method' => $this->posPaymentMethod,
-            'paid_amount'    => $this->posPaidAmount,
-            'items'          => $items,
+            'payment_method' => $due > 0 ? 'credit' : 'cash',
+            'paid_amount'    => $paid,
+            'due_date'       => $due > 0 && filled($this->posDueDate) ? $this->posDueDate : null,
+            'notes'          => filled($this->posNotes) ? $this->posNotes : null,
+            'items'          => array_values($this->posCart),
         ];
+    }
 
-        $this->handleRecordCreation($data);
-
-        // Reset everything for next sale
+    private function resetPosAfterSale(bool $keepView = false): void
+    {
         $this->posCart          = [];
         $this->posCustomerId    = null;
         $this->posPaidAmount    = 0.0;
         $this->posPaymentMethod = 'cash';
+        $this->posNotes         = '';
+        $this->posDueDate       = '';
         $this->posDiscountMode  = 'percent';
         $this->posSaleNo        = 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
         $this->posSaleDate      = now()->format('Y-m-d');
+    }
 
-        \Filament\Notifications\Notification::make()
-            ->title('Sale created! Cart cleared for next order.')
-            ->success()
-            ->send();
+    /**
+     * @return array<string>
+     */
+    public function getPageClasses(): array
+    {
+        return $this->viewMode === 'pos' ? ['fi-pos-sales-page'] : [];
+    }
+
+    public function getBreadcrumbs(): array
+    {
+        if ($this->viewMode === 'pos') {
+            return [];
+        }
+
+        return parent::getBreadcrumbs();
     }
 
     // ─── Header actions (toggle buttons) ─────────────────────────
@@ -361,25 +513,29 @@ class CreateSale extends CreateRecord
                 $data['created_by']  = $user->id;
             }
 
-            $subtotal      = collect($items)->sum(fn ($i) => (float) ($i['line_total'] ?? 0));
+            $subtotal      = 0.0;
             $totalDiscount = 0.0;
             $totalTax      = 0.0;
 
             foreach ($items as $item) {
-                $lineTotal    = (float) ($item['line_total'] ?? 0);
+                $qty          = (float) ($item['quantity'] ?? 0);
+                $unitPrice    = (float) ($item['unit_price'] ?? 0);
+                $lineSubtotal = $qty * $unitPrice;
+                $subtotal += $lineSubtotal;
+
                 $discountRate = max(0, min(100, (float) ($item['discount'] ?? 0)));
                 $taxRate      = max(0, min(100, (float) ($item['tax'] ?? 0)));
 
-                $discountAmount = $lineTotal * ($discountRate / 100);
-                $taxableAmount  = $lineTotal - $discountAmount;
+                $discountAmount = $lineSubtotal * ($discountRate / 100);
+                $taxableAmount  = max(0, $lineSubtotal - $discountAmount);
                 $taxAmount      = $taxableAmount * ($taxRate / 100);
 
                 $totalDiscount += $discountAmount;
                 $totalTax      += $taxAmount;
             }
 
-            $data['subtotal']     = $subtotal;
-            $data['total_amount'] = $subtotal - $totalDiscount + $totalTax;
+            $data['subtotal']     = round($subtotal, 2);
+            $data['total_amount'] = round($subtotal - $totalDiscount + $totalTax, 2);
 
             self::applyPaymentFields($data);
 
@@ -442,6 +598,25 @@ class CreateSale extends CreateRecord
                 }
             }
 
+            $sale = $sale->fresh();
+            $saleId = $sale->id;
+
+            DB::afterCommit(function () use ($saleId): void {
+                $fresh = Sale::query()->find($saleId);
+
+                if (! $fresh) {
+                    return;
+                }
+
+                $scheduler = app(CreditReminderScheduler::class);
+
+                if ($fresh->isCreditWithBalance()) {
+                    $scheduler->syncSaleReminders($fresh);
+                } else {
+                    $scheduler->deactivateSaleReminders($fresh);
+                }
+            });
+
             return $sale;
         });
     }
@@ -503,6 +678,10 @@ class CreateSale extends CreateRecord
 
     private static function applyPaymentFields(array &$data): void
     {
+        if (($data['payment_method'] ?? null) === null) {
+            $data['payment_method'] = ((float) ($data['due_amount'] ?? 0)) > 0 ? 'credit' : 'cash';
+        }
+
         $totalAmount = max(0, (float) ($data['total_amount'] ?? 0));
         $paidAmount = $data['paid_amount'] ?? null;
         $paymentMethod = $data['payment_method'] ?? null;
@@ -516,7 +695,7 @@ class CreateSale extends CreateRecord
         }
 
         $paidAmount = max(0, min($totalAmount, (float) $paidAmount));
-        $dueAmount = max(0, $totalAmount - $paidAmount);
+        $dueAmount = max(0, round($totalAmount - $paidAmount, 2));
 
         $data['paid_amount'] = round($paidAmount, 2);
         $data['due_amount'] = round($dueAmount, 2);

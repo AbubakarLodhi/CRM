@@ -16,47 +16,50 @@ class WhatsAppDiagnoseCommand extends Command
         $driver = config('whatsapp.driver', 'log');
 
         $this->info('WhatsApp configuration');
-        $this->table(
-            ['Setting', 'Value'],
-            [
-                ['WHATSAPP_ENABLED', config('whatsapp.enabled') ? 'true' : 'false'],
-                ['WHATSAPP_DRIVER', $driver],
-                ['WHATSAPP_SENDER_PHONE', config('whatsapp.sender_phone')],
-                ['WHATSAPP_PHONE_NUMBER_ID', filled(config('whatsapp.phone_number_id')) ? 'set' : 'MISSING'],
-                ['WHATSAPP_ACCESS_TOKEN', filled(config('whatsapp.access_token')) ? 'set' : 'MISSING'],
-                ['WHATSAPP_TEST_MODE', config('whatsapp.test_mode') ? 'true' : 'false'],
-                ['WHATSAPP_TEST_PHONE', config('whatsapp.test_phone')],
-            ],
-        );
+        $rows = [
+            ['WHATSAPP_ENABLED', config('whatsapp.enabled') ? 'true' : 'false'],
+            ['WHATSAPP_DRIVER', $driver],
+            ['WHATSAPP_SENDER_PHONE', config('whatsapp.sender_phone')],
+            ['WHATSAPP_TEST_MODE', config('whatsapp.test_mode') ? 'true' : 'false'],
+            ['WHATSAPP_TEST_PHONE', config('whatsapp.test_phone')],
+        ];
 
+        if ($driver === 'api') {
+            $rows[] = ['WHATSAPP_PHONE_NUMBER_ID', filled(config('whatsapp.phone_number_id')) ? 'set' : 'MISSING'];
+            $rows[] = ['WHATSAPP_ACCESS_TOKEN', filled(config('whatsapp.access_token')) ? 'set' : 'MISSING'];
+        }
+
+        if ($driver === 'twilio') {
+            $rows[] = ['TWILIO_SID', filled(config('whatsapp.twilio.sid')) ? 'set' : 'MISSING'];
+            $rows[] = ['TWILIO_TOKEN', filled(config('whatsapp.twilio.token')) ? 'set' : 'MISSING'];
+            $rows[] = ['TWILIO_WHATSAPP_FROM', config('whatsapp.twilio.whatsapp_from') ?: 'MISSING'];
+        }
+
+        $this->table(['Setting', 'Value'], $rows);
         $this->newLine();
 
         if ($whatsApp->usesLogDriver()) {
-            $this->error('WHATSAPP_DRIVER=log');
-            $this->line('Messages are only written to storage/logs/laravel.log.');
-            $this->line('They are NOT sent to WhatsApp — that is why you receive email but not WhatsApp.');
-            $this->newLine();
-            $this->line('To deliver real WhatsApp messages:');
-            $this->line('  1. Register sender ' . config('whatsapp.sender_phone') . ' at https://developers.facebook.com/ (WhatsApp → API Setup).');
-            $this->line('  2. Copy Permanent access token → WHATSAPP_ACCESS_TOKEN');
-            $this->line('  3. Copy Phone number ID (numeric) → WHATSAPP_PHONE_NUMBER_ID');
-            $this->line('  4. In .env set: WHATSAPP_DRIVER=api');
-            $this->line('  5. Run: php artisan config:clear');
-            $this->line('  6. Test: php artisan whatsapp:test-notifications --event=credit_payment_reminder');
+            $this->error('WHATSAPP_DRIVER=log — messages are only written to storage/logs/laravel.log.');
 
             return self::FAILURE;
         }
 
         if (! $whatsApp->canDeliverToPhones()) {
-            $this->error('WHATSAPP_DRIVER=api but token or phone number ID is missing.');
+            $this->error("WHATSAPP_DRIVER={$driver} but required credentials are missing.");
 
             return self::FAILURE;
         }
 
-        $this->info('Configuration looks ready for real WhatsApp delivery via Meta API.');
+        if ($driver === 'twilio') {
+            $this->info('Twilio WhatsApp is configured.');
+            $this->line('Sandbox: from your phone (+923461000454), send the join code to +14155238886 in WhatsApp first.');
+            $this->line('See: https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn');
+        } else {
+            $this->info('Meta WhatsApp API is configured.');
+        }
 
         if (config('whatsapp.test_mode')) {
-            $this->warn('TEST MODE is ON — all messages go to: ' . config('whatsapp.test_phone'));
+            $this->warn('TEST MODE is ON — all CRM messages go to: ' . config('whatsapp.test_phone'));
         }
 
         return self::SUCCESS;
