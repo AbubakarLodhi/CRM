@@ -69,7 +69,42 @@
     background: var(--flowdesk-card-bg);
     border: 1px solid var(--flowdesk-border-dark);
     border-radius: 12px;
+    overflow: visible;
+}
+
+body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn,
+body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
     overflow: hidden;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-header-ctn,
+body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-header-ctn,
+body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-header-toolbar,
+body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-header-toolbar {
+    overflow: visible;
+}
+
+/* Table filter & column manager dropdowns — scroll when tall */
+.fi-ta-filters-dropdown .fi-dropdown-panel,
+.fi-ta-col-manager-dropdown .fi-dropdown-panel {
+    max-height: min(70vh, 28rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    z-index: 50;
+}
+
+.fi-ta-filters-dropdown .fi-ta-filters,
+.fi-ta-col-manager-dropdown .fi-ta-col-manager {
+    min-height: 0;
+}
+
+.fi-ta-col-manager-dropdown .fi-ta-col-manager-items {
+    max-height: min(52vh, 20rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .dark body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-header-cell,
