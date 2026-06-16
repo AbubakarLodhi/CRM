@@ -20,7 +20,7 @@
 
     <div @class([
         'fi-simple-layout',
-        'zgn-auth-layout' => ! filament()->auth()->check(),
+        'flowdesk-auth-layout' => ! filament()->auth()->check(),
     ])>
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::SIMPLE_LAYOUT_START, scopes: $renderHookScopes) }}
 
@@ -40,11 +40,11 @@
         @endif
 
         @if (! filament()->auth()->check())
-            <aside class="zgn-auth-visual" aria-hidden="true">
+            <aside class="flowdesk-auth-visual" aria-hidden="true">
                 <img
-                    src="{{ asset('images/login-illustration.png') }}"
+                    src="{{ asset(config('branding.login_visual')) }}"
                     alt=""
-                    class="zgn-auth-visual-image"
+                    class="flowdesk-auth-visual-image"
                 >
             </aside>
         @endif

@@ -13,7 +13,7 @@ class EveeElectricBikesBrandsSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
         if (! $merchant) {
             return;
         }

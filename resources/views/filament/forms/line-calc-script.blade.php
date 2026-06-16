@@ -1,10 +1,10 @@
 <script>
 (function () {
-    if (window.__zgnLineCalcInitialized) {
+    if (window.__flowdeskLineCalcInitialized) {
         return;
     }
 
-    window.__zgnLineCalcInitialized = true;
+    window.__flowdeskLineCalcInitialized = true;
 
     function parseNumber(value) {
         if (value === null || value === undefined) {

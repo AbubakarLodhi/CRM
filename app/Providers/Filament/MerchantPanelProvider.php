@@ -2,10 +2,12 @@
 
 namespace App\Providers\Filament;
 
-use App\Filament\Pages\EditProfile;
+use App\Filament\Auth\Login;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\EditProfile;
 use App\Http\Middleware\EnsureStaffIsVerified;
 use Filament\Actions\Action;
+use Filament\Enums\ThemeMode;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -14,8 +16,6 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -35,29 +35,36 @@ class MerchantPanelProvider extends PanelProvider
             ->authGuard('merchant')
             ->authPasswordBroker('merchants')
             ->default()
-            ->login(\App\Filament\Auth\Login::class)
+            ->login(Login::class)
             ->passwordReset()
+            ->colors([
+                'primary' => Color::generatePalette(config('branding.colors.primary')),
+                'gray' => Color::Slate,
+            ])
+            ->defaultThemeMode(ThemeMode::Dark)
             ->brandLogo(function () {
                 $merchant = Filament::auth()->user();
+                $defaultLogo = asset(config('branding.logo'));
 
                 if (! $merchant) {
-                    return asset('images/zgn-crm-logo.png');
+                    return $defaultLogo;
                 }
 
                 if (! $merchant->logo) {
-                    return asset('images/zgn-crm-logo.png');
+                    return $defaultLogo;
                 }
 
                 $path = $merchant->logo->photo_url;
 
                 if (! Storage::disk('public')->exists($path)) {
-                    return asset('images/zgn-crm-logo.png');
+                    return $defaultLogo;
                 }
 
                 return asset('storage/'.$path);
             })
-            ->brandName(fn () => Filament::auth()->user()?->name ?? 'ZGN Green Pvt')
+            ->brandName(fn () => Filament::auth()->user()?->name ?? config('branding.name'))
             ->brandLogoHeight('2.5rem')
+            ->darkModeBrandLogo(asset('images/flowdesk-logo-dark.svg'))
             ->userMenuItems([
                 Action::make('editProfile')
                     ->label('Edit profile')
@@ -82,19 +89,20 @@ class MerchantPanelProvider extends PanelProvider
                     $settings = $merchant?->settings;
 
                     return view('filament.merchant.theme-vars', [
-                        'primary' => Color::generatePalette($settings?->primary_color ?? '#1E3A8A'),
-                        'success' => Color::generatePalette($settings?->success_color ?? '#22C55E'),
-                        'secondary' => Color::generatePalette($settings?->secondary_color ?? '#64748B'),
-                        'danger' => Color::generatePalette($settings?->danger_color ?? '#DC2626'),
-                        'warning' => Color::generatePalette($settings?->warning_color ?? '#FACC15'),
-                        'default' => Color::generatePalette($settings?->default_color ?? '#E5E7EB'),
-                        'sidebarPrimary' => $settings?->primary_color,
-                        'sidebarSecondary' => $settings?->secondary_color,
+                        'primary' => Color::generatePalette($settings?->primary_color ?? config('branding.colors.primary')),
+                        'success' => Color::generatePalette($settings?->success_color ?? config('branding.colors.success')),
+                        'secondary' => Color::generatePalette($settings?->secondary_color ?? config('branding.colors.secondary')),
+                        'danger' => Color::generatePalette($settings?->danger_color ?? config('branding.colors.danger')),
+                        'warning' => Color::generatePalette($settings?->warning_color ?? config('branding.colors.warning')),
+                        'default' => Color::generatePalette($settings?->default_color ?? config('branding.colors.default')),
+                        'sidebarPrimary' => $settings?->primary_color ?? config('branding.colors.primary'),
+                        'sidebarSecondary' => $settings?->secondary_color ?? config('branding.colors.accent'),
                     ]);
                 })
             ->navigationGroups([
                 'Procurement',
                 'Inventory',
+                'Assets',
                 'Reportings',
                 'Configurations',
             ])

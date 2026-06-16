@@ -113,7 +113,7 @@
         margin-top: 0 !important;
     }
 
-    /* ── Pin bar ── */
+    /* ── Pin bar (light default, dark override) ── */
     .sidebar-pin-bar {
         display: flex;
         align-items: center;
@@ -124,7 +124,12 @@
         border-bottom: 1px solid #eaecf0;
         flex-shrink: 0;
         overflow: hidden;
-        transition: justify-content 0.2s;
+        transition: justify-content 0.2s, background 0.2s, border-color 0.2s;
+    }
+
+    html.dark .sidebar-pin-bar {
+        background: #111827;
+        border-bottom: 1px solid #1f2937;
     }
 
     .fi-sidebar:hover .sidebar-pin-bar,
@@ -143,8 +148,12 @@
         overflow: hidden;
         opacity: 0;
         max-width: 0;
-        transition: opacity 0.2s ease, max-width 0.25s ease;
+        transition: opacity 0.2s ease, max-width 0.25s ease, color 0.2s;
         user-select: none;
+    }
+
+    html.dark .sidebar-pin-label {
+        color: #64748b;
     }
 
     .fi-sidebar:hover .sidebar-pin-label,
@@ -174,24 +183,46 @@
         background: #f3f4f6;
         border-color: #d1d5db;
         color: #374151;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        box-shadow: none;
+    }
+
+    html.dark .sidebar-pin-btn {
+        border-color: #475569;
+        color: #94a3b8;
+    }
+
+    html.dark .sidebar-pin-btn:hover {
+        background: #1f2937;
+        border-color: #64748b;
+        color: #e2e8f0;
     }
 
     .sidebar-pin-btn:focus-visible {
-        box-shadow: 0 0 0 2px #1D9E7530;
-        border-color: #1D9E75;
+        box-shadow: 0 0 0 2px #6366f130;
+        border-color: #6366f1;
     }
 
     .sidebar-pin-btn.pinned {
-        background: rgba(29, 158, 117, 0.07);
-        border-color: rgba(29, 158, 117, 0.45);
-        color: #1D9E75;
+        background: rgba(99, 102, 241, 0.08);
+        border-color: rgba(99, 102, 241, 0.45);
+        color: #6366f1;
     }
 
     .sidebar-pin-btn.pinned:hover {
-        background: rgba(29, 158, 117, 0.14);
-        border-color: #1D9E75;
-        box-shadow: 0 1px 4px rgba(29,158,117,0.18);
+        background: rgba(99, 102, 241, 0.14);
+        border-color: #6366f1;
+        box-shadow: none;
+    }
+
+    html.dark .sidebar-pin-btn.pinned {
+        background: rgba(99, 102, 241, 0.15);
+        border-color: rgba(129, 140, 248, 0.45);
+        color: #a5b4fc;
+    }
+
+    html.dark .sidebar-pin-btn.pinned:hover {
+        background: rgba(99, 102, 241, 0.22);
+        border-color: #818cf8;
     }
 </style>
 

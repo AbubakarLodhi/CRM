@@ -3,6 +3,7 @@
 namespace Database\Seeders\ZGN\PremiumLubricantsOils;
 
 use App\Models\Brand;
+use App\Models\BrandModel;
 use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
@@ -13,7 +14,7 @@ class PremiumLubricantsOilsProductsSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
         if (! $merchant) {
             return;
         }
@@ -68,7 +69,7 @@ class PremiumLubricantsOilsProductsSeeder extends Seeder
             ],
         ];
 
-        $merchantSlug = 'zgn';
+        $merchantSlug = 'flowdesk';
 
         foreach ($subCategories as $subCategoryName => $products) {
             $subCategory = Category::where('merchant_id', $merchant->id)
@@ -82,7 +83,7 @@ class PremiumLubricantsOilsProductsSeeder extends Seeder
 
             foreach ($products as $productData) {
                 $brand = $brands->random();
-                $brandModels = \App\Models\BrandModel::where('merchant_id', $merchant->id)
+                $brandModels = BrandModel::where('merchant_id', $merchant->id)
                     ->where('brand_id', $brand->id)
                     ->get();
 

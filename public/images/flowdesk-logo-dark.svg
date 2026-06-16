@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 44" role="img" aria-label="Flowdesk">
+  <defs>
+    <linearGradient id="flowdesk-mark-dark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="6" width="32" height="32" rx="8" fill="url(#flowdesk-mark-dark)"/>
+  <path d="M9 22h14M9 17h18M9 27h11" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>
+  <text x="42" y="29" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="22" font-weight="700" fill="#ffffff">Flowdesk</text>
+</svg>

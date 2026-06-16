@@ -9,16 +9,13 @@ use Illuminate\Support\Str;
 
 class MerchantsSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
         $merchants = [
             [
-                'email' => 'info@zgngreenpvt.com',
-                'name' => 'ZGN Green Private Limited',
-                'website' => 'https://zgngreenpvt.com/',
+                'email' => 'info@flowdesk.com',
+                'name' => 'Flowdesk',
+                'website' => 'https://flowdesk.app/',
             ],
             [
                 'email' => 'info@halaynoor.com',

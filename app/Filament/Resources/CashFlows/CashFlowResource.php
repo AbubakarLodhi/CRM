@@ -2,13 +2,13 @@
 
 namespace App\Filament\Resources\CashFlows;
 
-use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\CashFlows\Pages\CreateCashFlow;
 use App\Filament\Resources\CashFlows\Pages\EditCashFlow;
 use App\Filament\Resources\CashFlows\Pages\ListCashFlows;
 use App\Filament\Resources\CashFlows\Pages\ViewPartyCashFlows;
 use App\Filament\Resources\CashFlows\Schemas\CashFlowForm;
 use App\Filament\Resources\CashFlows\Tables\CashFlowsTable;
+use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Vendors\VendorResource;
 use App\Models\Branch;
 use App\Models\Business;
@@ -25,6 +25,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class CashFlowResource extends Resource
 {
@@ -69,20 +70,20 @@ class CashFlowResource extends Resource
 
         if ($user instanceof User) {
             $businessIds = $user->businesses()->pluck('businesses.id');
-            $branchIds   = $user->branches()->pluck('branches.id');
+            $branchIds = $user->branches()->pluck('branches.id');
 
             if ($businessIds->isEmpty() || $branchIds->isEmpty()) {
                 return $query->whereRaw('1 = 0');
             }
 
             $query->whereIn('business_id', $businessIds)
-                  ->whereIn('branch_id', $branchIds);
+                ->whereIn('branch_id', $branchIds);
         }
 
         return $query;
     }
 
-    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
         $user = Filament::auth()->user();
@@ -109,14 +110,16 @@ class CashFlowResource extends Resource
                 ->whereIn('branch_id', $branchIds);
         }
 
+        $rankedPerParty = (clone $query)
+            ->selectRaw('id, ROW_NUMBER() OVER (PARTITION BY party_type, party_id ORDER BY flow_date DESC, created_at DESC) AS cf_row_num');
+
         return CashFlow::query()
-            ->whereIn('id', (clone $query)
-                ->selectRaw('DISTINCT ON (party_type, party_id) id')
-                ->orderBy('party_type')
-                ->orderBy('party_id')
-                ->orderByDesc('flow_date')
-                ->orderByDesc('created_at')
-            );
+            ->whereIn('id', function (QueryBuilder $subquery) use ($rankedPerParty): void {
+                $subquery
+                    ->fromSub($rankedPerParty, 'ranked_cash_flows')
+                    ->where('ranked_cash_flows.cf_row_num', 1)
+                    ->select('ranked_cash_flows.id');
+            });
     }
 
     public static function form(Schema $schema): Schema

@@ -9,13 +9,12 @@ use Illuminate\Support\Str;
 
 class ZGNSolarCategoriesSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        if (!$merchant) return;
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        if (! $merchant) {
+            return;
+        }
 
         // Helper
         $create = function (string $name, ?string $parentId = null) use ($merchant) {

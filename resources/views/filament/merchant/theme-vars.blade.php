@@ -36,9 +36,17 @@
         @endforeach
 
         @if ($hasSidebarTheme)
-            --zgn-sidebar-blue: {{ $primary[600] ?? $sidebarPrimary }};
-            --zgn-sidebar-green: {{ $secondary[600] ?? $sidebarSecondary }};
-            --zgn-sidebar-teal: {{ $secondary[400] ?? ($secondary[500] ?? $sidebarSecondary) }};
+            --flowdesk-purple: {{ $primary[500] ?? $sidebarPrimary }};
+            --flowdesk-accent-gradient: linear-gradient(135deg, {{ $primary[500] ?? $sidebarPrimary }} 0%, {{ $primary[600] ?? $sidebarPrimary }} 62%, {{ $primary[400] ?? ($sidebarSecondary ?? $sidebarPrimary) }} 100%);
+            --flowdesk-sidebar-blue: {{ $primary[500] ?? $sidebarPrimary }};
+            --flowdesk-sidebar-green: {{ $primary[600] ?? $sidebarPrimary }};
+            --flowdesk-sidebar-teal: {{ $primary[400] ?? ($sidebarSecondary ?? $sidebarPrimary) }};
+        @else
+            --flowdesk-purple: {{ config('branding.colors.primary') }};
+            --flowdesk-accent-gradient: linear-gradient(135deg, {{ config('branding.sidebar.gradient_start') }} 0%, {{ config('branding.sidebar.gradient_mid') }} 62%, {{ config('branding.sidebar.gradient_end') }} 100%);
+            --flowdesk-sidebar-blue: {{ config('branding.sidebar.gradient_start') }};
+            --flowdesk-sidebar-green: {{ config('branding.sidebar.gradient_mid') }};
+            --flowdesk-sidebar-teal: {{ config('branding.sidebar.gradient_end') }};
         @endif
     }
 

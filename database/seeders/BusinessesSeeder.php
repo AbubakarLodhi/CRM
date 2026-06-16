@@ -11,21 +11,20 @@ use Illuminate\Support\Str;
 
 class BusinessesSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
-        $zgn = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $primaryMerchant = Merchant::where('email', 'info@flowdesk.com')->first();
         $halaynoor = Merchant::where('email', 'info@halaynoor.com')->first();
 
         $pakistan = Country::where('code', 'PK')->first();
         $karachi = City::where('name', 'Karachi')->first();
-        if (!$pakistan || !$karachi) return;
+        if (! $pakistan || ! $karachi) {
+            return;
+        }
 
-        if ($zgn) {
+        if ($primaryMerchant) {
             $this->createBusiness(
-                $zgn->id,
+                $primaryMerchant->id,
                 $pakistan->id,
                 $karachi->id,
                 [
@@ -43,32 +42,24 @@ class BusinessesSeeder extends Seeder
                 $pakistan->id,
                 $karachi->id,
                 [
-                    'Halaynoor'
+                    'Halaynoor',
                 ]
             );
         }
     }
 
-    /**
-     * @param string $merchantId
-     * @param string $countryId
-     * @param string $cityId
-     * @param array $businesses
-     * @return void
-     */
     private function createBusiness(
         string $merchantId,
         string $countryId,
         string $cityId,
-        array  $businesses = []
-    ): void
-    {
+        array $businesses = []
+    ): void {
         foreach ($businesses as $name) {
             $business = Business::firstOrCreate(
                 ['merchant_id' => $merchantId, 'name' => $name],
                 [
                     'id' => Str::uuid(),
-                    'description' => $name . ' business',
+                    'description' => $name.' business',
                     'status' => true,
                     'postal_code' => '75500',
                 ]

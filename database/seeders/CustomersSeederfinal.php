@@ -163,18 +163,17 @@ class CustomersSeederfinal extends Seeder
         'Akhtar Tyres',
     ];
 
-    /**
-     * @return void
-     */
     public function run(): void
     {
         $pakistan = Country::where('code', 'PK')->first();
         $lahore = City::where('name', 'Lahore')->first();
 
-        if (!$pakistan || !$lahore) return;
+        if (! $pakistan || ! $lahore) {
+            return;
+        }
 
         $merchants = Merchant::whereIn('email', [
-            'info@zgngreenpvt.com',
+            'info@flowdesk.com',
             'info@halaynoor.com',
         ])->get();
 
@@ -187,18 +186,11 @@ class CustomersSeederfinal extends Seeder
         }
     }
 
-    /**
-     * @param string $merchantId
-     * @param string $countryId
-     * @param string $cityId
-     * @return void
-     */
     private function createCustomers(
         string $merchantId,
         string $countryId,
         string $cityId
-    ): void
-    {
+    ): void {
         foreach ($this->customerNames as $index => $name) {
             $i = $index + 1;
 
@@ -207,15 +199,15 @@ class CustomersSeederfinal extends Seeder
                     'email' => "demo{$i}-{$merchantId}@customer.com",
                 ],
                 [
-                    'id'          => Str::uuid(),
+                    'id' => Str::uuid(),
                     'merchant_id' => $merchantId,
-                    'name'        => $name,
-                    'phone'       => '+920900786010',
-                    'country_id'  => $countryId,
-                    'city_id'     => $cityId,
+                    'name' => $name,
+                    'phone' => '+920900786010',
+                    'country_id' => $countryId,
+                    'city_id' => $cityId,
                     'postal_code' => '54000',
-                    'address'     => 'Lahore, Pakistan',
-                    'reference'   => 'Walk-in',
+                    'address' => 'Lahore, Pakistan',
+                    'reference' => 'Walk-in',
                 ]
             );
         }

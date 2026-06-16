@@ -12,22 +12,21 @@ use Illuminate\Support\Str;
 
 class BranchesSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
         $pakistan = Country::where('code', 'PK')->first();
         $karachi = City::where('name', 'Karachi')->first();
 
-        if (!$pakistan || !$karachi) return;
+        if (! $pakistan || ! $karachi) {
+            return;
+        }
 
-        $zgn = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $primaryMerchant = Merchant::where('email', 'info@flowdesk.com')->first();
         $halaynoor = Merchant::where('email', 'info@halaynoor.com')->first();
 
-        if ($zgn) {
+        if ($primaryMerchant) {
             $this->createBranches(
-                $zgn->id,
+                $primaryMerchant->id,
                 $pakistan->id,
                 $karachi->id,
                 [
@@ -51,38 +50,32 @@ class BranchesSeeder extends Seeder
         }
     }
 
-    /**
-     * @param string $merchantId
-     * @param string $countryId
-     * @param string $cityId
-     * @param array $branchesMap
-     * @return void
-     */
     public function createBranches(
         string $merchantId,
         string $countryId,
         string $cityId,
-        array  $branchesMap = []
-    ): void
-    {
+        array $branchesMap = []
+    ): void {
         foreach ($branchesMap as $businessName => $count) {
             $business = Business::where('merchant_id', $merchantId)->where('name', $businessName)->first();
-            if (!$business) continue;
+            if (! $business) {
+                continue;
+            }
 
             for ($i = 1; $i <= $count; $i++) {
                 Branch::firstOrCreate(
                     [
                         'business_id' => $business->id,
-                        'name' => $businessName . " Branch {$i}",
+                        'name' => $businessName." Branch {$i}",
                     ],
                     [
                         'id' => Str::uuid(),
                         'merchant_id' => $merchantId,
                         'address' => "City {$i}, Pakistan",
-                        'phone' => '0300' . rand(1000000, 9999999),
+                        'phone' => '0300'.rand(1000000, 9999999),
                         'status' => 'active',
-//                        'country_id' => $countryId,
-//                        'city_id' => $cityId,
+                        //                        'country_id' => $countryId,
+                        //                        'city_id' => $cityId,
                         'postal_code' => '75500',
                     ]
                 );

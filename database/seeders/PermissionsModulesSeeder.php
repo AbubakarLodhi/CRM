@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\PermissionModule;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class PermissionsModulesSeeder extends Seeder
 {
@@ -24,7 +23,7 @@ class PermissionsModulesSeeder extends Seeder
             'vendors' => 'Vendors',
             'notification_templates' => 'Notification Templates',
             'categories' => 'Categories',
-            'sub_categories'=>'Sub Categories',
+            'sub_categories' => 'Sub Categories',
             'brands' => 'Brands',
             'models' => 'Models',
             'products' => 'Products',
@@ -34,9 +33,11 @@ class PermissionsModulesSeeder extends Seeder
             'purchases' => 'Purchases',
             'expenses' => 'Expenses',
             'cash_flows' => 'Cash Flows',
+            'asset_types' => 'Asset Types',
+            'assets' => 'Assets',
             'audits' => 'Audits',
             'reports' => 'Reports',
-            'payrolls'=>'Payrolls',
+            'payrolls' => 'Payrolls',
             'invoice_templates' => 'Invoice Templates',
         ];
 

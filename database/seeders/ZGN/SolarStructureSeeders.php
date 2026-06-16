@@ -2,16 +2,16 @@
 
 namespace Database\Seeders\ZGN;
 
-use App\Models\{Brand,
-    BrandCategory,
-    BrandModel,
-    Merchant,
-    Category,
-    Product,
-    ProductOption,
-    ProductOptionValue,
-    ProductVariant,
-    ProductVariantValue};
+use App\Models\Brand;
+use App\Models\BrandCategory;
+use App\Models\BrandModel;
+use App\Models\Category;
+use App\Models\Merchant;
+use App\Models\Product;
+use App\Models\ProductOption;
+use App\Models\ProductOptionValue;
+use App\Models\ProductVariant;
+use App\Models\ProductVariantValue;
 use Exception;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -20,19 +20,25 @@ class SolarStructureSeeders extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        if (!$merchant) return;
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        if (! $merchant) {
+            return;
+        }
 
         $category = Category::where('merchant_id', $merchant->id)->where('name', 'Mounting Structures')->first();
-        if (!$category) throw new Exception('Mounting Structures category not found');
+        if (! $category) {
+            throw new Exception('Mounting Structures category not found');
+        }
 
-        $brand = Brand::where(['merchant_id' => $merchant->id, 'name' => 'ZGN Fabrication'])->first();
-        if (!$brand) throw new Exception('ZGN Fabrication brand not found');
+        $brand = Brand::where(['merchant_id' => $merchant->id, 'name' => 'Flowdesk Fabrication'])->first();
+        if (! $brand) {
+            throw new Exception('Flowdesk Fabrication brand not found');
+        }
 
         BrandCategory::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'brand_id'    => $brand->id,
+                'brand_id' => $brand->id,
                 'category_id' => $category->id,
             ],
             [
@@ -46,7 +52,7 @@ class SolarStructureSeeders extends Seeder
         ])->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
+            ->map(fn ($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
         $sku = "{$merchantSlug}-mounting-structure";
@@ -54,7 +60,7 @@ class SolarStructureSeeders extends Seeder
         $product = Product::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'sku' => $sku
+                'sku' => $sku,
             ],
             [
                 'id' => Str::uuid(),

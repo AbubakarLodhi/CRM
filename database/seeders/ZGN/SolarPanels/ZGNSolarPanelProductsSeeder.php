@@ -16,19 +16,25 @@ class ZGNSolarPanelProductsSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        if (!$merchant) return;
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        if (! $merchant) {
+            return;
+        }
 
         $category = Category::where('merchant_id', $merchant->id)->where('name', 'Solar Panels')->first();
-        if (!$category) throw new Exception('Solar Panels category not found');
+        if (! $category) {
+            throw new Exception('Solar Panels category not found');
+        }
 
         $brand = Brand::where(['merchant_id' => $merchant->id, 'name' => 'Longi'])->first();
-        if (!$brand) throw new Exception('Longi brand not found');
+        if (! $brand) {
+            throw new Exception('Longi brand not found');
+        }
 
         BrandCategory::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'brand_id'    => $brand->id,
+                'brand_id' => $brand->id,
                 'category_id' => $category->id,
             ],
             [
@@ -42,7 +48,7 @@ class ZGNSolarPanelProductsSeeder extends Seeder
         ])->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
+            ->map(fn ($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
         $sku = "{$merchantSlug}-solar-panel";

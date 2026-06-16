@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
 use App\Models\Branch;
+use App\Models\Brand;
 use App\Models\BrandModel;
 use App\Models\Business;
 use App\Models\Category;
@@ -21,15 +24,13 @@ use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class DemoSeeder extends Seeder
 {
     // ─── Merchant to seed for ─────────────────────────────────────
-    private string $merchantEmail = 'info@zgngreenpvt.com';
+    private string $merchantEmail = 'info@flowdesk.com';
 
     public function run(): void
     {
@@ -39,20 +40,21 @@ class DemoSeeder extends Seeder
 
         if (! $merchant) {
             $this->command->error("Merchant [{$this->merchantEmail}] not found. Run MerchantsSeeder first.");
+
             return;
         }
 
         $this->command->info("✅ Merchant found: {$merchant->name}");
 
         // Run in order
-        $business   = $this->seedBusiness($merchant);
-        $branches   = $this->seedBranches($merchant, $business);
-        $roles      = $this->seedRoles();
-        $staff      = $this->seedStaff($merchant, $branches, $roles);
+        $business = $this->seedBusiness($merchant);
+        $branches = $this->seedBranches($merchant, $business);
+        $roles = $this->seedRoles();
+        $staff = $this->seedStaff($merchant, $branches, $roles);
         $categories = $this->seedCategories($merchant);
         [$products, $variants] = $this->seedProducts($merchant, $branches, $categories);
-        $customers  = $this->seedCustomers($merchant);
-        $vendors    = $this->seedVendors($merchant);
+        $customers = $this->seedCustomers($merchant);
+        $vendors = $this->seedVendors($merchant);
         $this->seedPurchases($merchant, $business, $branches, $vendors, $products, $variants, $staff);
         $this->seedSales($merchant, $branches, $customers, $products, $variants, $staff);
 
@@ -74,7 +76,7 @@ class DemoSeeder extends Seeder
         $business = Business::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'name'        => 'ZGN Demo Business',
+                'name' => 'Flowdesk Demo Business',
             ],
             [
                 'id' => Str::uuid()->toString(),
@@ -82,6 +84,7 @@ class DemoSeeder extends Seeder
         );
 
         $this->command->info("  📦 Business: {$business->name}");
+
         return $business;
     }
 
@@ -101,15 +104,15 @@ class DemoSeeder extends Seeder
             $branch = Branch::firstOrCreate(
                 [
                     'merchant_id' => $merchant->id,
-                    'name'        => $data['name'],
+                    'name' => $data['name'],
                 ],
                 [
-                    'id'          => Str::uuid()->toString(),
+                    'id' => Str::uuid()->toString(),
                     'business_id' => (string) $business->id,
-                    'address'     => $data['address'],
+                    'address' => $data['address'],
                     'postal_code' => '54000',
-                    'status'      => 'active',
-                    'is_active'   => true,
+                    'status' => 'active',
+                    'is_active' => true,
                 ]
             );
 
@@ -141,9 +144,9 @@ class DemoSeeder extends Seeder
                 $permIds = \DB::table('permissions')->where('guard_name', 'staff')
                     ->where(function ($q) {
                         $q->where('name', 'like', 'sales.%')
-                          ->orWhere('name', 'like', 'customers.%')
-                          ->orWhere('name', 'like', 'products.%')
-                          ->orWhere('name', 'like', 'dashboard.%');
+                            ->orWhere('name', 'like', 'customers.%')
+                            ->orWhere('name', 'like', 'products.%')
+                            ->orWhere('name', 'like', 'dashboard.%');
                     })->pluck('id');
             }
 
@@ -151,7 +154,7 @@ class DemoSeeder extends Seeder
             foreach ($permIds as $permId) {
                 \DB::table('role_has_permissions')->insertOrIgnore([
                     'permission_id' => (string) $permId,
-                    'role_id'       => (string) $role->id,
+                    'role_id' => (string) $role->id,
                 ]);
             }
 
@@ -169,21 +172,21 @@ class DemoSeeder extends Seeder
     {
         $staffData = [
             [
-                'name'   => 'Demo Manager',
-                'email'  => 'manager@demo.com',
-                'role'   => 'Manager',
+                'name' => 'Demo Manager',
+                'email' => 'manager@demo.com',
+                'role' => 'Manager',
                 'branch' => 0,
             ],
             [
-                'name'   => 'Staff Member One',
-                'email'  => 'staff1@demo.com',
-                'role'   => 'Sales Staff',
+                'name' => 'Staff Member One',
+                'email' => 'staff1@demo.com',
+                'role' => 'Sales Staff',
                 'branch' => 0,
             ],
             [
-                'name'   => 'Staff Member Two',
-                'email'  => 'staff2@demo.com',
-                'role'   => 'Sales Staff',
+                'name' => 'Staff Member Two',
+                'email' => 'staff2@demo.com',
+                'role' => 'Sales Staff',
                 'branch' => 1,
             ],
         ];
@@ -194,12 +197,12 @@ class DemoSeeder extends Seeder
             $user = User::firstOrCreate(
                 ['email' => $data['email']],
                 [
-                    'id'                => Str::uuid()->toString(),
-                    'name'              => $data['name'],
-                    'password'          => Hash::make('password123'),
-                    'merchant_id'       => (string) $merchant->id,
-                    'is_active'         => true,
-                    'status'            => 'verified',
+                    'id' => Str::uuid()->toString(),
+                    'name' => $data['name'],
+                    'password' => Hash::make('password123'),
+                    'merchant_id' => (string) $merchant->id,
+                    'is_active' => true,
+                    'status' => 'verified',
                     'email_verified_at' => now(),
                 ]
             );
@@ -212,9 +215,9 @@ class DemoSeeder extends Seeder
                     ->where('model_type', 'App\\Models\\User')
                     ->delete();
                 \DB::table('model_has_roles')->insertOrIgnore([
-                    'role_id'    => $roleId,
+                    'role_id' => $roleId,
                     'model_type' => 'App\\Models\\User',
-                    'model_id'   => (string) $user->id,
+                    'model_id' => (string) $user->id,
                 ]);
             }
 
@@ -231,8 +234,8 @@ class DemoSeeder extends Seeder
             foreach ($permIds as $permId) {
                 \DB::table('model_has_permissions')->insertOrIgnore([
                     'permission_id' => (string) $permId,
-                    'model_type'    => 'App\\Models\\User',
-                    'model_id'      => (string) $user->id,
+                    'model_type' => 'App\\Models\\User',
+                    'model_id' => (string) $user->id,
                 ]);
             }
 
@@ -250,35 +253,35 @@ class DemoSeeder extends Seeder
     {
         $categoryData = [
             [
-                'name'   => 'Inverters',
+                'name' => 'Inverters',
                 'brands' => [
                     ['name' => 'Solis',  'model' => 'Hybrid Series'],
                     ['name' => 'Huawei', 'model' => 'SUN2000 Series'],
                 ],
             ],
             [
-                'name'   => 'Batteries',
+                'name' => 'Batteries',
                 'brands' => [
                     ['name' => 'Pylontech', 'model' => 'US Series'],
                     ['name' => 'Apex',      'model' => 'LiFePO4 Series'],
                 ],
             ],
             [
-                'name'   => 'Solar Panels',
+                'name' => 'Solar Panels',
                 'brands' => [
                     ['name' => 'TCL',      'model' => 'Mono PERC'],
                     ['name' => 'Canadian', 'model' => 'HiKu Series'],
                 ],
             ],
             [
-                'name'   => 'Cables & Wiring',
+                'name' => 'Cables & Wiring',
                 'brands' => [
                     ['name' => 'Finolex', 'model' => 'Solar DC Cable'],
                     ['name' => 'Nexans',  'model' => 'PV1-F Series'],
                 ],
             ],
             [
-                'name'   => 'Accessories',
+                'name' => 'Accessories',
                 'brands' => [
                     ['name' => 'Schneider', 'model' => 'Easy9 Series'],
                     ['name' => 'ABB',       'model' => 'S200 Series'],
@@ -292,7 +295,7 @@ class DemoSeeder extends Seeder
             $category = Category::firstOrCreate(
                 [
                     'merchant_id' => $merchant->id,
-                    'name'        => $catData['name'],
+                    'name' => $catData['name'],
                 ],
                 [
                     'id' => Str::uuid()->toString(),
@@ -302,10 +305,10 @@ class DemoSeeder extends Seeder
             $brandsData = [];
 
             foreach ($catData['brands'] as $brandData) {
-                $brandModel = \App\Models\Brand::firstOrCreate(
+                $brandModel = Brand::firstOrCreate(
                     [
                         'merchant_id' => $merchant->id,
-                        'name'        => $brandData['name'],
+                        'name' => $brandData['name'],
                     ],
                     [
                         'id' => Str::uuid()->toString(),
@@ -320,22 +323,22 @@ class DemoSeeder extends Seeder
 
                 if (! $exists) {
                     \DB::table('brand_category')->insert([
-                        'id'          => Str::uuid()->toString(),
-                        'brand_id'    => (string) $brandModel->id,
+                        'id' => Str::uuid()->toString(),
+                        'brand_id' => (string) $brandModel->id,
                         'category_id' => (string) $category->id,
                         'merchant_id' => (string) $merchant->id,
-                        'created_at'  => now(),
-                        'updated_at'  => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
 
                 $model = BrandModel::firstOrCreate(
                     [
                         'brand_id' => (string) $brandModel->id,
-                        'name'     => $brandData['model'],
+                        'name' => $brandData['model'],
                     ],
                     [
-                        'id'          => Str::uuid()->toString(),
+                        'id' => Str::uuid()->toString(),
                         'merchant_id' => (string) $merchant->id,
                     ]
                 );
@@ -347,9 +350,9 @@ class DemoSeeder extends Seeder
             }
 
             // Use stdClass to avoid Eloquent dynamic property restriction
-            $entry              = new \stdClass();
-            $entry->id          = $category->id;
-            $entry->name        = $category->name;
+            $entry = new \stdClass;
+            $entry->id = $category->id;
+            $entry->name = $category->name;
             $entry->brands_data = $brandsData;
 
             $allCategories[] = $entry;
@@ -368,11 +371,11 @@ class DemoSeeder extends Seeder
         $allVariants = [];
 
         $productSuffixes = [
-            'Inverters'       => [['5kw Single Phase', 8000, 9500], ['10kw Three Phase', 18000, 21000]],
-            'Batteries'       => [['5kwh Lithium', 45000, 52000], ['10kwh Lithium', 85000, 95000]],
-            'Solar Panels'    => [['620W Mono PERC', 12000, 14000], ['720W Bifacial', 16000, 18500]],
+            'Inverters' => [['5kw Single Phase', 8000, 9500], ['10kw Three Phase', 18000, 21000]],
+            'Batteries' => [['5kwh Lithium', 45000, 52000], ['10kwh Lithium', 85000, 95000]],
+            'Solar Panels' => [['620W Mono PERC', 12000, 14000], ['720W Bifacial', 16000, 18500]],
             'Cables & Wiring' => [['4mm DC Cable 100m', 3500, 4200], ['6mm DC Cable 100m', 5500, 6500]],
-            'Accessories'     => [['MCB 32A', 800, 1100], ['Surge Protector SPD', 2500, 3200]],
+            'Accessories' => [['MCB 32A', 800, 1100], ['Surge Protector SPD', 2500, 3200]],
         ];
 
         foreach ($categories as $category) {
@@ -387,21 +390,21 @@ class DemoSeeder extends Seeder
 
                 foreach ($suffixes as $index => [$suffix, $purchasePrice, $sellingPrice]) {
                     $productName = "{$brand->name} {$suffix}";
-                    $sku         = strtoupper(substr($brand->name, 0, 3)) . '-' . ($index + 1) . '-' . strtoupper(Str::random(4));
+                    $sku = strtoupper(substr($brand->name, 0, 3)).'-'.($index + 1).'-'.strtoupper(Str::random(4));
 
                     $product = Product::firstOrCreate(
                         [
                             'merchant_id' => $merchant->id,
-                            'sku'         => $sku,
+                            'sku' => $sku,
                         ],
                         [
-                            'id'             => Str::uuid()->toString(),
-                            'name'           => $productName,
+                            'id' => Str::uuid()->toString(),
+                            'name' => $productName,
                             'brand_model_id' => (string) $model->id,
-                            'category_id'    => (string) $category->id,
+                            'category_id' => (string) $category->id,
                             'purchase_price' => $purchasePrice,
-                            'selling_price'  => $sellingPrice,
-                            'is_active'      => true,
+                            'selling_price' => $sellingPrice,
+                            'is_active' => true,
                         ]
                     );
 
@@ -423,20 +426,20 @@ class DemoSeeder extends Seeder
                     ];
 
                     foreach ($variantSpecs as [$variantName, $variantPrice]) {
-                        $variantSku = $sku . '-' . strtoupper(substr($variantName, 0, 3));
+                        $variantSku = $sku.'-'.strtoupper(substr($variantName, 0, 3));
 
                         $variant = ProductVariant::firstOrCreate(
                             [
                                 'product_id' => (string) $product->id,
-                                'name'       => $variantName,
+                                'name' => $variantName,
                             ],
                             [
-                                'id'             => Str::uuid()->toString(),
-                                'merchant_id'    => (string) $merchant->id,
-                                'sku'            => $variantSku,
-                                'selling_price'  => $variantPrice,
+                                'id' => Str::uuid()->toString(),
+                                'merchant_id' => (string) $merchant->id,
+                                'sku' => $variantSku,
+                                'selling_price' => $variantPrice,
                                 'purchase_price' => $purchasePrice,
-                                'is_active'      => true,
+                                'is_active' => true,
                             ]
                         );
 
@@ -453,8 +456,8 @@ class DemoSeeder extends Seeder
             }
         }
 
-        $this->command->info("  🛍️  Products created: " . count($allProducts));
-        $this->command->info("  🔖  Variants created: " . count($allVariants));
+        $this->command->info('  🛍️  Products created: '.count($allProducts));
+        $this->command->info('  🔖  Variants created: '.count($allVariants));
 
         return [$allProducts, $allVariants];
     }
@@ -462,14 +465,14 @@ class DemoSeeder extends Seeder
     // ═══════════════════════════════════════════════════════════════
     // HELPER: Generate placeholder image for product
     // ═══════════════════════════════════════════════════════════════
-    private function attachPlaceholderImage(\App\Models\Product $product, string $categoryName): void
+    private function attachPlaceholderImage(Product $product, string $categoryName): void
     {
         $colors = [
-            'Inverters'       => ['bg' => [29, 158, 117],  'text' => [255, 255, 255]],
-            'Batteries'       => ['bg' => [59, 130, 246],  'text' => [255, 255, 255]],
-            'Solar Panels'    => ['bg' => [245, 158, 11],  'text' => [255, 255, 255]],
+            'Inverters' => ['bg' => [29, 158, 117],  'text' => [255, 255, 255]],
+            'Batteries' => ['bg' => [59, 130, 246],  'text' => [255, 255, 255]],
+            'Solar Panels' => ['bg' => [245, 158, 11],  'text' => [255, 255, 255]],
             'Cables & Wiring' => ['bg' => [239, 68, 68],   'text' => [255, 255, 255]],
-            'Accessories'     => ['bg' => [139, 92, 246],  'text' => [255, 255, 255]],
+            'Accessories' => ['bg' => [139, 92, 246],  'text' => [255, 255, 255]],
         ];
 
         $color = $colors[$categoryName] ?? ['bg' => [107, 114, 128], 'text' => [255, 255, 255]];
@@ -481,38 +484,38 @@ class DemoSeeder extends Seeder
 
         // Create PNG using GD
         $size = 400;
-        $img  = imagecreatetruecolor($size, $size);
+        $img = imagecreatetruecolor($size, $size);
 
-        $bg   = imagecolorallocate($img, ...$color['bg']);
-        $fg   = imagecolorallocate($img, ...$color['text']);
+        $bg = imagecolorallocate($img, ...$color['bg']);
+        $fg = imagecolorallocate($img, ...$color['text']);
 
         imagefill($img, 0, 0, $bg);
 
         // Draw initials text centered
-        $fontSize  = 5; // built-in font size (1-5)
+        $fontSize = 5; // built-in font size (1-5)
         $charWidth = imagefontwidth($fontSize);
-        $charHeight= imagefontheight($fontSize);
+        $charHeight = imagefontheight($fontSize);
         $textWidth = strlen($initials) * $charWidth * 6;
         $x = ($size - $textWidth) / 2;
         $y = ($size - $charHeight * 6) / 2;
 
         // Scale up by drawing each char
         $scale = 6;
-        imagestring($img, $fontSize, (int)(($size - strlen($initials) * imagefontwidth($fontSize) * $scale) / 2),
-            (int)(($size - imagefontheight($fontSize) * $scale) / 2), $initials, $fg);
+        imagestring($img, $fontSize, (int) (($size - strlen($initials) * imagefontwidth($fontSize) * $scale) / 2),
+            (int) (($size - imagefontheight($fontSize) * $scale) / 2), $initials, $fg);
 
         // Use imagestring with large font
         $font = 5;
-        $tw   = strlen($initials) * imagefontwidth($font);
-        $th   = imagefontheight($font);
-        $px   = (int)(($size - $tw) / 2);
-        $py   = (int)(($size - $th) / 2);
+        $tw = strlen($initials) * imagefontwidth($font);
+        $th = imagefontheight($font);
+        $px = (int) (($size - $tw) / 2);
+        $py = (int) (($size - $th) / 2);
         imagestring($img, $font, $px, $py, $initials, $fg);
 
         $directory = 'products/images';
-        $filename  = Str::uuid()->toString() . '.png';
-        $path      = $directory . '/' . $filename;
-        $fullPath  = storage_path('app/public/' . $path);
+        $filename = Str::uuid()->toString().'.png';
+        $path = $directory.'/'.$filename;
+        $fullPath = storage_path('app/public/'.$path);
 
         if (! is_dir(dirname($fullPath))) {
             mkdir(dirname($fullPath), 0755, true);
@@ -523,9 +526,9 @@ class DemoSeeder extends Seeder
 
         $product->productImage()->create([
             'merchant_id' => $product->merchant_id,
-            'type'        => \App\Enums\AttachmentType::IMAGE,
-            'meta_type'   => \App\Enums\AttachmentMetaType::PRODUCT_IMAGE,
-            'photo_url'   => $path,
+            'type' => AttachmentType::IMAGE,
+            'meta_type' => AttachmentMetaType::PRODUCT_IMAGE,
+            'photo_url' => $path,
         ]);
     }
 
@@ -549,9 +552,9 @@ class DemoSeeder extends Seeder
         if (! $pakistan) {
             $pakistanId = Str::uuid()->toString();
             \DB::table('countries')->insert([
-                'id'         => $pakistanId,
-                'name'       => 'Pakistan',
-                'code'       => 'PK',
+                'id' => $pakistanId,
+                'name' => 'Pakistan',
+                'code' => 'PK',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -564,8 +567,8 @@ class DemoSeeder extends Seeder
         if (! $lahore) {
             $lahoreId = Str::uuid()->toString();
             \DB::table('cities')->insert([
-                'id'         => $lahoreId,
-                'name'       => 'Lahore',
+                'id' => $lahoreId,
+                'name' => 'Lahore',
                 'country_id' => $pakistanId,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -578,15 +581,15 @@ class DemoSeeder extends Seeder
             $customer = Customer::firstOrCreate(
                 [
                     'merchant_id' => $merchant->id,
-                    'email'       => $data['email'],
+                    'email' => $data['email'],
                 ],
                 [
-                    'id'         => Str::uuid()->toString(),
-                    'name'       => $data['name'],
-                    'phone'      => $data['phone'],
-                    'address'    => 'Lahore, Pakistan',
+                    'id' => Str::uuid()->toString(),
+                    'name' => $data['name'],
+                    'phone' => $data['phone'],
+                    'address' => 'Lahore, Pakistan',
                     'country_id' => $pakistanId,
-                    'city_id'    => $lahoreId,
+                    'city_id' => $lahoreId,
                 ]
             );
 
@@ -617,9 +620,9 @@ class DemoSeeder extends Seeder
         if (! $pakistanV) {
             $pakistanVId = Str::uuid()->toString();
             \DB::table('countries')->insert([
-                'id'         => $pakistanVId,
-                'name'       => 'Pakistan',
-                'code'       => 'PK',
+                'id' => $pakistanVId,
+                'name' => 'Pakistan',
+                'code' => 'PK',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -631,8 +634,8 @@ class DemoSeeder extends Seeder
         if (! $lahoreV) {
             $lahoreVId = Str::uuid()->toString();
             \DB::table('cities')->insert([
-                'id'         => $lahoreVId,
-                'name'       => 'Lahore',
+                'id' => $lahoreVId,
+                'name' => 'Lahore',
                 'country_id' => $pakistanVId,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -645,15 +648,15 @@ class DemoSeeder extends Seeder
             $vendor = Vendor::firstOrCreate(
                 [
                     'merchant_id' => $merchant->id,
-                    'email'       => $data['email'],
+                    'email' => $data['email'],
                 ],
                 [
-                    'id'         => Str::uuid()->toString(),
-                    'name'       => $data['name'],
-                    'phone'      => $data['phone'],
-                    'address'    => 'Lahore, Pakistan',
+                    'id' => Str::uuid()->toString(),
+                    'name' => $data['name'],
+                    'phone' => $data['phone'],
+                    'address' => 'Lahore, Pakistan',
                     'country_id' => $pakistanVId,
-                    'city_id'    => $lahoreVId,
+                    'city_id' => $lahoreVId,
                 ]
             );
 
@@ -678,88 +681,89 @@ class DemoSeeder extends Seeder
     ): void {
         $purchaseConfigs = [
             [
-                'vendor'        => $vendors[0],
-                'branch'        => $branches[0],
-                'created_by'    => $staff[0],
-                'days_ago'      => 10,
+                'vendor' => $vendors[0],
+                'branch' => $branches[0],
+                'created_by' => $staff[0],
+                'days_ago' => 10,
                 'product_count' => 3,
             ],
             [
-                'vendor'        => $vendors[1],
-                'branch'        => $branches[1],
-                'created_by'    => $staff[1],
-                'days_ago'      => 5,
+                'vendor' => $vendors[1],
+                'branch' => $branches[1],
+                'created_by' => $staff[1],
+                'days_ago' => 5,
                 'product_count' => 2,
             ],
         ];
 
         foreach ($purchaseConfigs as $i => $config) {
             $purchaseDate = now()->subDays($config['days_ago']);
-            $purchaseNo   = 'PUR-' . $purchaseDate->format('Ymd') . '-DEMO' . ($i + 1);
+            $purchaseNo = 'PUR-'.$purchaseDate->format('Ymd').'-DEMO'.($i + 1);
 
             if (Purchase::where('purchase_no', $purchaseNo)->exists()) {
                 $this->command->info("  ⏭️  Purchase {$purchaseNo} already exists, skipping.");
+
                 continue;
             }
 
             $purchase = Purchase::create([
-                'id'            => Str::uuid()->toString(),
-                'purchase_no'   => $purchaseNo,
-                'merchant_id'   => (string) $merchant->id,
-                'vendor_id'     => (string) $config['vendor']->id,
+                'id' => Str::uuid()->toString(),
+                'purchase_no' => $purchaseNo,
+                'merchant_id' => (string) $merchant->id,
+                'vendor_id' => (string) $config['vendor']->id,
                 'purchase_date' => $purchaseDate,
-                'subtotal'      => 0,
-                'total_amount'  => 0,
-                'paid_amount'   => 0,
-                'due_amount'    => 0,
-                'payment_type'  => 'cash',
-                'notes'         => 'Demo purchase #' . ($i + 1),
-                'created_by'    => (string) $config['created_by']->id,
+                'subtotal' => 0,
+                'total_amount' => 0,
+                'paid_amount' => 0,
+                'due_amount' => 0,
+                'payment_type' => 'cash',
+                'notes' => 'Demo purchase #'.($i + 1),
+                'created_by' => (string) $config['created_by']->id,
             ]);
 
-            $subtotal         = 0;
+            $subtotal = 0;
             $selectedProducts = array_slice($products, $i * 3, $config['product_count']);
 
             foreach ($selectedProducts as $product) {
-                $qty       = rand(2, 5);
+                $qty = rand(2, 5);
                 $unitPrice = $product->purchase_price ?? 10000;
                 $lineTotal = $qty * $unitPrice;
                 $subtotal += $lineTotal;
 
                 $purchaseItem = PurchaseItem::create([
-                    'id'          => Str::uuid()->toString(),
+                    'id' => Str::uuid()->toString(),
                     'purchase_id' => (string) $purchase->id,
                     'business_id' => (string) $business->id,
-                    'branch_id'   => (string) $config['branch']->id,
-                    'product_id'  => (string) $product->id,
-                    'quantity'    => $qty,
-                    'unit_price'  => $unitPrice,
-                    'line_total'  => $lineTotal,
-                    'discount'    => 0,
-                    'tax'         => 0,
+                    'branch_id' => (string) $config['branch']->id,
+                    'product_id' => (string) $product->id,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                    'discount' => 0,
+                    'tax' => 0,
                 ]);
 
                 $variant = $product->variants()->first();
                 if ($variant) {
                     PurchaseItemVariant::create([
-                        'id'                 => Str::uuid()->toString(),
-                        'purchase_item_id'   => (string) $purchaseItem->id,
+                        'id' => Str::uuid()->toString(),
+                        'purchase_item_id' => (string) $purchaseItem->id,
                         'product_variant_id' => (string) $variant->id,
-                        'quantity'           => $qty,
-                        'unit_price'         => $unitPrice,
-                        'line_total'         => $lineTotal,
+                        'quantity' => $qty,
+                        'unit_price' => $unitPrice,
+                        'line_total' => $lineTotal,
                     ]);
                 }
             }
 
             $purchase->update([
-                'subtotal'     => $subtotal,
+                'subtotal' => $subtotal,
                 'total_amount' => $subtotal,
-                'paid_amount'  => $subtotal,
-                'due_amount'   => 0,
+                'paid_amount' => $subtotal,
+                'due_amount' => 0,
             ]);
 
-            $this->command->info("  🛒 Purchase: {$purchaseNo} — PKR " . number_format($subtotal));
+            $this->command->info("  🛒 Purchase: {$purchaseNo} — PKR ".number_format($subtotal));
         }
     }
 
@@ -776,97 +780,98 @@ class DemoSeeder extends Seeder
     ): void {
         $saleConfigs = [
             [
-                'customer'      => $customers[0],
-                'branch'        => $branches[0],
-                'created_by'    => $staff[0],
-                'days_ago'      => 7,
+                'customer' => $customers[0],
+                'branch' => $branches[0],
+                'created_by' => $staff[0],
+                'days_ago' => 7,
                 'product_count' => 2,
             ],
             [
-                'customer'      => $customers[1],
-                'branch'        => $branches[1],
-                'created_by'    => $staff[2],
-                'days_ago'      => 3,
+                'customer' => $customers[1],
+                'branch' => $branches[1],
+                'created_by' => $staff[2],
+                'days_ago' => 3,
                 'product_count' => 3,
             ],
         ];
 
         foreach ($saleConfigs as $i => $config) {
             $saleDate = now()->subDays($config['days_ago']);
-            $saleNo   = 'SAL-' . $saleDate->format('Ymd') . '-DEMO' . ($i + 1);
+            $saleNo = 'SAL-'.$saleDate->format('Ymd').'-DEMO'.($i + 1);
 
             if (Sale::where('sale_no', $saleNo)->exists()) {
                 $this->command->info("  ⏭️  Sale {$saleNo} already exists, skipping.");
+
                 continue;
             }
 
             $sale = Sale::create([
-                'id'           => Str::uuid()->toString(),
-                'sale_no'      => $saleNo,
-                'merchant_id'  => (string) $merchant->id,
-                'customer_id'  => (string) $config['customer']->id,
-                'sale_date'    => $saleDate,
-                'subtotal'     => 0,
+                'id' => Str::uuid()->toString(),
+                'sale_no' => $saleNo,
+                'merchant_id' => (string) $merchant->id,
+                'customer_id' => (string) $config['customer']->id,
+                'sale_date' => $saleDate,
+                'subtotal' => 0,
                 'total_amount' => 0,
-                'paid_amount'  => 0,
-                'due_amount'   => 0,
-                'notes'        => 'Demo sale #' . ($i + 1),
-                'created_by'   => (string) $config['created_by']->id,
+                'paid_amount' => 0,
+                'due_amount' => 0,
+                'notes' => 'Demo sale #'.($i + 1),
+                'created_by' => (string) $config['created_by']->id,
             ]);
 
-            $subtotal         = 0;
+            $subtotal = 0;
             $selectedProducts = array_slice($products, $i * 2, $config['product_count']);
 
             foreach ($selectedProducts as $product) {
-                $qty       = rand(1, 3);
+                $qty = rand(1, 3);
                 $unitPrice = $product->selling_price ?? 12000;
                 $lineTotal = $qty * $unitPrice;
                 $subtotal += $lineTotal;
 
-                $branch   = $config['branch'];
+                $branch = $config['branch'];
                 $business = $branch->business;
 
                 $saleItem = SaleItem::create([
-                    'id'          => Str::uuid()->toString(),
-                    'sale_id'     => (string) $sale->id,
+                    'id' => Str::uuid()->toString(),
+                    'sale_id' => (string) $sale->id,
                     'business_id' => (string) $business->id,
-                    'branch_id'   => (string) $branch->id,
-                    'product_id'  => (string) $product->id,
-                    'quantity'    => $qty,
-                    'unit_price'  => $unitPrice,
-                    'line_total'  => $lineTotal,
-                    'discount'    => 0,
-                    'tax'         => 0,
+                    'branch_id' => (string) $branch->id,
+                    'product_id' => (string) $product->id,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                    'discount' => 0,
+                    'tax' => 0,
                 ]);
 
                 $variant = $product->variants()->first();
                 if ($variant) {
                     SaleItemVariant::create([
-                        'id'                 => Str::uuid()->toString(),
-                        'sale_item_id'       => (string) $saleItem->id,
+                        'id' => Str::uuid()->toString(),
+                        'sale_item_id' => (string) $saleItem->id,
                         'product_variant_id' => (string) $variant->id,
-                        'quantity'           => $qty,
-                        'unit_price'         => $unitPrice,
-                        'line_total'         => $lineTotal,
+                        'quantity' => $qty,
+                        'unit_price' => $unitPrice,
+                        'line_total' => $lineTotal,
                     ]);
                 }
             }
 
             $sale->update([
-                'subtotal'     => $subtotal,
+                'subtotal' => $subtotal,
                 'total_amount' => $subtotal,
-                'paid_amount'  => $subtotal,
-                'due_amount'   => 0,
+                'paid_amount' => $subtotal,
+                'due_amount' => 0,
             ]);
 
             Order::create([
-                'id'          => Str::uuid()->toString(),
+                'id' => Str::uuid()->toString(),
                 'merchant_id' => (string) $merchant->id,
-                'sale_id'     => (string) $sale->id,
-                'status'      => 'pending',
+                'sale_id' => (string) $sale->id,
+                'status' => 'pending',
             ]);
 
-            $this->command->info("  💰 Sale: {$saleNo} — PKR " . number_format($subtotal));
+            $this->command->info("  💰 Sale: {$saleNo} — PKR ".number_format($subtotal));
         }
     }
 }

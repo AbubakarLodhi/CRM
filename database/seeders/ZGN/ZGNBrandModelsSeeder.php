@@ -10,13 +10,12 @@ use Illuminate\Support\Str;
 
 class ZGNBrandModelsSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        if (!$merchant) return;
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        if (! $merchant) {
+            return;
+        }
 
         /**
          * Helper: get brand by name
@@ -32,7 +31,9 @@ class ZGNBrandModelsSeeder extends Seeder
          */
         $create = function (string $brandName, array $models) use ($merchant, $brand) {
             $b = $brand($brandName);
-            if (!$b) return;
+            if (! $b) {
+                return;
+            }
 
             foreach ($models as $model) {
                 BrandModel::firstOrCreate(
@@ -139,8 +140,8 @@ class ZGNBrandModelsSeeder extends Seeder
             'GENERIC-BATTERY-ACCESSORY',
         ]);
 
-        $create('ZGN Accessories', [
-            'ZGN-BATTERY-ACCESSORY',
+        $create('Flowdesk Accessories', [
+            'FD-BATTERY-ACCESSORY',
         ]);
 
         /* ================= EARTHING ================= */
@@ -179,10 +180,10 @@ class ZGNBrandModelsSeeder extends Seeder
 
         /* ================= STRUCTURES ================= */
 
-        $create('ZGN Fabrication', [
-            'ZGN-L1-ROOF-MOUNT',
-            'ZGN-L2-ELEVATED',
-            'ZGN-L3-HIGH-ELEVATION',
+        $create('Flowdesk Fabrication', [
+            'FD-L1-ROOF-MOUNT',
+            'FD-L2-ELEVATED',
+            'FD-L3-HIGH-ELEVATION',
         ]);
 
         $create('Local Fabricator', [
@@ -192,10 +193,10 @@ class ZGNBrandModelsSeeder extends Seeder
 
         /* ================= SERVICES ================= */
 
-        $create('ZGN Services', [
-            'ZGN-INSTALLATION-SERVICE',
-            'ZGN-NET-METERING-SERVICE',
-            'ZGN-AMC-SERVICE',
+        $create('Flowdesk Services', [
+            'FD-INSTALLATION-SERVICE',
+            'FD-NET-METERING-SERVICE',
+            'FD-AMC-SERVICE',
         ]);
     }
 }

@@ -77,7 +77,7 @@ class DatabaseSeeder extends Seeder
             PermissionsModulesSeeder::class,
             MerchantPermissionModulesSeeder::class,
 
-            // ZGN Merchant Seeders
+            // Flowdesk catalog seeders
             ZGNSolarCategoriesSeeder::class,
             ZGNBrandsSeeder::class,
             ZGNBrandModelsSeeder::class,

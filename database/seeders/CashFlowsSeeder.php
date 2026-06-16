@@ -15,7 +15,7 @@ class CashFlowsSeeder extends Seeder
     public function run(): void
     {
         $merchant = Merchant::query()
-            ->where('email', 'info@zgngreenpvt.com')
+            ->where('email', 'info@flowdesk.com')
             ->first() ?? Merchant::query()->first();
 
         if (! $merchant) {
@@ -209,7 +209,7 @@ class CashFlowsSeeder extends Seeder
                     'flow_date' => now()->toDateString(),
                     'method' => 'Cash',
                     'reference_no' => null,
-                    'notes' => 'Seeded ' . CashFlow::flowTypeLabel($flowType),
+                    'notes' => 'Seeded '.CashFlow::flowTypeLabel($flowType),
                 ],
             );
         }

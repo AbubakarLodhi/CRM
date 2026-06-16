@@ -23,17 +23,21 @@ use Illuminate\Support\Str;
 
 class GhulamVendorPurchaseSeeder extends Seeder
 {
-    private const EVEE_BUSINESS_NAME = 'Evee Zgn Green';
-    private const EVEE_BRANCH_NAME = 'Evee zgn green Ellahabad';
-    private const SOLAR_BUSINESS_NAME = 'ZGN GREEN PVT LTD';
-    private const SOLAR_BRANCH_NAME = 'zgn green solar ELLAHABAD';
+    private const EVEE_BUSINESS_NAME = 'Evee Flowdesk';
+
+    private const EVEE_BRANCH_NAME = 'Evee Flowdesk Ellahabad';
+
+    private const SOLAR_BUSINESS_NAME = 'Flowdesk';
+
+    private const SOLAR_BRANCH_NAME = 'Flowdesk Solar Ellahabad';
+
     private const TAX_RATE = 0;
 
     public function run(): void
     {
         $merchants = Merchant::whereIn('email', [
-            'info@zgngreenpvt.com',
-           // 'info@halaynoor.com',
+            'info@flowdesk.com',
+            // 'info@halaynoor.com',
         ])->get();
 
         if ($merchants->isEmpty()) {

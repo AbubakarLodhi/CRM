@@ -19,7 +19,7 @@ class SalesSeeder extends Seeder
     public function run(): void
     {
         $merchants = Merchant::whereIn('email', [
-            'info@zgngreenpvt.com',
+            'info@flowdesk.com',
             'info@halaynoor.com',
         ])->get();
 

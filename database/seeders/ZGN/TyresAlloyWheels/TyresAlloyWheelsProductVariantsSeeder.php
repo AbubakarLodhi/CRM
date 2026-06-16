@@ -13,7 +13,7 @@ class TyresAlloyWheelsProductVariantsSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
         if (! $merchant) {
             return;
         }
@@ -35,7 +35,7 @@ class TyresAlloyWheelsProductVariantsSeeder extends Seeder
             return;
         }
 
-        $merchantSlug = 'zgn';
+        $merchantSlug = 'flowdesk';
 
         foreach ($products as $product) {
             $variantSku = strtoupper($merchantSlug).'-TW-VAR-'.strtoupper(substr(uniqid(), -8));

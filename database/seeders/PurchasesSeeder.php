@@ -22,10 +22,10 @@ class PurchasesSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchants = Merchant::where('email', 'info@zgngreenpvt.com')->get();
+        $merchants = Merchant::where('email', 'info@flowdesk.com')->get();
 
         if ($merchants->isEmpty()) {
-            $this->command->warn('ZGN merchant not found. Please run MerchantsSeeder first.');
+            $this->command->warn('primary merchant not found. Please run MerchantsSeeder first.');
 
             return;
         }

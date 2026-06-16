@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\ZGN\EveeElectricBikes;
 
+use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -12,12 +13,12 @@ class EveeElectricBikesProductVariantsSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
         if (! $merchant) {
             return;
         }
 
-        $electricBikesCategory = \App\Models\Category::where('merchant_id', $merchant->id)
+        $electricBikesCategory = Category::where('merchant_id', $merchant->id)
             ->where('name', 'Electric Bikes')
             ->whereNull('parent_id')
             ->first();
@@ -34,7 +35,7 @@ class EveeElectricBikesProductVariantsSeeder extends Seeder
             return;
         }
 
-        $merchantSlug = 'zgn';
+        $merchantSlug = 'flowdesk';
 
         foreach ($products as $product) {
             $variantSku = strtoupper($merchantSlug).'-EBK-VAR-'.strtoupper(substr(uniqid(), -8));

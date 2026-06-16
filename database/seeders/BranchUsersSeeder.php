@@ -8,28 +8,24 @@ use App\Models\Merchant;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class BranchUsersSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
-        $zgn = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        $zgnBranches = Branch::where('merchant_id', $zgn->id)->get();
+        $primaryMerchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        $primaryMerchantBranches = Branch::where('merchant_id', $primaryMerchant->id)->get();
 
         $halaynoor = Merchant::where('email', 'info@halaynoor.com')->first();
         $halaynoorBranches = Branch::where('merchant_id', $halaynoor->id)->get();
 
-        if ($zgn) {
-            foreach ($zgnBranches as $index => $branch) {
+        if ($primaryMerchant) {
+            foreach ($primaryMerchantBranches as $index => $branch) {
                 $this->createUser(
-                    merchant: $zgn,
-                    name: $branch->name . ' Staff',
-                    email: "branch{$index}@zgngreenpvt.com",
+                    merchant: $primaryMerchant,
+                    name: $branch->name.' Staff',
+                    email: "branch{$index}@flowdesk.com",
                     roleName: 'Data Entry',
                     branchId: $branch->id
                 );
@@ -39,8 +35,8 @@ class BranchUsersSeeder extends Seeder
         if ($halaynoor) {
             foreach ($halaynoorBranches as $index => $branch) {
                 $this->createUser(
-                    merchant: $zgn,
-                    name: $branch->name . ' Staff',
+                    merchant: $primaryMerchant,
+                    name: $branch->name.' Staff',
                     email: "branch{$index}@halaynoor.com",
                     roleName: 'Data Entry',
                     branchId: $branch->id
@@ -49,22 +45,13 @@ class BranchUsersSeeder extends Seeder
         }
     }
 
-    /**
-     * @param Merchant $merchant
-     * @param string $name
-     * @param string $email
-     * @param string $roleName
-     * @param string $branchId
-     * @return void
-     */
     private function createUser(
         Merchant $merchant,
-        string   $name,
-        string   $email,
-        string   $roleName,
-        string   $branchId
-    ): void
-    {
+        string $name,
+        string $email,
+        string $roleName,
+        string $branchId
+    ): void {
         $user = User::firstOrCreate(
             ['email' => $email],
             [
@@ -78,7 +65,9 @@ class BranchUsersSeeder extends Seeder
         );
 
         $role = Role::where('name', $roleName)->where('guard_name', 'merchant')->first();
-        if ($role) $user->assignRole($role);
+        if ($role) {
+            $user->assignRole($role);
+        }
 
         BranchUser::firstOrCreate(
             [

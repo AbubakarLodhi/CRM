@@ -10,26 +10,23 @@ use Illuminate\Support\Str;
 
 class StaffsSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
-        $zgn = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $primaryMerchant = Merchant::where('email', 'info@flowdesk.com')->first();
         $halaynoor = Merchant::where('email', 'info@halaynoor.com')->first();
 
-        if ($zgn) {
+        if ($primaryMerchant) {
             $this->createUser(
-                merchant: $zgn,
-                name: 'ZGN Admin User',
-                email: 'admin@zgngreenpvt.com',
+                merchant: $primaryMerchant,
+                name: 'Flowdesk Admin',
+                email: 'admin@flowdesk.com',
                 roleName: 'Admin'
             );
 
             $this->createUser(
-                merchant: $zgn,
-                name: 'ZGN Supervisor',
-                email: 'supervisor@zgngreenpvt.com',
+                merchant: $primaryMerchant,
+                name: 'Flowdesk Supervisor',
+                email: 'supervisor@flowdesk.com',
                 roleName: 'Supervisor'
             );
         }
@@ -51,20 +48,12 @@ class StaffsSeeder extends Seeder
         }
     }
 
-    /**
-     * @param Merchant $merchant
-     * @param string $name
-     * @param string $email
-     * @param string $roleName
-     * @return void
-     */
     private function createUser(
         Merchant $merchant,
-        string   $name,
-        string   $email,
-        string   $roleName
-    ): void
-    {
+        string $name,
+        string $email,
+        string $roleName
+    ): void {
         $user = User::firstOrCreate(
             ['email' => $email],
             [
@@ -78,6 +67,8 @@ class StaffsSeeder extends Seeder
         );
 
         $role = Role::where('name', $roleName)->where('guard_name', 'merchant')->first();
-        if ($role) $user->assignRole($role);
+        if ($role) {
+            $user->assignRole($role);
+        }
     }
 }

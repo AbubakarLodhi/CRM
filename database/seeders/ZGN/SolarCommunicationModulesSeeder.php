@@ -2,16 +2,16 @@
 
 namespace Database\Seeders\ZGN;
 
-use App\Models\{Brand,
-    BrandCategory,
-    BrandModel,
-    Merchant,
-    Category,
-    Product,
-    ProductOption,
-    ProductOptionValue,
-    ProductVariant,
-    ProductVariantValue};
+use App\Models\Brand;
+use App\Models\BrandCategory;
+use App\Models\BrandModel;
+use App\Models\Category;
+use App\Models\Merchant;
+use App\Models\Product;
+use App\Models\ProductOption;
+use App\Models\ProductOptionValue;
+use App\Models\ProductVariant;
+use App\Models\ProductVariantValue;
 use Exception;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
@@ -20,19 +20,25 @@ class SolarCommunicationModulesSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        if (!$merchant) return;
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        if (! $merchant) {
+            return;
+        }
 
         $subCat = Category::where('merchant_id', $merchant->id)->where('name', 'Communication Modules')->first();
-        if (!$subCat) throw new Exception('Communication Modules category not found');
+        if (! $subCat) {
+            throw new Exception('Communication Modules category not found');
+        }
 
         $brand = Brand::where(['merchant_id' => $merchant->id, 'name' => 'Huawei'])->first();
-        if (!$brand) throw new Exception('Huawei brand not found');
+        if (! $brand) {
+            throw new Exception('Huawei brand not found');
+        }
 
         BrandCategory::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'brand_id'    => $brand->id,
+                'brand_id' => $brand->id,
                 'category_id' => $subCat->id,
             ],
             [
@@ -46,7 +52,7 @@ class SolarCommunicationModulesSeeder extends Seeder
         ])->first();
 
         $merchantSlug = collect(explode(' ', $merchant->name))
-            ->map(fn($word) => Str::lower(Str::substr($word, 0, 1)))
+            ->map(fn ($word) => Str::lower(Str::substr($word, 0, 1)))
             ->implode('');
 
         $sku = "{$merchantSlug}-communication-module";
@@ -54,7 +60,7 @@ class SolarCommunicationModulesSeeder extends Seeder
         $product = Product::firstOrCreate(
             [
                 'merchant_id' => $merchant->id,
-                'sku' => $sku
+                'sku' => $sku,
             ],
             [
                 'id' => Str::uuid(),
@@ -105,10 +111,14 @@ class SolarCommunicationModulesSeeder extends Seeder
 
             foreach ($data['values'] as $optName => $valName) {
                 $opt = ProductOption::where('product_id', $product->id)->where('name', $optName)->first();
-                if (!$opt) continue;
+                if (! $opt) {
+                    continue;
+                }
 
                 $val = ProductOptionValue::where('product_option_id', $opt->id)->where('value', $valName)->first();
-                if (!$val) continue;
+                if (! $val) {
+                    continue;
+                }
 
                 ProductVariantValue::firstOrCreate(
                     ['product_variant_id' => $variant->id, 'product_option_id' => $opt->id],

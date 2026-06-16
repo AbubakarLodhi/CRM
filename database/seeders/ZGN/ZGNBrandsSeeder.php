@@ -13,13 +13,14 @@ use Illuminate\Support\Str;
 class ZGNBrandsSeeder extends Seeder
 {
     /**
-     * @return void
      * @throws Exception
      */
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
-        if (!$merchant) return;
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
+        if (! $merchant) {
+            return;
+        }
 
         /**
          * Resolve category by name (merchant scoped)
@@ -29,8 +30,8 @@ class ZGNBrandsSeeder extends Seeder
                 ->where('name', $name)
                 ->first();
 
-            if (!$cat) {
-                throw new \Exception("Category '{$name}' not found for merchant {$merchant->id}");
+            if (! $cat) {
+                throw new Exception("Category '{$name}' not found for merchant {$merchant->id}");
             }
 
             return $cat;
@@ -69,81 +70,81 @@ class ZGNBrandsSeeder extends Seeder
         /* ================= SOLAR PANELS ================= */
 
         foreach ([
-                     'Longi',
-                     'JA Solar',
-                     'Jinko Solar',
-                     'Canadian Solar',
-                     'Trina Solar',
-                 ] as $brand) {
+            'Longi',
+            'JA Solar',
+            'Jinko Solar',
+            'Canadian Solar',
+            'Trina Solar',
+        ] as $brand) {
             $attach($brand, 'Solar Panels');
         }
 
         /* ================= INVERTERS ================= */
 
         foreach ([
-                     'Huawei',
-                     'Growatt',
-                     'Inverex',
-                     'GoodWe',
-                     'Solis',
-                 ] as $brand) {
+            'Huawei',
+            'Growatt',
+            'Inverex',
+            'GoodWe',
+            'Solis',
+        ] as $brand) {
             $attach($brand, 'Inverters');
         }
 
         /* ================= BATTERIES ================= */
 
         foreach ([
-                     'Phoenix',
-                     'Exide',
-                     'AGS',
-                     'Narada',
-                     'Pylontech',
-                 ] as $brand) {
+            'Phoenix',
+            'Exide',
+            'AGS',
+            'Narada',
+            'Pylontech',
+        ] as $brand) {
             $attach($brand, 'Batteries');
         }
 
         /* ================= MONITORING DEVICES ================= */
 
         foreach ([
-                     'Huawei',
-                     'Growatt',
-                     'Generic',
-                 ] as $brand) {
+            'Huawei',
+            'Growatt',
+            'Generic',
+        ] as $brand) {
             $attach($brand, 'Monitoring Devices');
         }
 
         /* ================= MOUNTING STRUCTURES ================= */
 
         foreach ([
-                     'ZGN Fabrication',
-                     'Local Fabricator',
-                 ] as $brand) {
+            'Flowdesk Fabrication',
+            'Local Fabricator',
+        ] as $brand) {
             $attach($brand, 'Mounting Structures');
         }
 
         /* ================= ELECTRICAL & SAFETY ================= */
 
         foreach ([
-                     'Schneider Electric',
-                     'ABB',
-                 ] as $brand) {
+            'Schneider Electric',
+            'ABB',
+        ] as $brand) {
             $attach($brand, 'Circuit Protection');
         }
 
         /* ================= BATTERY ACCESSORIES ================= */
 
         foreach ([
-                     'Generic',
-                     'ZGN Accessories',
-                 ] as $brand) {
+            'Generic',
+            'Flowdesk Accessories',
+        ] as $brand) {
             $attach($brand, 'Battery Accessories');
         }
 
         /* ================= EARTHING ================= */
 
         foreach ([
-                     'Generic',
-                 ] as $brand) {
+            'Generic',
+        ] as $brand) {
             $attach($brand, 'Earthing');
             $attach($brand, 'Cable Management');
         }
@@ -151,18 +152,18 @@ class ZGNBrandsSeeder extends Seeder
         /* ================= COMMUNICATION MODULES ================= */
 
         foreach ([
-                     'Huawei',
-                     'Growatt',
-                     'Generic',
-                 ] as $brand) {
+            'Huawei',
+            'Growatt',
+            'Generic',
+        ] as $brand) {
             $attach($brand, 'Communication Modules');
         }
 
         /* ================= SERVICES ================= */
 
         foreach ([
-                     'ZGN Services',
-                 ] as $brand) {
+            'Flowdesk Services',
+        ] as $brand) {
             $attach($brand, 'Installation');
             $attach($brand, 'Net Metering Processing');
             $attach($brand, 'AMC');

@@ -5,7 +5,7 @@
     $merchant = $sale->merchant;
     $customer = $sale->customer;
     $settings = $merchant?->settings;
-    $themeBlue = $settings?->primary_color ?? '#0d6efd';
+    $themeBlue = $settings?->primary_color ?? '#6366f1';
     $themeGreen = $settings?->success_color ?? '#0bb783';
     $themeTeal = '#1bc5bd';
 

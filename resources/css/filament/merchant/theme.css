@@ -3,6 +3,136 @@
 @source '../../../../app/Filament/**/*';
 @source '../../../../resources/views/filament/**/*';
 
+/* --------------------------------------------
+ | Flowdesk — dark purple theme foundation
+ |--------------------------------------------- */
+:root {
+    --flowdesk-purple: #6366f1;
+    --flowdesk-purple-deep: #4f46e5;
+    --flowdesk-purple-light: #818cf8;
+    --flowdesk-accent-gradient: linear-gradient(135deg, #6366f1 0%, #7c3aed 62%, #818cf8 100%);
+    --flowdesk-shell-bg: #000000;
+    --flowdesk-card-bg: #0b0f14;
+    --flowdesk-sidebar-bg: #0a0a0a;
+    --flowdesk-sidebar-blue: #6366f1;
+    --flowdesk-sidebar-green: #7c3aed;
+    --flowdesk-sidebar-teal: #818cf8;
+    --flowdesk-sidebar-icon: #94a3b8;
+    --flowdesk-sidebar-text: #e2e8f0;
+    --flowdesk-sidebar-header: #64748b;
+    --flowdesk-border-dark: rgba(148, 163, 184, 0.14);
+}
+
+.dark body.fi-panel-merchant,
+.dark body.fi-panel-user {
+    background: var(--flowdesk-shell-bg);
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn,
+.dark body.fi-panel-user .fi-main-ctn {
+    background: var(--flowdesk-shell-bg);
+    color: #e2e8f0;
+}
+
+.dark body.fi-panel-merchant .fi-header-heading,
+.dark body.fi-panel-user .fi-header-heading {
+    color: #ffffff;
+}
+
+.dark body.fi-panel-merchant .fi-header-subheading,
+.dark body.fi-panel-user .fi-header-subheading {
+    color: #94a3b8;
+}
+
+.dark body.fi-panel-merchant .fi-breadcrumbs-item-label,
+.dark body.fi-panel-user .fi-breadcrumbs-item-label {
+    color: #94a3b8;
+}
+
+.dark body.fi-panel-merchant .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label,
+.dark body.fi-panel-user .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label {
+    color: #cbd5e1;
+}
+
+.dark body.fi-panel-merchant .fi-breadcrumbs-item-separator,
+.dark body.fi-panel-user .fi-breadcrumbs-item-separator {
+    color: #64748b;
+}
+
+.dark .fi-topbar {
+    background: var(--flowdesk-shell-bg);
+    border-bottom: 1px solid #1e293b;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn,
+.dark body.fi-panel-user .fi-main-ctn .fi-ta-ctn {
+    background: var(--flowdesk-card-bg);
+    border: 1px solid var(--flowdesk-border-dark);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-header-cell,
+.dark body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-header-cell {
+    background: #111318;
+    color: #94a3b8;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-cell,
+.dark body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-cell {
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.08);
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-row,
+.dark body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-row {
+    background: var(--flowdesk-card-bg);
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-row:hover,
+.dark body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-row:hover {
+    background: #111318;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-section:not(.dashboard-filters-section):not(.blue-section):not(.line-items-section),
+.dark body.fi-panel-user .fi-main-ctn .fi-section:not(.dashboard-filters-section):not(.blue-section):not(.line-items-section) {
+    background: var(--flowdesk-card-bg);
+    border: 1px solid var(--flowdesk-border-dark);
+    border-radius: 12px;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-section:not(.dashboard-filters-section):not(.blue-section):not(.line-items-section) .fi-section-header,
+.dark body.fi-panel-user .fi-main-ctn .fi-section:not(.dashboard-filters-section):not(.blue-section):not(.line-items-section) .fi-section-header {
+    background: transparent;
+    border-bottom: 1px solid var(--flowdesk-border-dark);
+    color: #ffffff;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-section:not(.dashboard-filters-section):not(.blue-section):not(.line-items-section) .fi-section-header *,
+.dark body.fi-panel-user .fi-main-ctn .fi-section:not(.dashboard-filters-section):not(.blue-section):not(.line-items-section) .fi-section-header * {
+    color: #ffffff;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-input-wrp,
+.dark body.fi-panel-user .fi-main-ctn .fi-input-wrp {
+    background-color: #0b1220;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-input,
+.dark body.fi-panel-user .fi-main-ctn .fi-input,
+.dark body.fi-panel-merchant .fi-main-ctn .fi-fo-field-wrp-label,
+.dark body.fi-panel-user .fi-main-ctn .fi-fo-field-wrp-label {
+    color: #e2e8f0;
+}
+
+.dark body.fi-panel-merchant .fi-main-ctn .fi-pagination,
+.dark body.fi-panel-user .fi-main-ctn .fi-pagination {
+    background: var(--flowdesk-card-bg);
+    border-top: 1px solid var(--flowdesk-border-dark);
+    color: #94a3b8;
+}
+
 /*.fi-simple-layout {*/
 /*    background-color: #5b21b6;*/
 /*}*/
@@ -116,8 +246,8 @@
 }
 
 .discount-mode-toggle.is-active {
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue, #0d6efd) 0%, var(--zgn-sidebar-green, #0bb783) 65%, var(--zgn-sidebar-teal, #1bc5bd) 100%);
-    border-color: color-mix(in srgb, var(--zgn-sidebar-blue, #0d6efd) 50%, var(--zgn-sidebar-green, #0bb783) 50%);
+    background: var(--flowdesk-accent-gradient);
+    border-color: var(--flowdesk-purple);
     color: #fff !important;
 }
 
@@ -126,7 +256,7 @@
  |---------------------------------------------
  */
 .line-items-section .fi-fo-repeater-item-header {
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue, #0d6efd) 0%, var(--zgn-sidebar-green, #0bb783) 62%, var(--zgn-sidebar-teal, #1bc5bd) 100%);
+    background: var(--flowdesk-accent-gradient);
     color: #ffffff;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
@@ -138,7 +268,7 @@
 }
 
 .line-items-section .fi-fo-repeater-item {
-    border: 1px solid color-mix(in srgb, var(--zgn-sidebar-blue, #0d6efd) 48%, var(--zgn-sidebar-green, #0bb783) 52%);
+    border: 1px solid var(--flowdesk-border-dark);
 }
 
 .line-items-section .fi-fo-repeater-item:not(:last-child) {
@@ -159,11 +289,11 @@
 .blue-section .fi-fo-section-header-heading,
 .blue-section .fi-section-header-heading,
 .blue-section .fi-fo-section-heading {
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue, #0d6efd) 0%, var(--zgn-sidebar-green, #0bb783) 62%, var(--zgn-sidebar-teal, #1bc5bd) 100%);
+    background: var(--flowdesk-accent-gradient);
     color: #ffffff;
-    border-radius: 8px;
-    padding: 8px 12px;
-    box-shadow: 0 8px 22px -16px rgba(10, 132, 150, 0.7);
+    border-radius: 10px;
+    padding: 10px 14px;
+    box-shadow: none;
 }
 
 .line-items-section .fi-fo-section-header * ,
@@ -206,7 +336,7 @@
  | Login screen
  |---------------------------------------------
  */
-.zgn-auth-layout {
+.flowdesk-auth-layout {
     min-height: 100vh;
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
@@ -214,7 +344,7 @@
     background: #ffffff;
 }
 
-.zgn-auth-layout .zgn-auth-visual {
+.flowdesk-auth-layout .flowdesk-auth-visual {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -223,7 +353,7 @@
     overflow: hidden;
 }
 
-.zgn-auth-layout .zgn-auth-visual-image {
+.flowdesk-auth-layout .flowdesk-auth-visual-image {
     width: 100%;
     height: min(86vh, 670px);
     object-fit: contain;
@@ -231,7 +361,7 @@
     border-radius: 2px;
 }
 
-.zgn-auth-layout .fi-simple-main-ctn {
+.flowdesk-auth-layout .fi-simple-main-ctn {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -239,7 +369,7 @@
     padding: 48px clamp(36px, 6vw, 92px);
 }
 
-.zgn-auth-layout .fi-simple-main {
+.flowdesk-auth-layout .fi-simple-main {
     width: min(100%, 630px);
     max-width: 630px;
     padding: 0;
@@ -248,21 +378,21 @@
     box-shadow: none;
 }
 
-.zgn-auth-layout .fi-simple-page-content {
+.flowdesk-auth-layout .fi-simple-page-content {
     gap: 34px;
 }
 
-.zgn-auth-layout .fi-simple-header {
+.flowdesk-auth-layout .fi-simple-header {
     align-items: flex-start;
     text-align: left;
     gap: 10px;
 }
 
-.zgn-auth-layout .fi-logo {
+.flowdesk-auth-layout .fi-logo {
     align-self: center;
     height: auto !important;
     margin-bottom: 22px;
-    color: #2f9145;
+    color: #6366f1;
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 0;
@@ -270,34 +400,34 @@
     text-transform: uppercase;
 }
 
-.zgn-auth-layout img.fi-logo {
+.flowdesk-auth-layout img.fi-logo {
     width: auto;
     max-width: 240px;
     max-height: 150px;
     object-fit: contain;
 }
 
-.zgn-auth-layout .zgn-auth-logo {
+.flowdesk-auth-layout .flowdesk-auth-logo {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: #2f9145;
+    color: #6366f1;
 }
 
-.zgn-auth-layout .zgn-auth-logo svg {
+.flowdesk-auth-layout .flowdesk-auth-logo svg {
     width: 104px;
     height: 84px;
     display: block;
 }
 
-.zgn-auth-layout .zgn-auth-logo strong {
-    color: #2f9145;
+.flowdesk-auth-layout .flowdesk-auth-logo strong {
+    color: #6366f1;
     font-size: 22px;
     line-height: 1;
 }
 
-.zgn-auth-layout .fi-simple-header-heading {
+.flowdesk-auth-layout .fi-simple-header-heading {
     color: #202b3c;
     font-size: 26px;
     font-weight: 700;
@@ -305,26 +435,26 @@
     line-height: 1.2;
 }
 
-.zgn-auth-layout .fi-simple-header-subheading {
+.flowdesk-auth-layout .fi-simple-header-subheading {
     color: #7a8495;
     font-size: 13px;
     line-height: 1.5;
 }
 
-.zgn-auth-layout .fi-sc-form,
-.zgn-auth-layout .fi-fo-component-ctn,
-.zgn-auth-layout form {
+.flowdesk-auth-layout .fi-sc-form,
+.flowdesk-auth-layout .fi-fo-component-ctn,
+.flowdesk-auth-layout form {
     gap: 20px;
 }
 
-.zgn-auth-layout .fi-fo-field-wrp-label span,
-.zgn-auth-layout .fi-fo-field-wrp-label label {
+.flowdesk-auth-layout .fi-fo-field-wrp-label span,
+.flowdesk-auth-layout .fi-fo-field-wrp-label label {
     color: #4a5668;
     font-size: 12px;
     font-weight: 700;
 }
 
-.zgn-auth-layout .fi-input-wrp {
+.flowdesk-auth-layout .fi-input-wrp {
     min-height: 40px;
     border-color: #e2e8f0;
     border-radius: 5px;
@@ -332,72 +462,72 @@
     box-shadow: none;
 }
 
-.zgn-auth-layout .fi-input {
+.flowdesk-auth-layout .fi-input {
     color: #263244;
     font-size: 13px;
 }
 
-.zgn-auth-layout .fi-input::placeholder {
+.flowdesk-auth-layout .fi-input::placeholder {
     color: #a5adbb;
 }
 
-.zgn-auth-layout .fi-fo-field-wrp-error-message {
+.flowdesk-auth-layout .fi-fo-field-wrp-error-message {
     font-size: 12px;
 }
 
-.zgn-auth-layout .fi-checkbox-input {
+.flowdesk-auth-layout .fi-checkbox-input {
     border-color: #d8dee8;
     border-radius: 3px;
 }
 
-.zgn-auth-layout .fi-checkbox-list-option-label,
-.zgn-auth-layout .fi-fo-checkbox-list-option-label,
-.zgn-auth-layout .fi-fo-field-wrp-hint,
-.zgn-auth-layout .fi-link {
+.flowdesk-auth-layout .fi-checkbox-list-option-label,
+.flowdesk-auth-layout .fi-fo-checkbox-list-option-label,
+.flowdesk-auth-layout .fi-fo-field-wrp-hint,
+.flowdesk-auth-layout .fi-link {
     color: #6c7483;
     font-size: 13px;
 }
 
-.zgn-auth-layout .fi-link {
+.flowdesk-auth-layout .fi-link {
     font-weight: 600;
 }
 
-.zgn-auth-layout .fi-ac {
+.flowdesk-auth-layout .fi-ac {
     margin-top: 6px;
 }
 
-.zgn-auth-layout .fi-btn {
+.flowdesk-auth-layout .fi-btn {
     min-height: 44px;
     border-radius: 5px;
-    background: #1478f2;
+    background: #6366f1;
     font-size: 13px;
     font-weight: 700;
     box-shadow: none;
 }
 
-.zgn-auth-layout .fi-btn:hover,
-.zgn-auth-layout .fi-btn:focus-visible {
-    background: #0d6ee5;
+.flowdesk-auth-layout .fi-btn:hover,
+.flowdesk-auth-layout .fi-btn:focus-visible {
+    background: #4f46e5;
 }
 
 @media (max-width: 1024px) {
-    .zgn-auth-layout {
+    .flowdesk-auth-layout {
         grid-template-columns: 1fr;
     }
 
-    .zgn-auth-layout .zgn-auth-visual {
+    .flowdesk-auth-layout .flowdesk-auth-visual {
         display: none;
     }
 
-    .zgn-auth-layout .fi-simple-main-ctn {
+    .flowdesk-auth-layout .fi-simple-main-ctn {
         padding: 32px 22px;
     }
 
-    .zgn-auth-layout .fi-simple-main {
+    .flowdesk-auth-layout .fi-simple-main {
         max-width: 520px;
     }
 
-    .zgn-auth-layout .fi-simple-header {
+    .flowdesk-auth-layout .fi-simple-header {
         align-items: center;
         text-align: center;
     }
@@ -461,21 +591,68 @@
 }
 
 /* --------------------------------------------
- | Sidebar: blue-green modern CRM theme
- |---------------------------------------------
- */
-:root {
-    --zgn-sidebar-blue: #0d6efd;
-    --zgn-sidebar-green: #0bb783;
-    --zgn-sidebar-teal: #1bc5bd;
-    --zgn-sidebar-icon: #7a7a7a;
-    --zgn-sidebar-text: #334155;
-    --zgn-sidebar-header: #475569;
+ | Sidebar — light & dark variants
+ |--------------------------------------------- */
+
+/* Light mode sidebar */
+html:not(.dark) body.fi-panel-merchant .fi-main-sidebar,
+html:not(.dark) body.fi-panel-user .fi-main-sidebar {
+    background: #ffffff;
+    border-inline-end: 1px solid #e2e8f0;
 }
 
-.fi-main-sidebar {
-    background: linear-gradient(180deg, #fbfcfe 0%, #f3f5f8 100%);
-    border-inline-end: 1px solid #e8edf3;
+html:not(.dark) .fi-main-sidebar .fi-sidebar-header-ctn,
+html:not(.dark) .fi-main-sidebar .fi-sidebar-header,
+html:not(.dark) .fi-main-sidebar .fi-sidebar-footer {
+    background: transparent;
+    border-color: #e2e8f0;
+}
+
+html:not(.dark) .fi-main-sidebar .fi-sidebar-group-label {
+    color: #64748b;
+}
+
+html:not(.dark) .fi-main-sidebar .fi-sidebar-item-icon {
+    color: #64748b;
+}
+
+html:not(.dark) .fi-main-sidebar .fi-sidebar-item-label {
+    color: #334155;
+}
+
+html:not(.dark) .fi-main-sidebar .fi-sidebar-item-btn:hover {
+    background: #f1f5f9;
+    box-shadow: none;
+}
+
+html:not(.dark) .fi-main-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-icon,
+html:not(.dark) .fi-main-sidebar .fi-sidebar-item-btn:focus-visible .fi-sidebar-item-icon {
+    color: #475569;
+}
+
+html:not(.dark) .fi-main-sidebar .fi-logo img,
+html:not(.dark) .fi-main-sidebar img.fi-logo {
+    filter: none;
+    opacity: 1;
+}
+
+/* Dark mode sidebar */
+.dark .fi-main-sidebar {
+    background: var(--flowdesk-sidebar-bg);
+    border-inline-end: 1px solid #1e293b;
+}
+
+.dark .fi-main-sidebar .fi-sidebar-header-ctn,
+.dark .fi-main-sidebar .fi-sidebar-header,
+.dark .fi-main-sidebar .fi-sidebar-footer {
+    background: transparent;
+    border-color: #1e293b;
+}
+
+.dark .fi-main-sidebar .fi-logo img,
+.dark .fi-main-sidebar img.fi-logo {
+    filter: none;
+    opacity: 0.95;
 }
 
 .fi-main-sidebar .fi-sidebar-nav {
@@ -499,7 +676,6 @@
 }
 
 .fi-main-sidebar .fi-sidebar-group-label {
-    color: var(--zgn-sidebar-header);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -515,57 +691,19 @@
     border-radius: 8px;
     padding: 10px 12px;
     overflow: hidden;
-    transition: all 0.3s ease;
-}
-
-.fi-main-sidebar .fi-sidebar-item-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue) 0%, var(--zgn-sidebar-green) 60%, var(--zgn-sidebar-teal) 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    background: transparent;
 }
 
 .fi-main-sidebar .fi-sidebar-item-icon,
 .fi-main-sidebar .fi-sidebar-item-label {
-    position: relative;
-    z-index: 1;
-    transition: color 0.3s ease;
-}
-
-.fi-main-sidebar .fi-sidebar-item-icon {
-    color: var(--zgn-sidebar-icon);
-}
-
-.fi-main-sidebar .fi-sidebar-item-label {
-    color: var(--zgn-sidebar-text);
-}
-
-.fi-main-sidebar .fi-sidebar-item-btn:hover::before,
-.fi-main-sidebar .fi-sidebar-item-btn:focus-visible::before {
-    opacity: 0.14;
-}
-
-.fi-main-sidebar .fi-sidebar-item-btn:hover {
-    box-shadow: 0 8px 22px -18px rgba(12, 117, 141, 0.65);
-}
-
-.fi-main-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-icon,
-.fi-main-sidebar .fi-sidebar-item-btn:focus-visible .fi-sidebar-item-icon {
-    color: var(--zgn-sidebar-green);
+    transition: color 0.2s ease;
 }
 
 .fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-btn,
 .fi-main-sidebar .fi-sidebar-item.fi-sidebar-item-has-active-child-items > .fi-sidebar-item-btn {
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue) 0%, var(--zgn-sidebar-green) 62%, var(--zgn-sidebar-teal) 100%);
-    box-shadow: 0 12px 26px -18px rgba(11, 183, 131, 0.8);
-}
-
-.fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-btn::before,
-.fi-main-sidebar .fi-sidebar-item.fi-sidebar-item-has-active-child-items > .fi-sidebar-item-btn::before {
-    opacity: 0;
+    background: var(--flowdesk-purple);
+    box-shadow: 0 8px 24px -12px rgba(99, 102, 241, 0.65);
 }
 
 .fi-main-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-icon,
@@ -575,15 +713,21 @@
     color: #ffffff;
 }
 
-.dark .fi-main-sidebar {
-    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-    border-inline-end: 1px solid rgba(148, 163, 184, 0.2);
+/* Topbar — theme-aware logo / brand text */
+html:not(.dark) body.fi-panel-merchant .fi-topbar,
+html:not(.dark) body.fi-panel-user .fi-topbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-.dark .fi-main-sidebar .fi-sidebar-header-ctn,
-.dark .fi-main-sidebar .fi-sidebar-header,
-.dark .fi-main-sidebar .fi-sidebar-footer {
-    background: transparent;
+html:not(.dark) body.fi-panel-merchant .fi-topbar .fi-logo,
+html:not(.dark) body.fi-panel-user .fi-topbar .fi-logo {
+    color: #0f172a;
+}
+
+.dark body.fi-panel-merchant .fi-topbar .fi-logo,
+.dark body.fi-panel-user .fi-topbar .fi-logo {
+    color: #ffffff;
 }
 
 .dark .fi-main-sidebar .fi-sidebar-group-label {
@@ -602,6 +746,16 @@
     color: #e2e8f0;
 }
 
+.dark .fi-main-sidebar .fi-sidebar-item-btn:hover {
+    background: #111827;
+    box-shadow: none;
+}
+
+.dark .fi-main-sidebar .fi-sidebar-item-btn:hover .fi-sidebar-item-icon,
+.dark .fi-main-sidebar .fi-sidebar-item-btn:focus-visible .fi-sidebar-item-icon {
+    color: #cbd5e1;
+}
+
 .fi-ta-ctn .fi-ta-header,
 .fi-ta-ctn .fi-ta-header-toolbar {
     position: relative;
@@ -609,7 +763,7 @@
 
 .fi-ta-ctn .fi-ta-header-ctn {
     position: relative;
-    background: linear-gradient(90deg, var(--zgn-sidebar-blue) 0%, var(--zgn-sidebar-green) 70%, var(--zgn-sidebar-teal) 100%);
+    background: var(--flowdesk-accent-gradient);
 }
 
 .fi-ta-ctn .fi-ta-header-heading,
@@ -664,14 +818,14 @@
  */
 .dashboard-filters-section {
     border-radius: 14px;
-    border: 1px solid #dbeafe;
-    background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 45%, #ecfeff 100%);
-    box-shadow: 0 8px 24px -20px rgba(30, 58, 138, 0.55);
+    border: 1px solid var(--flowdesk-border-dark);
+    background: var(--flowdesk-card-bg);
+    box-shadow: 0 8px 30px -20px rgba(99, 102, 241, 0.25);
 }
 
 .dashboard-filters-section .fi-section-header,
 .dashboard-filters-section .fi-fo-section-header {
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue, #0d6efd) 0%, var(--zgn-sidebar-green, #0bb783) 62%, var(--zgn-sidebar-teal, #1bc5bd) 100%);
+    background: var(--flowdesk-accent-gradient);
     border-bottom: 0;
     border-radius: 10px;
     color: #ffffff;
@@ -689,7 +843,7 @@
 }
 
 .stats-dashboard .stats-card > .flex.items-center.justify-between {
-    background: linear-gradient(135deg, var(--zgn-sidebar-blue, #0d6efd) 0%, var(--zgn-sidebar-green, #0bb783) 62%, var(--zgn-sidebar-teal, #1bc5bd) 100%);
+    background: var(--flowdesk-accent-gradient);
     border-radius: 10px;
     color: #ffffff;
     padding: 10px 14px;
@@ -745,9 +899,9 @@
 }
 
 .dark .dashboard-filters-section {
-    border-color: rgba(56, 189, 248, 0.28);
-    background: linear-gradient(135deg, #020817 0%, #0f172a 45%, #082f49 100%);
-    box-shadow: 0 8px 30px -20px rgba(14, 165, 233, 0.4);
+    border-color: rgba(99, 102, 241, 0.28);
+    background: var(--flowdesk-card-bg);
+    box-shadow: 0 8px 30px -20px rgba(99, 102, 241, 0.35);
 }
 
 .dark .dashboard-filters-section .fi-section-header,

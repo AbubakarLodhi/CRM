@@ -14,7 +14,7 @@ class EveeElectricBikesProductsSeeder extends Seeder
 {
     public function run(): void
     {
-        $merchant = Merchant::where('email', 'info@zgngreenpvt.com')->first();
+        $merchant = Merchant::where('email', 'info@flowdesk.com')->first();
         if (! $merchant) {
             return;
         }
@@ -89,7 +89,7 @@ class EveeElectricBikesProductsSeeder extends Seeder
             ],
         ];
 
-        $merchantSlug = 'zgn';
+        $merchantSlug = 'flowdesk';
 
         foreach ($subCategories as $subCategoryName => $products) {
             $subCategory = Category::where('merchant_id', $merchant->id)

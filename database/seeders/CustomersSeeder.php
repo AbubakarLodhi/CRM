@@ -11,18 +11,17 @@ use Illuminate\Support\Str;
 
 class CustomersSeeder extends Seeder
 {
-    /**
-     * @return void
-     */
     public function run(): void
     {
         $pakistan = Country::where('code', 'PK')->first();
         $karachi = City::where('name', 'Karachi')->first();
 
-        if (!$pakistan || !$karachi) return;
+        if (! $pakistan || ! $karachi) {
+            return;
+        }
 
         $merchants = Merchant::whereIn('email', [
-            'info@zgngreenpvt.com',
+            'info@flowdesk.com',
             'info@halaynoor.com',
         ])->get();
 
@@ -35,18 +34,11 @@ class CustomersSeeder extends Seeder
         }
     }
 
-    /**
-     * @param string $merchantId
-     * @param string $countryId
-     * @param string $cityId
-     * @return void
-     */
     private function createCustomers(
         string $merchantId,
         string $countryId,
         string $cityId
-    ): void
-    {
+    ): void {
         for ($i = 1; $i <= 8; $i++) {
             Customer::firstOrCreate(
                 [
@@ -56,7 +48,7 @@ class CustomersSeeder extends Seeder
                     'id' => Str::uuid(),
                     'merchant_id' => $merchantId,
                     'name' => "Customer {$i}",
-                    'phone' => '03' . rand(100000000, 399999999),
+                    'phone' => '03'.rand(100000000, 399999999),
                     'country_id' => $countryId,
                     'city_id' => $cityId,
                     'postal_code' => '75500',

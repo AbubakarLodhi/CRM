@@ -51,6 +51,10 @@ class RolesSeeder extends Seeder
                 'purchases.create',
                 'expenses.view',
                 'expenses.create',
+                'assets.view',
+                'assets.create',
+                'asset_types.view',
+                'asset_types.create',
                 'customers.view',
                 'vendors.view',
                 'products.view',
@@ -62,6 +66,8 @@ class RolesSeeder extends Seeder
                 'sales.view',
                 'purchases.view',
                 'expenses.view',
+                'assets.view',
+                'asset_types.view',
                 'payrolls.view',
                 'orders.view',
             ],
@@ -79,7 +85,7 @@ class RolesSeeder extends Seeder
         /**
          * Only seed roles for these guards
          */
-        $allowedGuards = [ 'merchant'];
+        $allowedGuards = ['merchant'];
 
         foreach ($rolesPermissions as $roleName => $permissions) {
 

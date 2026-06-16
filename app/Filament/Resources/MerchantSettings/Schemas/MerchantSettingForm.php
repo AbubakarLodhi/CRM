@@ -2,8 +2,8 @@
 
 namespace App\Filament\Resources\MerchantSettings\Schemas;
 
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -15,7 +15,6 @@ class MerchantSettingForm
     {
         return $schema->components([
 
-
             FileUpload::make('merchant_logo')
                 ->label('Merchant Logo')
                 ->image()
@@ -23,13 +22,12 @@ class MerchantSettingForm
                 ->directory('merchants/logos')
                 ->imagePreviewHeight(120),
 
-//            FileUpload::make('profile_photo')
-//                ->label('Profile Photo')
-//                ->image()
-//                ->disk('public')
-//                ->directory('merchants/profile-photos')
-//                ->imagePreviewHeight(120),
-
+            //            FileUpload::make('profile_photo')
+            //                ->label('Profile Photo')
+            //                ->image()
+            //                ->disk('public')
+            //                ->directory('merchants/profile-photos')
+            //                ->imagePreviewHeight(120),
 
             /* ================= LIGHT MODE COLORS ================= */
             Section::make('Light Mode Colors')
@@ -38,7 +36,7 @@ class MerchantSettingForm
                 ->schema([
                     ColorPicker::make('primary_color')
                         ->label('Primary')
-                        ->default('#1E3A8A')
+                        ->default('#6366f1')
                         ->required(),
 
                     ColorPicker::make('secondary_color')
@@ -92,7 +90,7 @@ class MerchantSettingForm
 
             /* ================= MERCHANT ================= */
             Hidden::make('merchant_id')
-                ->default(fn() => auth('merchant')->id())
+                ->default(fn () => auth('merchant')->id())
                 ->required(),
         ])->columns(1);
     }
