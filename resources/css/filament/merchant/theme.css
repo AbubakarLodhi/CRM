@@ -69,21 +69,15 @@
     background: var(--flowdesk-card-bg);
     border: 1px solid var(--flowdesk-border-dark);
     border-radius: 12px;
-    overflow: visible;
+    overflow: hidden;
 }
 
 body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn,
 body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: visible;
     border-bottom-left-radius: 12px;
     border-bottom-right-radius: 12px;
-}
-
-body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-header-ctn,
-body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-header-ctn,
-body.fi-panel-merchant .fi-main-ctn .fi-ta-ctn .fi-ta-header-toolbar,
-body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-header-toolbar {
-    overflow: visible;
 }
 
 /* Table filter & column manager dropdowns — scroll when tall */

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Filament\Facades\Filament;
+use Filament\Tables\Table;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -20,6 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Table::configureUsing(function (Table $table): void {
+            $table
+                ->filtersFormMaxHeight('28rem')
+                ->columnManagerMaxHeight('28rem');
+        });
+
         Filament::serving(function () {
 
             $panelId = Filament::getCurrentPanel()?->getId();
