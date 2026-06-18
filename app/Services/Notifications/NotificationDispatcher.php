@@ -9,12 +9,13 @@ use App\Models\NotificationTemplate;
 use App\Models\Payment;
 use App\Models\Purchase;
 use App\Models\Sale;
+use App\Services\WhatsApp\WhatsAppService;
 use App\Support\NotificationMessageRenderer;
 use App\Support\NotificationTemplateChannels;
 use App\Support\NotificationTemplateResolver;
 use App\Support\NotificationTemplateVariableBuilder;
-use App\Services\WhatsApp\WhatsAppService;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
@@ -164,7 +165,7 @@ class NotificationDispatcher
 
     /**
      * @param  array<string, mixed>  $variables
-     * @param  callable(): \Illuminate\Mail\Mailable|null|null  $mailableFactory
+     * @param  callable(): Mailable|null|null  $mailableFactory
      */
     protected function dispatchToParty(
         NotificationTemplate $template,
@@ -189,23 +190,28 @@ class NotificationDispatcher
         $sentAny = false;
 
         if (in_array('email', $channels, true)) {
-            if (filled($email)) {
+            $resolvedEmail = $this->resolveEmailRecipient($email);
+
+            if (filled($resolvedEmail)) {
                 try {
                     if ($mailableFactory) {
                         $mailable = $mailableFactory();
                         if ($mailable instanceof ShouldQueue) {
-                            Mail::to($email)->queue($mailable);
+                            Mail::to($resolvedEmail)->queue($mailable);
                         } else {
-                            Mail::to($email)->send($mailable);
+                            Mail::to($resolvedEmail)->send($mailable);
                         }
                     } else {
                         $subject = NotificationMessageRenderer::renderSubject($template, $variables, ucfirst(str_replace('_', ' ', $event)));
                         $html = NotificationMessageRenderer::renderHtmlBody($template, $variables);
-                        Mail::html($html, function ($message) use ($email, $subject) {
-                            $message->to($email)->subject($subject);
+                        Mail::html($html, function ($message) use ($resolvedEmail, $subject) {
+                            $message->to($resolvedEmail)->subject($subject);
                         });
                     }
-                    $result->addSent("email/{$role}: {$email}");
+                    $label = config('mail.test_mode') && filled(config('mail.test_address'))
+                        ? "email/{$role}: {$resolvedEmail} (test mode — was: ".($email ?: 'none').')'
+                        : "email/{$role}: {$resolvedEmail}";
+                    $result->addSent($label);
                     $sentAny = true;
                 } catch (\Throwable $exception) {
                     $result->addSkipped("email/{$role}: {$exception->getMessage()}");
@@ -256,7 +262,7 @@ class NotificationDispatcher
                     $result->addSent($label);
                     $sentAny = true;
                 } else {
-                    $result->addSkipped("whatsapp/{$role}: " . ($waResult->error ?? 'failed'));
+                    $result->addSkipped("whatsapp/{$role}: ".($waResult->error ?? 'failed'));
                 }
             } else {
                 $result->addSkipped("whatsapp/{$role}: no phone on file");
@@ -268,6 +274,19 @@ class NotificationDispatcher
         }
 
         return $result;
+    }
+
+    protected function resolveEmailRecipient(?string $email): ?string
+    {
+        if (! filled($email)) {
+            return null;
+        }
+
+        if (config('mail.test_mode') && filled(config('mail.test_address'))) {
+            return (string) config('mail.test_address');
+        }
+
+        return $email;
     }
 
     /**

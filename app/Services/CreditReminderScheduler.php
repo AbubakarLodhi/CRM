@@ -4,16 +4,17 @@ namespace App\Services;
 
 use App\Enums\CreditReminderScheduleType;
 use App\Enums\ReminderPeriodType;
-use App\Support\CreditReminderDueDateMatcher;
-use App\Services\Notifications\NotificationDispatcher;
-use App\Services\WhatsApp\WhatsAppService;
-use App\Support\NotificationTemplateChannels;
 use App\Models\CreditReminder;
 use App\Models\CreditReminderTemplate;
 use App\Models\MerchantCreditReminderSetting;
 use App\Models\NotificationTemplate;
 use App\Models\Sale;
+use App\Services\Notifications\NotificationDispatcher;
+use App\Services\WhatsApp\WhatsAppService;
+use App\Support\CreditReminderDueDateMatcher;
+use App\Support\NotificationTemplateChannels;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -228,10 +229,57 @@ class CreditReminderScheduler
             return;
         }
 
+        if ($this->reminderWasAlreadySent($reminder, $template)) {
+            $nextSendAt = $template->isRecurringSchedule()
+                ? $this->calculateNextRecurringSendAt($reminder)
+                : null;
+
+            $reminder->update([
+                'is_active' => $nextSendAt !== null && $nextSendAt->lessThanOrEqualTo(now()->startOfDay()),
+                'next_send_at' => $nextSendAt,
+            ]);
+
+            return;
+        }
+
         $reminder->update([
             'next_send_at' => $reminder->remind_at->copy()->startOfDay(),
             'is_active' => true,
         ]);
+    }
+
+    public function reminderWasAlreadySent(CreditReminder $reminder, CreditReminderTemplate $template): bool
+    {
+        if (! filled($reminder->last_sent_at)) {
+            return false;
+        }
+
+        if (! $template->isRecurringSchedule()) {
+            return true;
+        }
+
+        $nextSendAt = $this->calculateNextRecurringSendAt($reminder);
+
+        if ($nextSendAt === null) {
+            return true;
+        }
+
+        return now()->startOfDay()->lessThan($nextSendAt);
+    }
+
+    public function calculateNextRecurringSendAt(CreditReminder $reminder): ?Carbon
+    {
+        if (! filled($reminder->last_sent_at) || ! $reminder->isRepeating()) {
+            return null;
+        }
+
+        $value = max(1, (int) $reminder->repeat_value);
+
+        return match ($reminder->repeatPeriod()) {
+            ReminderPeriodType::Months => $reminder->last_sent_at->copy()->addMonths($value)->startOfDay(),
+            ReminderPeriodType::Weeks => $reminder->last_sent_at->copy()->addWeeks($value)->startOfDay(),
+            default => $reminder->last_sent_at->copy()->addDays($value)->startOfDay(),
+        };
     }
 
     public function isEnabledForMerchant(string $merchantId): bool
@@ -362,6 +410,7 @@ class CreditReminderScheduler
         $waiting = 0;
         $skipped = 0;
         $details = [];
+        $salesSentThisRun = [];
 
         $reminders = CreditReminder::query()
             ->with(['sale', 'template'])
@@ -387,16 +436,23 @@ class CreditReminderScheduler
                 continue;
             }
 
-            if ($reminder->last_sent_at?->isToday()) {
+            if ($this->reminderWasAlreadySent($reminder, $template)) {
                 $skipped++;
-                $details[] = "SKIPPED — {$saleNo} / {$templateName}: already sent today";
+                $details[] = "SKIPPED — {$saleNo} / {$templateName}: already sent for this reminder schedule";
 
                 continue;
             }
 
             if (! CreditReminderDueDateMatcher::matchesToday($sale, $template)) {
                 $skipped++;
-                $details[] = 'SKIPPED — ' . $templateName . ' / ' . CreditReminderDueDateMatcher::describeMatch($sale, $template);
+                $details[] = 'SKIPPED — '.$templateName.' / '.CreditReminderDueDateMatcher::describeMatch($sale, $template);
+
+                continue;
+            }
+
+            if (isset($salesSentThisRun[$sale->id])) {
+                $skipped++;
+                $details[] = "SKIPPED — {$saleNo} / {$templateName}: another reminder was already sent for this invoice in this run";
 
                 continue;
             }
@@ -404,6 +460,7 @@ class CreditReminderScheduler
             $report = $this->sendReminder($reminder->fresh());
 
             if ($report['success']) {
+                $salesSentThisRun[$sale->id] = true;
                 $sent++;
             } else {
                 $failed++;
@@ -479,13 +536,15 @@ class CreditReminderScheduler
         }
 
         if (! CreditReminderDueDateMatcher::matchesToday($sale, $template)) {
-            $report['reason'] = 'Date rule not matched today: ' . CreditReminderDueDateMatcher::describeMatch($sale, $template);
+            $report['reason'] = 'Date rule not matched today: '.CreditReminderDueDateMatcher::describeMatch($sale, $template);
 
             return $report;
         }
 
-        if ($reminder->last_sent_at?->isToday()) {
-            $report['reason'] = 'Already sent today for this reminder rule';
+        if ($this->reminderWasAlreadySent($reminder, $template)) {
+            $report['reason'] = $template->isRecurringSchedule()
+                ? 'Next recurring reminder is not due yet'
+                : 'Already sent for this reminder schedule';
 
             return $report;
         }
@@ -523,62 +582,96 @@ class CreditReminderScheduler
             return $report;
         }
 
+        $previousLastSentAt = $reminder->last_sent_at;
+
+        if (! $this->claimReminderForDelivery($reminder, $template)) {
+            $report['reason'] = $template->isRecurringSchedule()
+                ? 'Next recurring reminder is not due yet'
+                : 'Already sent for this reminder schedule';
+
+            return $report;
+        }
+
         try {
             $dispatcher = app(NotificationDispatcher::class);
             $allSent = [];
             $allSkipped = [];
+            $sentEmailAddresses = [];
+            $sentPhoneNumbers = [];
 
-            if ($customerEmail || $customerPhone) {
-                $customerResult = $dispatcher->dispatchCreditReminder(
+            foreach ($this->creditReminderRecipientParties(
+                $customerEmail,
+                $customerPhone,
+                $adminEmail,
+                $adminPhone,
+            ) as $party) {
+                $email = $party['email'];
+                $phone = $party['phone'];
+
+                $resolvedEmail = $this->resolveEmailAddress($email);
+                if (filled($resolvedEmail) && in_array($resolvedEmail, $sentEmailAddresses, true)) {
+                    $email = null;
+                }
+
+                $resolvedPhone = $this->resolvePhoneForChannel($phone);
+                if (filled($resolvedPhone) && in_array($resolvedPhone, $sentPhoneNumbers, true)) {
+                    $phone = null;
+                }
+
+                if (! filled($email) && ! filled($phone)) {
+                    continue;
+                }
+
+                $partyResult = $dispatcher->dispatchCreditReminder(
                     $sale,
                     $reminder,
                     $notificationTemplate,
-                    'customer',
-                    $customerEmail,
-                    $customerPhone,
+                    $party['role'],
+                    $email,
+                    $phone,
                 );
-                $allSent = array_merge($allSent, $customerResult->sent);
-                $allSkipped = array_merge($allSkipped, $customerResult->skipped);
-            }
 
-            if ($adminEmail || $adminPhone) {
-                $adminResult = $dispatcher->dispatchCreditReminder(
-                    $sale,
-                    $reminder,
-                    $notificationTemplate,
-                    'admin',
-                    $adminEmail,
-                    $adminPhone,
-                );
-                $allSent = array_merge($allSent, $adminResult->sent);
-                $allSkipped = array_merge($allSkipped, $adminResult->skipped);
+                $allSent = array_merge($allSent, $partyResult->sent);
+                $allSkipped = array_merge($allSkipped, $partyResult->skipped);
+
+                if (filled($resolvedEmail) && $email !== null) {
+                    $sentEmailAddresses[] = $resolvedEmail;
+                }
+
+                if (filled($resolvedPhone) && $phone !== null) {
+                    $sentPhoneNumbers[] = $resolvedPhone;
+                }
             }
 
             if ($allSent === []) {
-                $report['reason'] = 'No messages sent: ' . implode('; ', $allSkipped);
+                $this->releaseDeliveryClaim($reminder, $template, $previousLastSentAt);
+                $report['reason'] = 'No messages sent: '.implode('; ', $allSkipped);
 
                 return $report;
             }
 
             $report['recipients'] = $allSent;
             $report['skipped'] = $allSkipped;
-            $now = now();
 
-            $reminder->update([
-                'last_sent_at' => $now,
-                'next_send_at' => null,
-                'is_active' => false,
-            ]);
+            if ($template->isRecurringSchedule()) {
+                $nextSendAt = $this->calculateNextRecurringSendAt($reminder->fresh());
+
+                $reminder->update([
+                    'next_send_at' => $nextSendAt,
+                    'is_active' => $nextSendAt !== null && $nextSendAt->lessThanOrEqualTo(now()->startOfDay()),
+                ]);
+            }
 
             $report['success'] = true;
-            $report['reason'] = 'Sent: ' . implode(', ', $allSent);
+            $report['reason'] = 'Sent: '.implode(', ', $allSent);
             if ($allSkipped !== []) {
-                $report['reason'] .= ' | Skipped: ' . implode(', ', $allSkipped);
+                $report['reason'] .= ' | Skipped: '.implode(', ', $allSkipped);
             }
 
             return $report;
         } catch (Throwable $exception) {
-            $report['reason'] = 'Error: ' . $exception->getMessage();
+            $this->releaseDeliveryClaim($reminder, $template, $previousLastSentAt);
+            $report['reason'] = 'Error: '.$exception->getMessage();
             Log::error('Credit sale reminder failed', [
                 'sale_id' => $sale->id,
                 'reminder_id' => $reminder->id,
@@ -589,6 +682,85 @@ class CreditReminderScheduler
         }
     }
 
+    /**
+     * @return list<array{role: string, email: ?string, phone: ?string}>
+     */
+    protected function creditReminderRecipientParties(
+        ?string $customerEmail,
+        ?string $customerPhone,
+        ?string $adminEmail,
+        ?string $adminPhone,
+    ): array {
+        $parties = [];
+
+        if (filled($customerEmail) || filled($customerPhone)) {
+            $parties[] = [
+                'role' => 'customer',
+                'email' => $customerEmail,
+                'phone' => $customerPhone,
+            ];
+        }
+
+        if (filled($adminEmail) || filled($adminPhone)) {
+            $parties[] = [
+                'role' => 'admin',
+                'email' => $adminEmail,
+                'phone' => $adminPhone,
+            ];
+        }
+
+        return $parties;
+    }
+
+    protected function claimReminderForDelivery(CreditReminder $reminder, CreditReminderTemplate $template): bool
+    {
+        return (bool) DB::transaction(function () use ($reminder, $template): bool {
+            $locked = CreditReminder::query()
+                ->whereKey($reminder->id)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $locked) {
+                return false;
+            }
+
+            if ($this->reminderWasAlreadySent($locked, $template)) {
+                return false;
+            }
+
+            $attributes = ['last_sent_at' => now()];
+
+            if (! $template->isRecurringSchedule()) {
+                $attributes['next_send_at'] = null;
+                $attributes['is_active'] = false;
+            }
+
+            $locked->update($attributes);
+            $reminder->setRawAttributes($locked->fresh()->getAttributes());
+
+            return true;
+        });
+    }
+
+    protected function releaseDeliveryClaim(
+        CreditReminder $reminder,
+        CreditReminderTemplate $template,
+        mixed $previousLastSentAt,
+    ): void {
+        $attributes = [
+            'last_sent_at' => $previousLastSentAt,
+        ];
+
+        if (! $template->isRecurringSchedule()) {
+            $attributes['is_active'] = $previousLastSentAt === null;
+            $attributes['next_send_at'] = $previousLastSentAt === null
+                ? $reminder->remind_at?->copy()->startOfDay()
+                : null;
+        }
+
+        $reminder->update($attributes);
+    }
+
     public function formatReminderReportLine(array $report, ?string $dueOn = null): string
     {
         if ($report['success']) {
@@ -597,11 +769,11 @@ class CreditReminderScheduler
                 : 'no recipients';
 
             $line = "SENT — {$report['sale_no']} / {$report['template_name']}"
-                . ($dueOn ? " (due {$dueOn})" : '')
-                . " → {$delivered}";
+                .($dueOn ? " (due {$dueOn})" : '')
+                ." → {$delivered}";
 
             if (filled($report['skipped'] ?? null)) {
-                $line .= ' | WhatsApp/email skipped: ' . implode(', ', $report['skipped']);
+                $line .= ' | WhatsApp/email skipped: '.implode(', ', $report['skipped']);
             }
 
             return $line;
@@ -615,8 +787,8 @@ class CreditReminderScheduler
         $emailNote = $emails !== '' ? " [emails on file: {$emails}]" : ' [no emails on file]';
 
         return "NOT SENT — {$report['sale_no']} / {$report['template_name']}: "
-            . ($report['reason'] ?? 'unknown reason')
-            . $emailNote;
+            .($report['reason'] ?? 'unknown reason')
+            .$emailNote;
     }
 
     public function resolveCreditReminderTemplate(Sale $sale): ?NotificationTemplate
@@ -696,4 +868,40 @@ class CreditReminderScheduler
         ];
     }
 
+    protected function resolveEmailAddress(?string $email): ?string
+    {
+        if (! filled($email)) {
+            return null;
+        }
+
+        if (config('mail.test_mode') && filled(config('mail.test_address'))) {
+            return strtolower(trim((string) config('mail.test_address')));
+        }
+
+        return strtolower(trim($email));
+    }
+
+    protected function resolvePhoneForChannel(?string $phone): ?string
+    {
+        if (! filled($phone)) {
+            return null;
+        }
+
+        if (config('whatsapp.test_mode') && filled(config('whatsapp.test_phone'))) {
+            return $this->normalizePhone((string) config('whatsapp.test_phone'));
+        }
+
+        return $this->normalizePhone($phone);
+    }
+
+    protected function normalizePhone(?string $phone): ?string
+    {
+        if (! filled($phone)) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        return filled($digits) ? $digits : null;
+    }
 }

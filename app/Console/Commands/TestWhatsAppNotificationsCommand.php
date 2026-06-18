@@ -6,6 +6,7 @@ use App\Models\CreditReminder;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Services\Notifications\NotificationDispatcher;
+use App\Services\Notifications\NotificationDispatchResult;
 use App\Support\NotificationTemplateEvents;
 use App\Support\NotificationTemplateResolver;
 use Illuminate\Console\Command;
@@ -26,10 +27,14 @@ class TestWhatsAppNotificationsCommand extends Command
             ? array_keys(NotificationTemplateEvents::builtinOptions())
             : [$event];
 
-        $this->info('Sender (business): ' . config('whatsapp.sender_phone'));
-        $this->info('WhatsApp test mode: ' . (config('whatsapp.test_mode') ? 'ON' : 'OFF'));
-        $this->info('Test recipient: ' . config('whatsapp.test_phone'));
-        $this->info('Driver: ' . config('whatsapp.driver') . (config('whatsapp.driver') === 'log' ? ' (messages are NOT sent to real phones)' : ''));
+        $this->info('Sender (business): '.config('whatsapp.sender_phone'));
+        $this->info('WhatsApp test mode: '.(config('whatsapp.test_mode') ? 'ON' : 'OFF'));
+        $this->info('Test recipient: '.config('whatsapp.test_phone'));
+        $this->info('Mail test mode: '.(config('mail.test_mode') ? 'ON' : 'OFF'));
+        if (config('mail.test_mode')) {
+            $this->info('Mail test recipient: '.config('mail.test_address'));
+        }
+        $this->info('Driver: '.config('whatsapp.driver').(config('whatsapp.driver') === 'log' ? ' (messages are NOT sent to real phones)' : ''));
         $this->newLine();
 
         foreach ($events as $eventName) {
@@ -130,7 +135,7 @@ class TestWhatsAppNotificationsCommand extends Command
             return;
         }
 
-        $this->line('Template channels: ' . implode(', ', $template->channels ?? []));
+        $this->line('Template channels: '.implode(', ', $template->channels ?? []));
 
         $result = $dispatcher->dispatchCreditReminder(
             $sale,
@@ -182,14 +187,14 @@ class TestWhatsAppNotificationsCommand extends Command
         return $purchase;
     }
 
-    private function reportResult(\App\Services\Notifications\NotificationDispatchResult $result): void
+    private function reportResult(NotificationDispatchResult $result): void
     {
         foreach ($result->sent as $line) {
-            $this->info('Sent: ' . $line);
+            $this->info('Sent: '.$line);
         }
 
         foreach ($result->skipped as $line) {
-            $this->warn('Skipped: ' . $line);
+            $this->warn('Skipped: '.$line);
         }
 
         if ($result->sent === [] && $result->skipped === []) {

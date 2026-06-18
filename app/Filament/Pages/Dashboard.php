@@ -8,6 +8,7 @@ use App\Models\Merchant;
 use App\Models\ProductVariant;
 use App\Models\User;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -47,8 +48,8 @@ class Dashboard extends BaseDashboard
 
                                 $merchantId = match (true) {
                                     $user instanceof Merchant => $user->id,
-                                    $user instanceof User     => $user->merchant_id,
-                                    default                   => null,
+                                    $user instanceof User => $user->merchant_id,
+                                    default => null,
                                 };
 
                                 if (! $merchantId) {
@@ -60,8 +61,7 @@ class Dashboard extends BaseDashboard
                                     ->where('merchant_id', $merchantId);
 
                                 if ($user instanceof User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                        $q->where('users.id', $user->id)
+                                    $query->whereHas('users', fn ($q) => $q->where('users.id', $user->id)
                                     );
                                 }
 
@@ -87,8 +87,8 @@ class Dashboard extends BaseDashboard
 
                                 $merchantId = match (true) {
                                     $user instanceof Merchant => $user->id,
-                                    $user instanceof User     => $user->merchant_id,
-                                    default                   => null,
+                                    $user instanceof User => $user->merchant_id,
+                                    default => null,
                                 };
 
                                 if (! $merchantId) {
@@ -104,8 +104,7 @@ class Dashboard extends BaseDashboard
                                 }
 
                                 if ($user instanceof User) {
-                                    $query->whereHas('users', fn ($q) =>
-                                        $q->where('users.id', $user->id)
+                                    $query->whereHas('users', fn ($q) => $q->where('users.id', $user->id)
                                     );
                                 }
 
@@ -122,23 +121,27 @@ class Dashboard extends BaseDashboard
                             ->multiple()
                             ->searchable()
                             ->preload()
-                            ->options(function (callable $get) {
-                                $user = Filament::auth()->user();
-
-                                $merchantId = match (true) {
-                                    $user instanceof Merchant => $user->id,
-                                    $user instanceof User     => $user->merchant_id,
-                                    default                   => null,
-                                };
-
-                                if (! $merchantId) {
+                            ->optionsLimit(500)
+                            ->wrapOptionLabels(false)
+                            ->extraAttributes([
+                                'class' => 'dashboard-product-variant-select',
+                            ])
+                            ->extraFieldWrapperAttributes(fn (callable $get): array => [
+                                'class' => 'dashboard-product-variant-select',
+                                'data-dashboard-option-values' => json_encode(array_map(
+                                    'strval',
+                                    array_keys(self::productVariantFilterOptions($get)),
+                                )),
+                            ])
+                            ->options(fn (callable $get): array => self::productVariantFilterOptions($get))
+                            ->getOptionLabelsUsing(function (array $values): array {
+                                if ($values === []) {
                                     return [];
                                 }
 
-                                $query = ProductVariant::query()
+                                return ProductVariant::query()
                                     ->withoutTrashed()
-                                    ->where('product_variants.merchant_id', $merchantId)
-                                    ->where('product_variants.is_active', true)
+                                    ->whereIn('product_variants.id', $values)
                                     ->join('products', 'products.id', '=', 'product_variants.product_id')
                                     ->whereNull('products.deleted_at')
                                     ->select([
@@ -146,43 +149,12 @@ class Dashboard extends BaseDashboard
                                         'product_variants.name',
                                         'product_variants.sku',
                                         'products.name as product_name',
-                                    ]);
-
-                                if ($businessId = $get('business_id')) {
-                                    $query->whereHas('product.branches', fn ($q) =>
-                                        $q->where('branches.business_id', $businessId)
-                                            ->whereNull('branches.deleted_at')
-                                    );
-                                }
-
-                                if ($branchId = $get('branch_id')) {
-                                    $query->whereHas('product.branches', fn ($q) =>
-                                        $q->where('branches.id', $branchId)
-                                            ->whereNull('branches.deleted_at')
-                                    );
-                                }
-
-                                if ($user instanceof User) {
-                                    $query->whereHas('product.branches.users', fn ($q) =>
-                                        $q->where('users.id', $user->id)
-                                    );
-                                    $query->whereHas('product.branches', fn ($q) =>
-                                        $q->whereNull('branches.deleted_at')
-                                    );
-                                }
-
-                                return $query
-                                    ->orderBy('products.name')
-                                    ->orderBy('product_variants.name')
-                                    ->get()
-                                    ->mapWithKeys(fn (ProductVariant $variant) => [
-                                        $variant->id => trim(
-                                            ($variant->product_name ? $variant->product_name . ' - ' : '')
-                                            . ($variant->name ?: ($variant->sku ?: (string) $variant->id))
-                                            . ($variant->sku ? ' (' . $variant->sku . ')' : '')
-                                        ),
                                     ])
-                                    ->toArray();
+                                    ->get()
+                                    ->mapWithKeys(fn (ProductVariant $variant): array => [
+                                        $variant->id => self::productVariantFilterLabel($variant),
+                                    ])
+                                    ->all();
                             }),
 
                         DatePicker::make('date_from')
@@ -193,7 +165,7 @@ class Dashboard extends BaseDashboard
                             ->maxDate(now())
                             ->rule('before_or_equal:today')
                             ->suffixAction(
-                                \Filament\Actions\Action::make('clear_date_from')
+                                Action::make('clear_date_from')
                                     ->icon('heroicon-s-x-mark')
                                     ->tooltip('Clear date')
                                     ->action(fn (callable $set) => $set('date_from', null))
@@ -210,7 +182,7 @@ class Dashboard extends BaseDashboard
                             ->rule('before_or_equal:today')
                             ->rule('after_or_equal:date_from')
                             ->suffixAction(
-                                \Filament\Actions\Action::make('clear_date_to')
+                                Action::make('clear_date_to')
                                     ->icon('heroicon-s-x-mark')
                                     ->tooltip('Clear date')
                                     ->action(fn (callable $set) => $set('date_to', null))
@@ -224,5 +196,71 @@ class Dashboard extends BaseDashboard
                     ])
                     ->columnSpanFull(),
             ]);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function productVariantFilterOptions(callable $get): array
+    {
+        $user = Filament::auth()->user();
+
+        $merchantId = match (true) {
+            $user instanceof Merchant => $user->id,
+            $user instanceof User => $user->merchant_id,
+            default => null,
+        };
+
+        if (! $merchantId) {
+            return [];
+        }
+
+        $query = ProductVariant::query()
+            ->withoutTrashed()
+            ->where('product_variants.merchant_id', $merchantId)
+            ->where('product_variants.is_active', true)
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereNull('products.deleted_at')
+            ->select([
+                'product_variants.id',
+                'product_variants.name',
+                'product_variants.sku',
+                'products.name as product_name',
+            ]);
+
+        if ($businessId = $get('business_id')) {
+            $query->whereHas('product.branches', fn ($q) => $q->where('branches.business_id', $businessId)
+                ->whereNull('branches.deleted_at')
+            );
+        }
+
+        if ($branchId = $get('branch_id')) {
+            $query->whereHas('product.branches', fn ($q) => $q->where('branches.id', $branchId)
+                ->whereNull('branches.deleted_at')
+            );
+        }
+
+        if ($user instanceof User) {
+            $query->whereHas('product.branches.users', fn ($q) => $q->where('users.id', $user->id));
+            $query->whereHas('product.branches', fn ($q) => $q->whereNull('branches.deleted_at'));
+        }
+
+        return $query
+            ->orderBy('products.name')
+            ->orderBy('product_variants.name')
+            ->get()
+            ->mapWithKeys(fn (ProductVariant $variant): array => [
+                $variant->id => self::productVariantFilterLabel($variant),
+            ])
+            ->all();
+    }
+
+    private static function productVariantFilterLabel(ProductVariant $variant): string
+    {
+        return trim(
+            ($variant->product_name ? $variant->product_name.' - ' : '')
+            .($variant->name ?: ($variant->sku ?: (string) $variant->id))
+            .($variant->sku ? ' ('.$variant->sku.')' : '')
+        );
     }
 }

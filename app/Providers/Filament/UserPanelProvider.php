@@ -102,6 +102,10 @@ class UserPanelProvider extends PanelProvider
                 'panels::body.end',
                 fn () => view('filament.sidebar-hover')
             )
+            ->renderHook(
+                'panels::body.end',
+                fn () => view('filament.dashboard-product-variant-select-script')
+            )
 
             ->globalSearch(false);
     }

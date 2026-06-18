@@ -24,8 +24,12 @@ class SendCreditSaleReminders extends Command
 
         $this->newLine();
         $this->info('=== Credit payment reminder results ===');
-        $this->line('Queue driver: ' . config('queue.default'));
-        $this->line('Mailer: ' . config('mail.default'));
+        $this->line('Queue driver: '.config('queue.default'));
+        $this->line('Mailer: '.config('mail.default'));
+        $this->line('Mail test mode: '.(config('mail.test_mode') ? 'ON' : 'OFF'));
+        if (config('mail.test_mode')) {
+            $this->line('Mail test recipient: '.config('mail.test_address'));
+        }
         $this->newLine();
 
         if ($result['disabled']) {
@@ -48,13 +52,13 @@ class SendCreditSaleReminders extends Command
 
         foreach ($result['details'] as $line) {
             if (str_starts_with($line, 'SENT')) {
-                $this->line('<fg=green>' . $line . '</>');
+                $this->line('<fg=green>'.$line.'</>');
             } elseif (str_starts_with($line, 'NOT SENT')) {
-                $this->line('<fg=red>' . $line . '</>');
+                $this->line('<fg=red>'.$line.'</>');
             } elseif (str_starts_with($line, 'SKIPPED')) {
-                $this->line('<fg=yellow>' . $line . '</>');
+                $this->line('<fg=yellow>'.$line.'</>');
             } elseif (str_starts_with($line, 'Waiting')) {
-                $this->line('<fg=yellow>' . $line . '</>');
+                $this->line('<fg=yellow>'.$line.'</>');
             } else {
                 $this->line($line);
             }

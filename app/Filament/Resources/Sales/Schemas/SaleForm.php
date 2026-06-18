@@ -4,9 +4,14 @@ namespace App\Filament\Resources\Sales\Schemas;
 
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
+use App\Models\Branch;
 use App\Models\Customer;
+use App\Models\Merchant;
 use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\User;
 use App\Services\PaymentLedgerService;
+use App\Support\ProductStockAvailability;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
@@ -15,10 +20,12 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,7 +51,7 @@ class SaleForm
                         ->schema([
                             TextInput::make('sale_no')
                                 ->label('Sale Number')
-                                ->default(fn () => 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6)))
+                                ->default(fn () => 'SAL-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -6)))
                                 ->required()
                                 ->maxLength(255)
                                 ->unique(ignoreRecord: true)
@@ -184,10 +191,9 @@ class SaleForm
                     Action::make('usePercentMode')
                         ->label('Percent')
                         ->extraAttributes(fn (callable $get) => [
-                            'class' => 'discount-mode-toggle left' . (($get('discount_mode') ?? 'percent') === 'percent' ? ' is-active' : ''),
+                            'class' => 'discount-mode-toggle left'.(($get('discount_mode') ?? 'percent') === 'percent' ? ' is-active' : ''),
                         ])
-                        ->disabled(fn (callable $get) =>
-                            (bool) ($get('is_partial_return') ?? false) || ($get('discount_mode') ?? 'percent') === 'percent'
+                        ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false) || ($get('discount_mode') ?? 'percent') === 'percent'
                         )
                         ->action(function (callable $set, callable $get) {
                             $items = $get('items') ?? [];
@@ -216,10 +222,9 @@ class SaleForm
                     Action::make('useAmountMode')
                         ->label('Amount')
                         ->extraAttributes(fn (callable $get) => [
-                            'class' => 'discount-mode-toggle right' . (($get('discount_mode') ?? 'percent') === 'amount' ? ' is-active' : ''),
+                            'class' => 'discount-mode-toggle right'.(($get('discount_mode') ?? 'percent') === 'amount' ? ' is-active' : ''),
                         ])
-                        ->disabled(fn (callable $get) =>
-                            (bool) ($get('is_partial_return') ?? false) || ($get('discount_mode') ?? 'percent') === 'amount'
+                        ->disabled(fn (callable $get) => (bool) ($get('is_partial_return') ?? false) || ($get('discount_mode') ?? 'percent') === 'amount'
                         )
                         ->action(function (callable $set, callable $get) {
                             $items = $get('items') ?? [];
@@ -258,44 +263,42 @@ class SaleForm
                         })
                         ->schema([
 
-
-
                             /* -------- BRANCH -------- */
                             /* -------- BRANCH -------- */
-//                            Select::make('branch_id')
-//                                ->label('Branch')
-//                                ->searchable()
-//                                ->required()
-//                                ->options(function () {
-//                                    $user = Filament::auth()->user();
-//
-//                                    if ($user instanceof \App\Models\Merchant) {
-//                                        return \App\Models\Branch::where('merchant_id', self::merchantId())
-//                                            ->orderBy('name')
-//                                            ->pluck('name', 'id')
-//                                            ->toArray();
-//                                    }
-//
-//                                    return $user->branches()
-//                                        ->orderBy('branches.name')
-//                                        ->pluck('branches.name', 'branches.id')
-//                                        ->toArray();
-//                                })
-//                                ->reactive()
-//                                ->afterStateUpdated(fn (callable $set) => [
-//                                    $set('product_id', null),
-//                                    $set('product_variant_id', null),
-//                                ])
-//                                ->afterStateHydrated(function (callable $set, callable $get) {
-//                                    $user = Filament::auth()->user();
-//
-//                                    if ($user instanceof \App\Models\User && ! $get('branch_id')) {
-//                                        $branchIds = $user->branches()->pluck('branches.id');
-//                                        if ($branchIds->count() === 1) {
-//                                            $set('branch_id', $branchIds->first());
-//                                        }
-//                                    }
-//                                }),
+                            //                            Select::make('branch_id')
+                            //                                ->label('Branch')
+                            //                                ->searchable()
+                            //                                ->required()
+                            //                                ->options(function () {
+                            //                                    $user = Filament::auth()->user();
+                            //
+                            //                                    if ($user instanceof \App\Models\Merchant) {
+                            //                                        return \App\Models\Branch::where('merchant_id', self::merchantId())
+                            //                                            ->orderBy('name')
+                            //                                            ->pluck('name', 'id')
+                            //                                            ->toArray();
+                            //                                    }
+                            //
+                            //                                    return $user->branches()
+                            //                                        ->orderBy('branches.name')
+                            //                                        ->pluck('branches.name', 'branches.id')
+                            //                                        ->toArray();
+                            //                                })
+                            //                                ->reactive()
+                            //                                ->afterStateUpdated(fn (callable $set) => [
+                            //                                    $set('product_id', null),
+                            //                                    $set('product_variant_id', null),
+                            //                                ])
+                            //                                ->afterStateHydrated(function (callable $set, callable $get) {
+                            //                                    $user = Filament::auth()->user();
+                            //
+                            //                                    if ($user instanceof \App\Models\User && ! $get('branch_id')) {
+                            //                                        $branchIds = $user->branches()->pluck('branches.id');
+                            //                                        if ($branchIds->count() === 1) {
+                            //                                            $set('branch_id', $branchIds->first());
+                            //                                        }
+                            //                                    }
+                            //                                }),
 
                             /* -------- PRODUCT -------- */
                             Select::make('product_id')
@@ -307,12 +310,18 @@ class SaleForm
                                 ->reactive()
                                 ->options(fn (): array => self::productOptions())
                                 ->getSearchResultsUsing(fn (string $search): array => self::productOptions($search))
+                                ->disableOptionWhen(
+                                    fn (string $value, $livewire): bool => ! ProductStockAvailability::isProductIdAvailable(
+                                        $value,
+                                        excludeSaleId: self::editingSaleId($livewire),
+                                    )
+                                )
                                 ->getOptionLabelUsing(function ($value): ?string {
                                     if (! $value) {
                                         return null;
                                     }
 
-                                    $product = \App\Models\Product::withTrashed()
+                                    $product = Product::withTrashed()
                                         ->select(['id', 'name', 'sku'])
                                         ->find($value);
 
@@ -320,7 +329,7 @@ class SaleForm
                                         return (string) $value;
                                     }
 
-                                    return $product->name . ' (' . $product->sku . ')';
+                                    return $product->name.' ('.$product->sku.')';
                                 })
                                 ->afterStateUpdated(function ($state, callable $set, callable $get, $livewire) {
                                     $livewire->resetValidation('data.items.*.product_id');
@@ -338,8 +347,26 @@ class SaleForm
                                         return;
                                     }
 
+                                    $product = Product::query()
+                                        ->select(['id', 'name', 'sku', 'track_inventory', 'type'])
+                                        ->find($state);
+
+                                    if ($product && ! ProductStockAvailability::isProductAvailable($product)) {
+                                        $set('product_id', null);
+                                        $set('branch_id', null);
+                                        $set('product_variant_id', null);
+
+                                        Notification::make()
+                                            ->title('Out of stock')
+                                            ->body('This product is currently out of stock and cannot be added to the sale.')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
                                     // Find branches where THIS product exists
-                                    $branchQuery = \App\Models\Branch::query()
+                                    $branchQuery = Branch::query()
                                         ->withoutTrashed()
                                         ->where('merchant_id', self::merchantId())
                                         ->whereExists(function ($q) use ($state) {
@@ -368,12 +395,27 @@ class SaleForm
                                         return;
                                     }
 
-                                    $variants = \App\Models\ProductVariant::query()
+                                    $variants = ProductVariant::query()
                                         ->withoutTrashed()
                                         ->where('product_id', $state)
                                         ->get(['id', 'selling_price', 'name', 'sku']);
 
                                     if ($variants->isEmpty()) {
+                                        $branchId = filled($get('branch_id')) ? (string) $get('branch_id') : null;
+
+                                        if (! ProductStockAvailability::isProductAvailable($product, $branchId)) {
+                                            $set('product_id', null);
+                                            $set('branch_id', null);
+
+                                            Notification::make()
+                                                ->title('Out of stock')
+                                                ->body('This product is currently out of stock and cannot be added to the sale.')
+                                                ->warning()
+                                                ->send();
+
+                                            return;
+                                        }
+
                                         $qty = max(1, (float) ($get('quantity') ?? 1));
                                         $unit = (float) ($product->selling_price ?? 0);
                                         $set('unit_price', $unit);
@@ -386,6 +428,18 @@ class SaleForm
 
                                     if ($variants->count() === 1) {
                                         $variant = $variants->first();
+                                        $branchId = filled($get('branch_id')) ? (string) $get('branch_id') : null;
+
+                                        if (! ProductStockAvailability::isVariantAvailable($variant, $branchId, 1)) {
+                                            Notification::make()
+                                                ->title('Out of stock')
+                                                ->body('This product variant is out of stock'.($branchId ? ' at the selected branch' : '').'.')
+                                                ->warning()
+                                                ->send();
+
+                                            return;
+                                        }
+
                                         $set('product_variant_id', $variant->id);
                                         $qty = max(1, (float) ($get('quantity') ?? 1));
                                         $unit = (float) ($variant->selling_price ?? $product->selling_price ?? 0);
@@ -402,7 +456,7 @@ class SaleForm
                                 ->live()
                                 ->reactive()
                                 ->allowHtml()
-                                ->getOptionLabelUsing(fn ($value) => \App\Models\Branch::withTrashed()->find($value)?->name ?? $value)
+                                ->getOptionLabelUsing(fn ($value) => Branch::withTrashed()->find($value)?->name ?? $value)
                                 ->options(function (callable $get): array {
 
                                     $productId = $get('product_id');
@@ -410,11 +464,11 @@ class SaleForm
                                         return [];
                                     }
 
-                                    $hasBranchAssignments = \Illuminate\Support\Facades\DB::table('branch_products')
+                                    $hasBranchAssignments = DB::table('branch_products')
                                         ->where('product_id', $productId)
                                         ->exists();
 
-                                    $query = \App\Models\Branch::query()
+                                    $query = Branch::query()
                                         ->withoutTrashed()
                                         ->with('business')
                                         ->where('merchant_id', self::merchantId());
@@ -433,9 +487,8 @@ class SaleForm
                                         ->orderBy('branches.name')
                                         ->get()
                                         ->groupBy(fn ($branch) => $branch->business?->name ?? 'Other')
-                                        ->map(fn ($group) =>
-                                        $group->pluck('name', 'id')
-                                            ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;' . e($name))
+                                        ->map(fn ($group) => $group->pluck('name', 'id')
+                                            ->map(fn ($name) => '&nbsp;&nbsp;&nbsp;&nbsp;'.e($name))
                                             ->toArray()
                                         )
                                         ->toArray();
@@ -448,9 +501,40 @@ class SaleForm
                                     $set('line_subtotal', 0);
                                     $set('line_total', 0);
                                     self::recalcTotals($set, $get);
+
+                                    $productId = $get('product_id');
+                                    $branchId = filled($get('branch_id')) ? (string) $get('branch_id') : null;
+
+                                    if (! filled($productId) || ! filled($branchId)) {
+                                        return;
+                                    }
+
+                                    $variants = ProductVariant::query()
+                                        ->withoutTrashed()
+                                        ->where('product_id', $productId)
+                                        ->where('is_active', true)
+                                        ->get();
+
+                                    if ($variants->count() !== 1) {
+                                        return;
+                                    }
+
+                                    $variant = $variants->first();
+
+                                    if (! ProductStockAvailability::isVariantAvailable($variant, $branchId, 1)) {
+                                        return;
+                                    }
+
+                                    $set('product_variant_id', $variant->id);
+                                    $qty = max(1, (float) ($get('quantity') ?? 1));
+                                    $unit = (float) ($variant->selling_price ?? 0);
+                                    $set('unit_price', $unit);
+                                    $set('line_subtotal', $unit * $qty);
+                                    self::updateLineTotalDisplay($set, $get);
+                                    self::recalcTotals($set, $get);
                                 }),
 
-        /* -------- VARIANT -------- */
+                            /* -------- VARIANT -------- */
                             Select::make('product_variant_id')
                                 ->label('Product Variant')
                                 ->searchable()
@@ -458,7 +542,7 @@ class SaleForm
                                 ->reactive()
                                 ->visible(fn (callable $get): bool => self::productHasVariants($get('product_id')))
                                 ->required(fn (callable $get): bool => self::productHasVariants($get('product_id')))
-                                ->options(function (callable $get): array {
+                                ->options(function (callable $get, $livewire): array {
 
                                     $productId = $get('product_id');
 
@@ -466,28 +550,28 @@ class SaleForm
                                         return [];
                                     }
 
-                                    return \App\Models\ProductVariant::query()
-                                        ->withoutTrashed()
-                                        ->where('product_id', $productId)
-                                        ->limit(50)
-                                        ->get()
-                                        ->mapWithKeys(function ($variant) {
-                                            $label =
-                                                $variant->name
-                                                ?? $variant->sku
-                                                ?? $variant->option_values
-                                                ?? substr($variant->id, 0, 8);
+                                    $branchId = filled($get('branch_id')) ? (string) $get('branch_id') : null;
 
-                                            return [$variant->id => $label];
-                                        })
-                                        ->all();
+                                    return ProductStockAvailability::saleVariantOptions(
+                                        (string) $productId,
+                                        $branchId,
+                                    );
+                                })
+                                ->disableOptionWhen(function (string $value, Get $get, $livewire): bool {
+                                    $branchId = $get('branch_id');
+
+                                    return ! ProductStockAvailability::isVariantIdAvailable(
+                                        $value,
+                                        filled($branchId) ? (string) $branchId : null,
+                                        excludeSaleId: self::editingSaleId($livewire),
+                                    );
                                 })
                                 ->getOptionLabelUsing(function ($value): ?string {
                                     if (! $value) {
                                         return null;
                                     }
 
-                                    $variant = \App\Models\ProductVariant::withTrashed()
+                                    $variant = ProductVariant::withTrashed()
                                         ->select(['id', 'name', 'sku'])
                                         ->find($value);
 
@@ -506,16 +590,41 @@ class SaleForm
                                         $set('line_subtotal', 0);
                                         $set('line_total', 0);
                                         self::recalcTotals($set, $get);
+
                                         return;
                                     }
 
-                                    $variant = \App\Models\ProductVariant::select(['id', 'selling_price'])->find($state);
+                                    $variant = ProductVariant::query()
+                                        ->with('product')
+                                        ->find($state);
 
                                     if (! $variant) {
                                         return;
                                     }
 
-                                    $qty  = (float) ($get('quantity') ?? 1);
+                                    $branchId = $get('branch_id');
+                                    $qty = max(1, (int) ($get('quantity') ?? 1));
+
+                                    if (
+                                        filled($branchId)
+                                        && ! ProductStockAvailability::isVariantAvailable($variant, (string) $branchId, $qty)
+                                    ) {
+                                        $set('product_variant_id', null);
+                                        $set('unit_price', 0);
+                                        $set('line_subtotal', 0);
+                                        $set('line_total', 0);
+                                        self::recalcTotals($set, $get);
+
+                                        Notification::make()
+                                            ->title('Out of stock')
+                                            ->body('The selected variant is out of stock at this branch.')
+                                            ->warning()
+                                            ->send();
+
+                                        return;
+                                    }
+
+                                    $qty = (float) ($get('quantity') ?? 1);
                                     $unit = (float) ($variant->selling_price ?? 0);
 
                                     $set('unit_price', $unit);
@@ -524,8 +633,6 @@ class SaleForm
 
                                     self::recalcTotals($set, $get);
                                 }),
-
-
 
                             /* -------- QUANTITY -------- */
                             TextInput::make('quantity')
@@ -543,7 +650,51 @@ class SaleForm
                                     if ($state === null || $state === '' || ! is_numeric($state)) {
                                         return;
                                     }
-                                    $qty  = max(1, (float) ($state ?? 1));
+                                    $qty = max(1, (float) ($state ?? 1));
+
+                                    $variantId = $get('product_variant_id');
+                                    $branchId = $get('branch_id');
+
+                                    if (filled($variantId) && filled($branchId)) {
+                                        $variant = ProductVariant::query()
+                                            ->with('product')
+                                            ->find($variantId);
+
+                                        if (
+                                            $variant
+                                            && ! ProductStockAvailability::isVariantAvailable(
+                                                $variant,
+                                                (string) $branchId,
+                                                (int) ceil($qty),
+                                            )
+                                        ) {
+                                            $available = ProductStockAvailability::variantStock(
+                                                (string) $variantId,
+                                                (string) $branchId,
+                                            );
+
+                                            Notification::make()
+                                                ->title('Insufficient stock')
+                                                ->body('Only '.ProductStockAvailability::formatQuantity($available).' unit(s) available at this branch.')
+                                                ->warning()
+                                                ->send();
+
+                                            if ($available <= 0) {
+                                                $set('product_variant_id', null);
+                                                $set('quantity', 1);
+                                                $set('unit_price', 0);
+                                                $set('line_subtotal', 0);
+                                                $set('line_total', 0);
+                                                self::recalcTotals($set, $get);
+
+                                                return;
+                                            }
+
+                                            $qty = min($qty, (int) floor($available));
+                                            $set('quantity', $qty);
+                                        }
+                                    }
+
                                     $unit = (float) ($get('unit_price') ?? 0);
 
                                     $set('line_subtotal', $unit * $qty);
@@ -569,7 +720,7 @@ class SaleForm
                                         return;
                                     }
                                     $unit = max(0, (float) ($state ?? 0));
-                                    $qty  = (float) ($get('quantity') ?? 1);
+                                    $qty = (float) ($get('quantity') ?? 1);
 
                                     $set('line_subtotal', $unit * $qty);
 
@@ -608,6 +759,7 @@ class SaleForm
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('discount', 0);
+
                                         return;
                                     }
                                     $set('discount', (float) $state);
@@ -677,6 +829,7 @@ class SaleForm
                                 ->afterStateHydrated(function ($state, callable $set) {
                                     if ($state === null || $state === '') {
                                         $set('tax', 0);
+
                                         return;
                                     }
                                     $set('tax', (float) $state);
@@ -801,8 +954,7 @@ class SaleForm
                             $set('items', $items);
                             self::recalcTotals($set, $get);
                         })
-                        ->afterStateUpdated(fn (callable $set, callable $get) =>
-                        self::recalcTotals($set, $get)
+                        ->afterStateUpdated(fn (callable $set, callable $get) => self::recalcTotals($set, $get)
                         ),
                 ]),
 
@@ -818,32 +970,28 @@ class SaleForm
                         ->label('Subtotal')
                         ->live()
                         ->extraAttributes(['data-summary' => 'subtotal'])
-                        ->content(fn (callable $get) =>
-                        'PKR ' . number_format((float) ($get('subtotal') ?? 0), 2)
+                        ->content(fn (callable $get) => 'PKR '.number_format((float) ($get('subtotal') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_discount_display')
                         ->label('Discount')
                         ->live()
                         ->extraAttributes(['data-summary' => 'discount'])
-                        ->content(fn (callable $get) =>
-                        'PKR ' . number_format((float) ($get('total_discount') ?? 0), 2)
+                        ->content(fn (callable $get) => 'PKR '.number_format((float) ($get('total_discount') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_tax_display')
                         ->label('Tax')
                         ->live()
                         ->extraAttributes(['data-summary' => 'tax'])
-                        ->content(fn (callable $get) =>
-                        'PKR ' . number_format((float) ($get('total_tax') ?? 0), 2)
+                        ->content(fn (callable $get) => 'PKR '.number_format((float) ($get('total_tax') ?? 0), 2)
                         ),
 
                     Placeholder::make('total_amount_display')
                         ->label('Total Amount')
                         ->live()
                         ->extraAttributes(['data-summary' => 'total'])
-                        ->content(fn (callable $get) =>
-                        'PKR ' . number_format((float) ($get('total_amount') ?? 0), 2)
+                        ->content(fn (callable $get) => 'PKR '.number_format((float) ($get('total_amount') ?? 0), 2)
                         ),
 
                     TextInput::make('current_payment_amount')
@@ -880,8 +1028,7 @@ class SaleForm
                     Placeholder::make('due_amount_display')
                         ->label('Amount Due')
                         ->live()
-                        ->content(fn (callable $get) =>
-                            'PKR ' . number_format((float) ($get('due_amount') ?? 0), 2)
+                        ->content(fn (callable $get) => 'PKR '.number_format((float) ($get('due_amount') ?? 0), 2)
                         ),
 
                     Hidden::make('subtotal')->default(0)->dehydrated(),
@@ -919,8 +1066,7 @@ class SaleForm
                         ->columnSpanFull()
                         ->label('Already Paid')
                         ->live()
-                        ->content(fn (callable $get) =>
-                            'PKR ' . number_format((float) ($get('previous_paid_amount') ?? 0), 2)
+                        ->content(fn (callable $get) => 'PKR '.number_format((float) ($get('previous_paid_amount') ?? 0), 2)
                         ),
 
                     Placeholder::make('payment_history')
@@ -958,9 +1104,9 @@ class SaleForm
         $user = Filament::auth()->user();
 
         return match (true) {
-            $user instanceof \App\Models\Merchant => $user->id,
-            $user instanceof \App\Models\User     => $user->merchant_id,
-            default                               => null,
+            $user instanceof Merchant => $user->id,
+            $user instanceof User => $user->merchant_id,
+            default => null,
         };
     }
 
@@ -970,7 +1116,7 @@ class SaleForm
             return false;
         }
 
-        return \App\Models\ProductVariant::query()
+        return ProductVariant::query()
             ->withoutTrashed()
             ->where('product_id', $productId)
             ->exists();
@@ -991,7 +1137,7 @@ class SaleForm
     {
         $user = Filament::auth()->user();
 
-        $merchant = $user instanceof \App\Models\Merchant
+        $merchant = $user instanceof Merchant
             ? $user
             : $user?->merchant;
 
@@ -1000,34 +1146,19 @@ class SaleForm
 
     private static function productOptions(?string $search = null): array
     {
-        $user = Filament::auth()->user();
+        return ProductStockAvailability::saleProductOptions(
+            self::merchantId(),
+            $search,
+        );
+    }
 
-        $query = Product::query()
-            ->withoutTrashed()
-            ->where('products.is_active', true)
-            ->where('products.merchant_id', self::merchantId());
-
-        if (filled($search)) {
-            $term = '%'.mb_strtolower(trim($search)).'%';
-
-            $query->where(function (Builder $q) use ($term) {
-                $q->whereRaw('LOWER(products.name) LIKE ?', [$term])
-                    ->orWhereRaw('LOWER(products.sku) LIKE ?', [$term]);
-            });
+    private static function editingSaleId(?object $livewire = null): ?string
+    {
+        if ($livewire === null || ! property_exists($livewire, 'record') || $livewire->record === null) {
+            return null;
         }
 
-        $query->orderBy('products.name');
-
-        if (filled($search)) {
-            $query->limit(50);
-        }
-
-        return $query
-            ->get(['products.id', 'products.name', 'products.sku'])
-            ->mapWithKeys(fn (Product $product) => [
-                $product->id => "{$product->name} ({$product->sku})",
-            ])
-            ->all();
+        return (string) $livewire->record->id;
     }
 
     private static function recalcTotals(callable $set, callable $get): void
@@ -1040,7 +1171,7 @@ class SaleForm
             $rootPrefix = '../../';
         }
 
-        $discountMode = $get($rootPrefix . 'discount_mode') ?? 'percent';
+        $discountMode = $get($rootPrefix.'discount_mode') ?? 'percent';
         $subtotal = 0.0;
         $totalDiscount = 0.0;
         $totalTax = 0.0;
@@ -1075,19 +1206,19 @@ class SaleForm
             $totalTax += $taxAmount;
         }
 
-        $set($rootPrefix . 'subtotal', $subtotal);
-        $set($rootPrefix . 'total_discount', $totalDiscount);
-        $set($rootPrefix . 'total_tax', $totalTax);
-        $set($rootPrefix . 'total_amount', $subtotal - $totalDiscount + $totalTax);
+        $set($rootPrefix.'subtotal', $subtotal);
+        $set($rootPrefix.'total_discount', $totalDiscount);
+        $set($rootPrefix.'total_tax', $totalTax);
+        $set($rootPrefix.'total_amount', $subtotal - $totalDiscount + $totalTax);
         self::syncPaymentFromTotals($set, $get, $rootPrefix);
     }
 
     private static function syncPaymentFromTotals(callable $set, callable $get, string $rootPrefix = ''): void
     {
-        $totalAmount = max(0, (float) ($get($rootPrefix . 'total_amount') ?? 0));
-        $previousPaid = max(0, (float) ($get($rootPrefix . 'previous_paid_amount') ?? 0));
+        $totalAmount = max(0, (float) ($get($rootPrefix.'total_amount') ?? 0));
+        $previousPaid = max(0, (float) ($get($rootPrefix.'previous_paid_amount') ?? 0));
         $maxCurrentPayment = max(0, $totalAmount - $previousPaid);
-        $currentPaymentValue = $get($rootPrefix . 'current_payment_amount');
+        $currentPaymentValue = $get($rootPrefix.'current_payment_amount');
 
         $currentPayment = $currentPaymentValue === null || $currentPaymentValue === ''
             ? ($previousPaid > 0 ? 0.0 : $totalAmount)
@@ -1097,10 +1228,10 @@ class SaleForm
         $paidAmount = max(0, min($totalAmount, $previousPaid + $currentPayment));
         $dueAmount = max(0, $totalAmount - $paidAmount);
 
-        $set($rootPrefix . 'current_payment_amount', round($currentPayment, 2));
-        $set($rootPrefix . 'paid_amount', round($paidAmount, 2));
-        $set($rootPrefix . 'due_amount', round($dueAmount, 2));
-        $set($rootPrefix . 'payment_type', $dueAmount > 0 ? 'credit' : 'cash');
+        $set($rootPrefix.'current_payment_amount', round($currentPayment, 2));
+        $set($rootPrefix.'paid_amount', round($paidAmount, 2));
+        $set($rootPrefix.'due_amount', round($dueAmount, 2));
+        $set($rootPrefix.'payment_type', $dueAmount > 0 ? 'credit' : 'cash');
     }
 
     private static function renderPaymentHistory($record): HtmlString
@@ -1118,32 +1249,32 @@ class SaleForm
         $rows = $payments->map(function ($payment) {
             $date = $payment->payment_date?->format('d/m/Y') ?? '—';
             $type = ucfirst((string) ($payment->entry_type ?? 'payment'));
-            $amount = 'PKR ' . number_format((float) ($payment->display_amount ?? 0), 2);
+            $amount = 'PKR '.number_format((float) ($payment->display_amount ?? 0), 2);
 
             $actionButton = '';
             if ((float) ($payment->amount ?? 0) > 0 && (string) ($payment->entry_type ?? 'payment') === 'payment') {
-                $actionButton = '<button type="button" wire:click="confirmReversePayment(\'' . e((string) $payment->id) . '\')"'
-                    . ' style="padding:2px 8px;border:1px solid #ef4444;border-radius:6px;color:#b91c1c;background:#fff;">-</button>';
+                $actionButton = '<button type="button" wire:click="confirmReversePayment(\''.e((string) $payment->id).'\')"'
+                    .' style="padding:2px 8px;border:1px solid #ef4444;border-radius:6px;color:#b91c1c;background:#fff;">-</button>';
             }
 
             return '<tr>'
-                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">' . e($date) . '</td>'
-                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">' . e($type) . '</td>'
-                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">' . e($amount) . '</td>'
-                . '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">' . $actionButton . '</td>'
-                . '</tr>';
+                .'<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">'.e($date).'</td>'
+                .'<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">'.e($type).'</td>'
+                .'<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">'.e($amount).'</td>'
+                .'<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">'.$actionButton.'</td>'
+                .'</tr>';
         })->implode('');
 
         $html = '<div style="overflow:auto;">'
-            . '<table style="width:100%;border-collapse:collapse;font-size:12px;">'
-            . '<thead><tr>'
-            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;">Date</th>'
-            . '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;">Type</th>'
-            . '<th style="text-align:right;padding:6px 8px;border-bottom:1px solid #d1d5db;">Amount</th>'
-            . '<th style="text-align:center;padding:6px 8px;border-bottom:1px solid #d1d5db;">Action</th>'
-            . '</tr></thead><tbody>'
-            . $rows
-            . '</tbody></table></div>';
+            .'<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+            .'<thead><tr>'
+            .'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;">Date</th>'
+            .'<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #d1d5db;">Type</th>'
+            .'<th style="text-align:right;padding:6px 8px;border-bottom:1px solid #d1d5db;">Amount</th>'
+            .'<th style="text-align:center;padding:6px 8px;border-bottom:1px solid #d1d5db;">Action</th>'
+            .'</tr></thead><tbody>'
+            .$rows
+            .'</tbody></table></div>';
 
         return new HtmlString($html);
     }

@@ -119,4 +119,18 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Mail test mode (local / staging)
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, all notification emails are delivered to test_address
+    | instead of the real customer or merchant email.
+    |
+    */
+
+    'test_mode' => env('MAIL_TEST_MODE', false),
+
+    'test_address' => env('MAIL_TEST_ADDRESS'),
+
 ];

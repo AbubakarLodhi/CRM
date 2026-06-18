@@ -6,7 +6,7 @@ use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Merchant;
 use App\Models\Product;
-use App\Models\ProductVariant;
+use App\Support\ProductStockAvailability;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -36,36 +36,13 @@ Route::get('/pos/products', function (Request $request) {
         ? $user->id
         : $user->merchant_id;
 
-    $query = Product::query()
-        ->withoutTrashed()
-        ->where('is_active', true)
-        ->where('merchant_id', $merchantId);
-
-    if ($search = $request->get('search')) {
-        $term = '%'.mb_strtolower(trim($search)).'%';
-        $query->where(fn ($q) => $q->whereRaw('LOWER(name) LIKE ?', [$term])
-            ->orWhereRaw('LOWER(sku) LIKE ?', [$term])
-        );
-    }
-
-    if ($categoryId = $request->get('category_id')) {
-        $query->where('category_id', $categoryId);
-    }
-
     return response()->json(
-        $query
-            ->with('productImage')
-            ->limit(50)
-            ->get(['id', 'name', 'sku', 'selling_price'])
-            ->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'sku' => $p->sku,
-                'selling_price' => $p->selling_price,
-                'image' => $p->productImage
-                    ? 'https://hdojyhoqzioxnbkuxjno.supabase.co/storage/v1/object/public/product-images/products/'.basename($p->productImage->photo_url)
-                    : null,
-            ])
+        ProductStockAvailability::posProductsForMerchant(
+            (string) $merchantId,
+            $request->get('search'),
+            $request->get('category_id'),
+            inStockOnly: false,
+        )
     );
 })->middleware(['web', 'auth:staff,merchant'])->name('pos.products');
 
@@ -77,11 +54,11 @@ Route::get('/pos/variants', function (Request $request) {
     }
 
     return response()->json(
-        ProductVariant::query()
-            ->withoutTrashed()
-            ->where('product_id', $productId)
-            ->limit(50)
-            ->get(['id', 'name', 'sku', 'selling_price'])
+        ProductStockAvailability::posVariantsForProduct(
+            (string) $productId,
+            $request->get('branch_id'),
+            inStockOnly: false,
+        )
     );
 })->middleware(['web', 'auth:staff,merchant'])->name('pos.variants');
 

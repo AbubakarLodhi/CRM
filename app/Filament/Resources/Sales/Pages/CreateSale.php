@@ -6,21 +6,27 @@ use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Sales\SaleResource;
-use App\Models\Customer;
-use App\Services\Notifications\NotificationDispatcher;
 use App\Models\Branch;
+use App\Models\Customer;
+use App\Models\Merchant;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Sale;
+use App\Models\User;
 use App\Services\CreditReminderScheduler;
+use App\Services\Notifications\NotificationDispatcher;
 use App\Services\PaymentLedgerService;
+use App\Support\ProductStockAvailability;
+use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Livewire\Attributes\On;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class CreateSale extends CreateRecord
@@ -31,22 +37,29 @@ class CreateSale extends CreateRecord
     public string $viewMode = 'standard'; // 'standard' | 'pos'
 
     // POS state
-    public array   $posCart          = [];
-    public ?string $posCustomerId    = null;
-    public string  $posDiscountMode  = 'percent';
+    public array $posCart = [];
+
+    public ?string $posCustomerId = null;
+
+    public string $posDiscountMode = 'percent';
+
     public string $posPaymentMethod = 'cash';
 
     /** @var float|int|string|null */
     public $posPaidAmount = 0;
-    public string  $posSaleNo        = '';
-    public string  $posSaleDate      = '';
-    public string  $posNotes         = '';
-    public string  $posDueDate       = '';
+
+    public string $posSaleNo = '';
+
+    public string $posSaleDate = '';
+
+    public string $posNotes = '';
+
+    public string $posDueDate = '';
 
     public function mount(): void
     {
         parent::mount();
-        $this->posSaleNo   = 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+        $this->posSaleNo = 'SAL-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -6));
         $this->posSaleDate = now()->format('Y-m-d');
 
     }
@@ -66,7 +79,7 @@ class CreateSale extends CreateRecord
     public function getPosProducts(?string $search = null): array
     {
         $user = Filament::auth()->user();
-        $merchantId = $user instanceof \App\Models\Merchant
+        $merchantId = $user instanceof Merchant
             ? $user->id
             : $user?->merchant_id;
 
@@ -76,10 +89,9 @@ class CreateSale extends CreateRecord
             ->where('merchant_id', $merchantId);
 
         if (filled($search)) {
-            $term = '%' . mb_strtolower(trim($search)) . '%';
-            $query->where(fn ($q) =>
-                $q->whereRaw('LOWER(name) LIKE ?', [$term])
-                  ->orWhereRaw('LOWER(sku) LIKE ?', [$term])
+            $term = '%'.mb_strtolower(trim($search)).'%';
+            $query->where(fn ($q) => $q->whereRaw('LOWER(name) LIKE ?', [$term])
+                ->orWhereRaw('LOWER(sku) LIKE ?', [$term])
             );
         }
 
@@ -99,11 +111,11 @@ class CreateSale extends CreateRecord
     public function getPosBranches(string $productId): array
     {
         $user = Filament::auth()->user();
-        $merchantId = $user instanceof \App\Models\Merchant
+        $merchantId = $user instanceof Merchant
             ? $user->id
             : $user?->merchant_id;
 
-        $hasBranchAssignments = \Illuminate\Support\Facades\DB::table('branch_products')
+        $hasBranchAssignments = DB::table('branch_products')
             ->where('product_id', $productId)
             ->exists();
 
@@ -112,11 +124,10 @@ class CreateSale extends CreateRecord
             ->where('merchant_id', $merchantId);
 
         if ($hasBranchAssignments) {
-            $query->whereExists(fn ($q) =>
-                $q->selectRaw(1)
-                  ->from('branch_products')
-                  ->whereColumn('branch_products.branch_id', 'branches.id')
-                  ->where('branch_products.product_id', $productId)
+            $query->whereExists(fn ($q) => $q->selectRaw(1)
+                ->from('branch_products')
+                ->whereColumn('branch_products.branch_id', 'branches.id')
+                ->where('branch_products.product_id', $productId)
             );
         }
 
@@ -139,32 +150,94 @@ class CreateSale extends CreateRecord
             ->all();
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function fetchPosProducts(?string $search = null, ?string $categoryId = null): array
+    {
+        $merchantId = $this->resolveMerchantId();
+
+        if (! filled($merchantId)) {
+            return [];
+        }
+
+        return ProductStockAvailability::posProductsForMerchant(
+            (string) $merchantId,
+            $search,
+            filled($categoryId) ? $categoryId : null,
+            inStockOnly: false,
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function fetchPosVariants(string $productId, ?string $branchId = null): array
+    {
+        if (! filled($productId)) {
+            return [];
+        }
+
+        return ProductStockAvailability::posVariantsForProduct(
+            $productId,
+            filled($branchId) ? $branchId : null,
+            inStockOnly: false,
+        );
+    }
+
+    private function resolveMerchantId(): ?string
+    {
+        $user = Filament::auth()->user();
+
+        if ($user instanceof Merchant) {
+            return (string) $user->id;
+        }
+
+        return filled($user?->merchant_id) ? (string) $user->merchant_id : null;
+    }
+
     public function posAddItem(string $productId, string $variantId, string $branchId): void
     {
-        $variant = ProductVariant::find($variantId);
-        if (! $variant) return;
+        $variant = ProductVariant::query()->with('product')->find($variantId);
+        if (! $variant) {
+            return;
+        }
 
-        $key = $productId . '_' . $variantId . '_' . $branchId;
+        $key = $productId.'_'.$variantId.'_'.$branchId;
+        $newQty = isset($this->posCart[$key])
+            ? (int) $this->posCart[$key]['quantity'] + 1
+            : 1;
+
+        if (! ProductStockAvailability::isVariantAvailable($variant, $branchId, $newQty)) {
+            Notification::make()
+                ->title('Out of stock')
+                ->body('This product is not available in the selected branch.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
         if (isset($this->posCart[$key])) {
             $this->posCart[$key]['quantity']++;
         } else {
             $product = Product::find($productId);
-            $branch  = Branch::find($branchId);
+            $branch = Branch::find($branchId);
             $this->posCart[$key] = [
-                'key'                => $key,
-                'product_id'         => $productId,
-                'product_name'       => $product?->name ?? '',
+                'key' => $key,
+                'product_id' => $productId,
+                'product_name' => $product?->name ?? '',
                 'product_variant_id' => $variantId,
-                'variant_name'       => $variant->name ?? $variant->sku ?? '',
-                'branch_id'          => $branchId,
-                'branch_name'        => $branch?->name ?? '',
-                'quantity'           => 1,
-                'unit_price'         => (float) ($variant->selling_price ?? 0),
-                'discount'           => 0,
-                'discount_amount'    => 0,
-                'tax'                => 0,
-                'tax_amount'         => 0,
-                'line_total'         => (float) ($variant->selling_price ?? 0),
+                'variant_name' => $variant->name ?? $variant->sku ?? '',
+                'branch_id' => $branchId,
+                'branch_name' => $branch?->name ?? '',
+                'quantity' => 1,
+                'unit_price' => (float) ($variant->selling_price ?? 0),
+                'discount' => 0,
+                'discount_amount' => 0,
+                'tax' => 0,
+                'tax_amount' => 0,
+                'line_total' => (float) ($variant->selling_price ?? 0),
             ];
         }
         $this->recalcPosCart();
@@ -172,15 +245,40 @@ class CreateSale extends CreateRecord
 
     public function posUpdateQty(string $key, int $delta): void
     {
-        if (! isset($this->posCart[$key])) return;
+        if (! isset($this->posCart[$key])) {
+            return;
+        }
 
         $newQty = $this->posCart[$key]['quantity'] + $delta;
 
         if ($newQty <= 0) {
-            // Remove item when quantity hits zero via the minus button
             unset($this->posCart[$key]);
             $this->recalcPosCart();
+
             return;
+        }
+
+        if ($delta > 0) {
+            $variant = ProductVariant::query()
+                ->with('product')
+                ->find($this->posCart[$key]['product_variant_id'] ?? null);
+
+            if (
+                $variant
+                && ! ProductStockAvailability::isVariantAvailable(
+                    $variant,
+                    (string) ($this->posCart[$key]['branch_id'] ?? ''),
+                    $newQty,
+                )
+            ) {
+                Notification::make()
+                    ->title('Out of stock')
+                    ->body('Not enough stock remaining for this item.')
+                    ->warning()
+                    ->send();
+
+                return;
+            }
         }
 
         $this->posCart[$key]['quantity'] = $newQty;
@@ -203,7 +301,9 @@ class CreateSale extends CreateRecord
 
     public function posUpdateField(string $key, string $field, $value): void
     {
-        if (! isset($this->posCart[$key])) return;
+        if (! isset($this->posCart[$key])) {
+            return;
+        }
         $this->posCart[$key][$field] = $value;
         $this->recalcPosItem($key);
         $this->recalcPosCart();
@@ -211,29 +311,29 @@ class CreateSale extends CreateRecord
 
     private function recalcPosItem(string $key): void
     {
-        $item         = &$this->posCart[$key];
-        $qty          = (float) ($item['quantity'] ?? 1);
-        $unit         = (float) ($item['unit_price'] ?? 0);
+        $item = &$this->posCart[$key];
+        $qty = (float) ($item['quantity'] ?? 1);
+        $unit = (float) ($item['unit_price'] ?? 0);
         $lineSubtotal = $qty * $unit;
 
         if ($this->posDiscountMode === 'amount') {
             $discAmt = min(max(0, (float) ($item['discount_amount'] ?? 0)), $lineSubtotal);
             $taxable = max(0, $lineSubtotal - $discAmt);
-            $taxAmt  = min(max(0, (float) ($item['tax_amount'] ?? 0)), $lineSubtotal);
+            $taxAmt = min(max(0, (float) ($item['tax_amount'] ?? 0)), $lineSubtotal);
             $discRate = $lineSubtotal > 0 ? ($discAmt / $lineSubtotal) * 100 : 0;
-            $taxRate  = $taxable > 0 ? ($taxAmt / $taxable) * 100 : 0;
-            $item['discount']        = round($discRate, 6);
-            $item['tax']             = round($taxRate, 6);
+            $taxRate = $taxable > 0 ? ($taxAmt / $taxable) * 100 : 0;
+            $item['discount'] = round($discRate, 6);
+            $item['tax'] = round($taxRate, 6);
             $item['discount_amount'] = round($discAmt, 2);
-            $item['tax_amount']      = round($taxAmt, 2);
+            $item['tax_amount'] = round($taxAmt, 2);
         } else {
             $discRate = max(0, min(100, (float) ($item['discount'] ?? 0)));
-            $taxRate  = max(0, min(100, (float) ($item['tax'] ?? 0)));
-            $discAmt  = $lineSubtotal * ($discRate / 100);
-            $taxable  = max(0, $lineSubtotal - $discAmt);
-            $taxAmt   = $taxable * ($taxRate / 100);
+            $taxRate = max(0, min(100, (float) ($item['tax'] ?? 0)));
+            $discAmt = $lineSubtotal * ($discRate / 100);
+            $taxable = max(0, $lineSubtotal - $discAmt);
+            $taxAmt = $taxable * ($taxRate / 100);
             $item['discount_amount'] = round($discAmt, 2);
-            $item['tax_amount']      = round($taxAmt, 2);
+            $item['tax_amount'] = round($taxAmt, 2);
         }
 
         $item['line_total'] = round($taxable + $taxAmt, 2);
@@ -260,7 +360,7 @@ class CreateSale extends CreateRecord
         $this->posPaidAmount = max(0, min($total, (float) ($this->posPaidAmount ?? 0)));
 
         if ($this->getPosDueAmount() > 0 && blank($this->posDueDate)) {
-            $this->posDueDate = \Carbon\Carbon::parse($this->posSaleDate ?: now())
+            $this->posDueDate = Carbon::parse($this->posSaleDate ?: now())
                 ->addDays(30)
                 ->format('Y-m-d');
         }
@@ -277,7 +377,7 @@ class CreateSale extends CreateRecord
 
         if ($this->posPaymentMethod === 'cash') {
             $this->posPaidAmount = $this->getPosTotal();
-            $this->posDueDate    = '';
+            $this->posDueDate = '';
 
             return;
         }
@@ -292,13 +392,13 @@ class CreateSale extends CreateRecord
     public function posPaidAmountChanged($value): void
     {
         $total = $this->getPosTotal();
-        $paid  = max(0, min($total, (float) $value));
+        $paid = max(0, min($total, (float) $value));
 
         $this->posPaidAmount = $paid;
 
         if ($paid >= $total - 0.001) {
             $this->posPaymentMethod = 'cash';
-            $this->posDueDate       = '';
+            $this->posDueDate = '';
 
             return;
         }
@@ -310,7 +410,7 @@ class CreateSale extends CreateRecord
     private function ensurePosDueDate(): void
     {
         if ($this->getPosDueAmount() > 0 && blank($this->posDueDate)) {
-            $this->posDueDate = \Carbon\Carbon::parse($this->posSaleDate ?: now())
+            $this->posDueDate = Carbon::parse($this->posSaleDate ?: now())
                 ->addDays(30)
                 ->format('Y-m-d');
         }
@@ -324,7 +424,7 @@ class CreateSale extends CreateRecord
     public function posSetNoPayment(): void
     {
         $this->posPaymentMethod = 'credit';
-        $this->posPaidAmount    = 0;
+        $this->posPaidAmount = 0;
         $this->ensurePosDueDate();
     }
 
@@ -365,6 +465,7 @@ class CreateSale extends CreateRecord
         $this->resetPosAfterSale();
 
         $this->dispatch('pos-order-placed', saleId: $sale->id, saleNo: $sale->sale_no);
+        $this->dispatch('pos-products-refresh');
     }
 
     // ─── POS submit and create another ────────────────────────────
@@ -378,11 +479,13 @@ class CreateSale extends CreateRecord
         $this->queueSaleCreatedEmail($sale->fresh(['customer', 'merchant']));
         $this->resetPosAfterSale(keepView: true);
 
-        \Filament\Notifications\Notification::make()
+        Notification::make()
             ->title('Sale created')
             ->body('Cart cleared — ready for the next order.')
             ->success()
             ->send();
+
+        $this->dispatch('pos-products-refresh');
     }
 
     private function validatePosOrder(): bool
@@ -399,6 +502,18 @@ class CreateSale extends CreateRecord
             return false;
         }
 
+        $stockError = ProductStockAvailability::validateSaleItemsStock(array_values($this->posCart));
+
+        if ($stockError !== null) {
+            Notification::make()
+                ->title('Out of stock')
+                ->body($stockError)
+                ->warning()
+                ->send();
+
+            return false;
+        }
+
         return true;
     }
 
@@ -406,32 +521,32 @@ class CreateSale extends CreateRecord
     private function buildPosSaleData(): array
     {
         $total = $this->getPosTotal();
-        $paid  = max(0, min($total, (float) $this->posPaidAmount));
-        $due   = max(0, round($total - $paid, 2));
+        $paid = max(0, min($total, (float) $this->posPaidAmount));
+        $due = max(0, round($total - $paid, 2));
 
         return [
-            'sale_no'        => $this->posSaleNo,
-            'sale_date'      => $this->posSaleDate,
-            'customer_id'    => $this->posCustomerId,
+            'sale_no' => $this->posSaleNo,
+            'sale_date' => $this->posSaleDate,
+            'customer_id' => $this->posCustomerId,
             'payment_method' => $due > 0 ? 'credit' : 'cash',
-            'paid_amount'    => $paid,
-            'due_date'       => $due > 0 && filled($this->posDueDate) ? $this->posDueDate : null,
-            'notes'          => filled($this->posNotes) ? $this->posNotes : null,
-            'items'          => array_values($this->posCart),
+            'paid_amount' => $paid,
+            'due_date' => $due > 0 && filled($this->posDueDate) ? $this->posDueDate : null,
+            'notes' => filled($this->posNotes) ? $this->posNotes : null,
+            'items' => array_values($this->posCart),
         ];
     }
 
     private function resetPosAfterSale(bool $keepView = false): void
     {
-        $this->posCart          = [];
-        $this->posCustomerId    = null;
-        $this->posPaidAmount    = 0.0;
+        $this->posCart = [];
+        $this->posCustomerId = null;
+        $this->posPaidAmount = 0.0;
         $this->posPaymentMethod = 'cash';
-        $this->posNotes         = '';
-        $this->posDueDate       = '';
-        $this->posDiscountMode  = 'percent';
-        $this->posSaleNo        = 'SAL-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
-        $this->posSaleDate      = now()->format('Y-m-d');
+        $this->posNotes = '';
+        $this->posDueDate = '';
+        $this->posDiscountMode = 'percent';
+        $this->posSaleNo = 'SAL-'.date('Ymd').'-'.strtoupper(substr(uniqid(), -6));
+        $this->posSaleDate = now()->format('Y-m-d');
     }
 
     /**
@@ -490,51 +605,59 @@ class CreateSale extends CreateRecord
     // ─── handleRecordCreation ─────────────────────────────────────
     protected function handleRecordCreation(array $data): Model
     {
+        $stockError = ProductStockAvailability::validateSaleItemsStock($data['items'] ?? []);
+
+        if ($stockError !== null) {
+            throw ValidationException::withMessages([
+                'data.items' => $stockError,
+            ]);
+        }
+
         return DB::transaction(function () use ($data) {
 
             $items = $data['items'] ?? [];
             unset($data['items']);
-            $items       = self::normalizeItems($items);
+            $items = self::normalizeItems($items);
             $paymentDate = $data['payment_date'] ?? null;
             unset($data['payment_date']);
 
             $panel = Filament::getCurrentPanel();
             $guard = $panel?->getAuthGuard();
-            $user  = $guard ? auth($guard)->user() : Filament::auth()->user();
+            $user = $guard ? auth($guard)->user() : Filament::auth()->user();
 
-            if ($guard === 'staff' && $user instanceof \App\Models\User) {
+            if ($guard === 'staff' && $user instanceof User) {
                 $data['merchant_id'] = $user->merchant_id;
-                $data['created_by']  = $user->id;
-            } elseif ($user instanceof \App\Models\Merchant) {
+                $data['created_by'] = $user->id;
+            } elseif ($user instanceof Merchant) {
                 $data['merchant_id'] = $user->id;
-                $data['created_by']  = null;
-            } elseif ($user instanceof \App\Models\User) {
+                $data['created_by'] = null;
+            } elseif ($user instanceof User) {
                 $data['merchant_id'] = $user->merchant_id;
-                $data['created_by']  = $user->id;
+                $data['created_by'] = $user->id;
             }
 
-            $subtotal      = 0.0;
+            $subtotal = 0.0;
             $totalDiscount = 0.0;
-            $totalTax      = 0.0;
+            $totalTax = 0.0;
 
             foreach ($items as $item) {
-                $qty          = (float) ($item['quantity'] ?? 0);
-                $unitPrice    = (float) ($item['unit_price'] ?? 0);
+                $qty = (float) ($item['quantity'] ?? 0);
+                $unitPrice = (float) ($item['unit_price'] ?? 0);
                 $lineSubtotal = $qty * $unitPrice;
                 $subtotal += $lineSubtotal;
 
                 $discountRate = max(0, min(100, (float) ($item['discount'] ?? 0)));
-                $taxRate      = max(0, min(100, (float) ($item['tax'] ?? 0)));
+                $taxRate = max(0, min(100, (float) ($item['tax'] ?? 0)));
 
                 $discountAmount = $lineSubtotal * ($discountRate / 100);
-                $taxableAmount  = max(0, $lineSubtotal - $discountAmount);
-                $taxAmount      = $taxableAmount * ($taxRate / 100);
+                $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+                $taxAmount = $taxableAmount * ($taxRate / 100);
 
                 $totalDiscount += $discountAmount;
-                $totalTax      += $taxAmount;
+                $totalTax += $taxAmount;
             }
 
-            $data['subtotal']     = round($subtotal, 2);
+            $data['subtotal'] = round($subtotal, 2);
             $data['total_amount'] = round($subtotal - $totalDiscount + $totalTax, 2);
 
             self::applyPaymentFields($data);
@@ -551,49 +674,51 @@ class CreateSale extends CreateRecord
 
             foreach ($items as $item) {
                 $branch = Branch::select('id', 'business_id')->find($item['branch_id']);
-                if (! $branch) continue;
+                if (! $branch) {
+                    continue;
+                }
 
                 $saleItem = $sale->items()->create([
                     'business_id' => $branch->business_id,
-                    'branch_id'   => $branch->id,
-                    'product_id'  => $item['product_id'],
-                    'quantity'    => $item['quantity'],
-                    'unit_price'  => $item['unit_price'],
-                    'line_total'  => $item['line_total'],
-                    'discount'    => $item['discount'] ?? 0,
-                    'tax'         => $item['tax'] ?? 0,
+                    'branch_id' => $branch->id,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'line_total' => $item['line_total'],
+                    'discount' => $item['discount'] ?? 0,
+                    'tax' => $item['tax'] ?? 0,
                 ]);
 
                 if (! empty($item['product_variant_id'])) {
                     $saleItem->variants()->create([
                         'product_variant_id' => $item['product_variant_id'],
-                        'quantity'           => $item['quantity'],
-                        'unit_price'         => $item['unit_price'],
-                        'line_total'         => $item['line_total'],
+                        'quantity' => $item['quantity'],
+                        'unit_price' => $item['unit_price'],
+                        'line_total' => $item['line_total'],
                     ]);
                 }
             }
 
             $firstItem = $sale->items()->first();
             if ($firstItem) {
-                \App\Models\Order::create([
+                Order::create([
                     'merchant_id' => $sale->merchant_id,
-                    'sale_id'     => $sale->id,
-                    'status'      => 'pending',
+                    'sale_id' => $sale->id,
+                    'status' => 'pending',
                 ]);
             }
 
             $state = method_exists($this, 'form') ? $this->form->getRawState() : [];
 
             if (array_key_exists('merchant_logo', $state)) {
-                $merchant = $user instanceof \App\Models\Merchant ? $user : $user?->merchant;
+                $merchant = $user instanceof Merchant ? $user : $user?->merchant;
                 if ($merchant && ($logo = collect($state['merchant_logo'])->first())) {
                     $merchant->logo()?->delete();
                     $merchant->logo()->create([
                         'merchant_id' => $merchant->id,
-                        'type'        => AttachmentType::IMAGE,
-                        'meta_type'   => AttachmentMetaType::MERCHANT_LOGO,
-                        'photo_url'   => $logo,
+                        'type' => AttachmentType::IMAGE,
+                        'meta_type' => AttachmentMetaType::MERCHANT_LOGO,
+                        'photo_url' => $logo,
                     ]);
                 }
             }
@@ -624,7 +749,9 @@ class CreateSale extends CreateRecord
     protected function afterCreate(): void
     {
         $sale = $this->record->fresh(['customer']);
-        if (! $sale) return;
+        if (! $sale) {
+            return;
+        }
         $this->queueSaleCreatedEmail($sale);
     }
 
@@ -635,7 +762,7 @@ class CreateSale extends CreateRecord
         } catch (Throwable $exception) {
             Log::error('SaleCreated notification failed.', [
                 'sale_id' => $sale->id,
-                'error'   => $exception->getMessage(),
+                'error' => $exception->getMessage(),
             ]);
         }
     }
@@ -643,23 +770,23 @@ class CreateSale extends CreateRecord
     private static function normalizeItems(array $items): array
     {
         foreach ($items as &$item) {
-            $qty          = (float) ($item['quantity'] ?? 0);
-            $unitPrice    = (float) ($item['unit_price'] ?? 0);
+            $qty = (float) ($item['quantity'] ?? 0);
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
             $lineSubtotal = $qty * $unitPrice;
-            $lineTotal    = $lineSubtotal;
+            $lineTotal = $lineSubtotal;
 
-            $discountRate   = (float) ($item['discount'] ?? 0);
+            $discountRate = (float) ($item['discount'] ?? 0);
             $discountAmount = (float) ($item['discount_amount'] ?? 0);
 
             if ($discountAmount > 0 && $lineTotal > 0) {
                 $discountRate = ($discountAmount / $lineTotal) * 100;
             }
 
-            $discountRate   = max(0, min(100, $discountRate));
+            $discountRate = max(0, min(100, $discountRate));
             $discountAmount = $lineTotal * ($discountRate / 100);
 
-            $taxRate      = (float) ($item['tax'] ?? 0);
-            $taxAmount    = (float) ($item['tax_amount'] ?? 0);
+            $taxRate = (float) ($item['tax'] ?? 0);
+            $taxAmount = (float) ($item['tax_amount'] ?? 0);
             $taxableAmount = $lineTotal - $discountAmount;
 
             if ($taxAmount > 0 && $taxableAmount > 0) {
@@ -669,8 +796,8 @@ class CreateSale extends CreateRecord
             $taxRate = max(0, min(100, $taxRate));
 
             $item['line_total'] = $lineTotal;
-            $item['discount']   = round($discountRate, 6);
-            $item['tax']        = round($taxRate, 6);
+            $item['discount'] = round($discountRate, 6);
+            $item['tax'] = round($taxRate, 6);
         }
 
         return $items;
@@ -704,7 +831,7 @@ class CreateSale extends CreateRecord
         if ($dueAmount <= 0) {
             $data['due_date'] = null;
         } elseif (empty($data['due_date']) && ! empty($data['sale_date'])) {
-            $data['due_date'] = \Carbon\Carbon::parse($data['sale_date'])->addDays(30)->toDateString();
+            $data['due_date'] = Carbon::parse($data['sale_date'])->addDays(30)->toDateString();
         }
 
         unset($data['payment_method']);

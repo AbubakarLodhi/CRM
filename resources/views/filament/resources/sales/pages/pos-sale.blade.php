@@ -139,6 +139,37 @@
             position: relative;
         }
 
+        .pos-prod-card.is-disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: grayscale(0.35);
+        }
+
+        .pos-prod-card.is-disabled:hover {
+            border-color: var(--pos-border);
+            box-shadow: none;
+        }
+
+        .pos-prod-stock-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: color-mix(in srgb, var(--pos-danger) 12%, #fff);
+            color: var(--pos-danger);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 7px;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .pos-prod-stock-badge.in-stock {
+            background: color-mix(in srgb, var(--pos-success) 12%, #fff);
+            color: var(--pos-success);
+            text-transform: none;
+        }
+
         .pos-prod-card:hover {
             border-color: var(--pos-primary);
             box-shadow: 0 8px 20px color-mix(in srgb, var(--pos-primary) 12%, transparent);
@@ -763,7 +794,9 @@
                     this.lastSaleId = e.detail.saleId;
                     this.lastSaleNo = e.detail.saleNo;
                     this.showOrderModal = true;
+                    this.loadProducts();
                 });
+                window.addEventListener('pos-products-refresh', () => this.loadProducts());
             },
 
             loadCategories() {
@@ -771,9 +804,8 @@
             },
 
             loadProducts() {
-                let url = '/pos/products?search=' + encodeURIComponent(this.search);
-                if (this.activeCategory) url += '&category_id=' + this.activeCategory;
-                fetch(url).then(r => r.json()).then(d => { this.products = d; });
+                this.$wire.fetchPosProducts(this.search, this.activeCategory || null)
+                    .then(d => { this.products = d; });
             },
 
             filterByCategory(categoryId) {
@@ -781,26 +813,49 @@
                 this.loadProducts();
             },
 
-            loadVariants(productId) {
+            loadVariants(productId, branchId = null) {
                 this.modalVariant = null;
-                this.modalBranch = null;
                 this.variants = [];
+                if (!productId) return;
+                this.$wire.fetchPosVariants(productId, branchId || null)
+                    .then(d => { this.variants = d; });
+            },
+
+            loadBranches(productId) {
                 this.branches = [];
                 if (!productId) return;
-                fetch('/pos/variants?product_id=' + productId).then(r => r.json()).then(d => { this.variants = d; });
-                fetch('/pos/branches?product_id=' + productId).then(r => r.json()).then(d => { this.branches = d; });
+                fetch('/pos/branches?product_id=' + encodeURIComponent(productId))
+                    .then(r => r.json())
+                    .then(d => { this.branches = d; });
             },
 
             openModal(product) {
+                if (!product?.in_stock && this.getProductQty(product.id) <= 0) return;
                 this.modalProduct = product;
                 this.modalVariant = null;
                 this.modalBranch = null;
-                this.loadVariants(product.id);
+                this.variants = [];
+                this.loadBranches(product.id);
                 this.showModal = true;
             },
 
+            onBranchChanged() {
+                if (!this.modalProduct?.id || !this.modalBranch) {
+                    this.variants = [];
+                    this.modalVariant = null;
+                    return;
+                }
+                this.loadVariants(this.modalProduct.id, this.modalBranch);
+            },
+
+            selectedVariantInStock() {
+                if (!this.modalVariant) return false;
+                let variant = this.variants.find(v => String(v.id) === String(this.modalVariant));
+                return variant ? !!variant.in_stock : false;
+            },
+
             confirmAdd() {
-                if (!this.modalVariant || !this.modalBranch) return;
+                if (!this.modalVariant || !this.modalBranch || !this.selectedVariantInStock()) return;
                 $wire.posAddItem(this.modalProduct.id, this.modalVariant, this.modalBranch);
                 this.showModal = false;
             },
@@ -841,6 +896,7 @@
             }
         }"
         x-init="init()"
+        @pos-products-refresh.window="loadProducts()"
         class="pos-root"
     >
         <div class="pos-wrap">
@@ -865,7 +921,17 @@
 
                 <div class="pos-products">
                     <template x-for="product in products" :key="product.id">
-                        <div class="pos-prod-card" @click="openModal(product)">
+                        <div
+                            class="pos-prod-card"
+                            :class="{ 'is-disabled': !product.in_stock && getProductQty(product.id) <= 0 }"
+                            @click="openModal(product)"
+                        >
+                            <span
+                                class="pos-prod-stock-badge"
+                                :class="{ 'in-stock': product.in_stock && product.tracks_inventory }"
+                                x-show="product.tracks_inventory"
+                                x-text="product.in_stock ? ('Stock: ' + parseFloat(product.stock || 0)) : 'Out of stock'"
+                            ></span>
                             <div class="pos-prod-icon">
                                 <template x-if="product.image">
                                     <img :src="product.image" alt="" style="width:100%;height:100%;object-fit:cover;" />
@@ -1084,7 +1150,7 @@
                     <h3 x-text="modalProduct ? 'Add: ' + modalProduct.name : 'Add product'"></h3>
 
                     <label for="pos-modal-branch">Branch</label>
-                    <select id="pos-modal-branch" x-model="modalBranch">
+                    <select id="pos-modal-branch" x-model="modalBranch" @change="onBranchChanged()">
                         <option value="">Select branch…</option>
                         <template x-for="b in branches" :key="b.id">
                             <option :value="b.id" x-text="b.name"></option>
@@ -1092,23 +1158,34 @@
                     </select>
 
                     <label for="pos-modal-variant">Variant</label>
-                    <select id="pos-modal-variant" x-model="modalVariant">
+                    <select id="pos-modal-variant" x-model="modalVariant" :disabled="!modalBranch">
                         <option value="">Select variant…</option>
                         <template x-for="v in variants" :key="v.id">
-                            <option :value="v.id" x-text="(v.name || v.sku || v.id) + ' — PKR ' + parseFloat(v.selling_price || 0).toFixed(2)"></option>
+                            <option
+                                :value="v.id"
+                                :disabled="!v.in_stock"
+                                x-text="(v.name || v.sku || v.id)
+                                    + ' — PKR ' + parseFloat(v.selling_price || 0).toFixed(2)
+                                    + (v.tracks_inventory ? (v.in_stock ? ' (Stock: ' + parseFloat(v.stock || 0) + ')' : ' — Out of stock') : '')"
+                            ></option>
                         </template>
                     </select>
 
-                    <p x-show="branches.length === 0 && variants.length === 0"
+                    <p x-show="modalBranch && variants.length > 0 && variants.every(v => !v.in_stock)"
+                        style="margin:12px 0 0;font-size:12px;color:var(--pos-danger);">
+                        No variants in stock for the selected branch.
+                    </p>
+
+                    <p x-show="!modalBranch"
                         style="margin:12px 0 0;font-size:12px;color:#6b7280;">
-                        Loading options…
+                        Select a branch to load variant stock.
                     </p>
 
                     <div class="pos-modal-actions">
                         <button type="button" class="pos-modal-cancel" @click="showModal = false">Cancel</button>
                         <button type="button" class="pos-modal-add" @click="confirmAdd()"
-                            :disabled="!modalVariant || !modalBranch"
-                            :style="(!modalVariant || !modalBranch) ? 'opacity:0.5;cursor:not-allowed' : ''">
+                            :disabled="!modalVariant || !modalBranch || !selectedVariantInStock()"
+                            :style="(!modalVariant || !modalBranch || !selectedVariantInStock()) ? 'opacity:0.5;cursor:not-allowed' : ''">
                             Add to cart
                         </button>
                     </div>
@@ -1131,7 +1208,7 @@
                         <button type="button" class="pos-order-btn-invoice" @click="openInvoice()">View invoice</button>
                         <button type="button" class="pos-order-btn-sales" @click="goToSales()">All sales</button>
                     </div>
-                    <button type="button" class="pos-order-btn-another" @click="showOrderModal = false">
+                    <button type="button" class="pos-order-btn-another" @click="showOrderModal = false; loadProducts()">
                         Continue selling
                     </button>
                 </div>

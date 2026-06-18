@@ -2,14 +2,13 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\Merchant;
 use App\Models\CashFlow;
 use App\Models\Expense;
+use App\Models\Merchant;
 use App\Models\Payroll;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Models\User;
-use BackedEnum;
 use Filament\Facades\Filament;
 use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Filament\Widgets\Widget;
@@ -27,6 +26,121 @@ class ReportsStatsWidget extends Widget
 
     protected static ?int $sort = 1;
 
+    /** @var list<string> */
+    public array $overviewModules = [];
+
+    /**
+     * @return array<string, string>
+     */
+    public static function overviewModuleOptions(): array
+    {
+        return [
+            'sales' => 'Sales',
+            'purchases' => 'Purchases',
+            'profit_loss' => 'Profit & Loss',
+            'stock' => 'Stock',
+            'inventory_movement' => 'Inventory Movement',
+            'expenses' => 'Expenses',
+            'funds' => 'Total Funds',
+            'cash_flow' => 'Cash Flow',
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function selectedOverviewModules(): array
+    {
+        $validKeys = array_keys(self::overviewModuleOptions());
+
+        $selected = collect($this->overviewModules)
+            ->filter(fn (mixed $key): bool => is_string($key) && in_array($key, $validKeys, true))
+            ->values()
+            ->all();
+
+        if ($selected === []) {
+            return $validKeys;
+        }
+
+        return array_values(array_filter(
+            $validKeys,
+            fn (string $key): bool => in_array($key, $selected, true),
+        ));
+    }
+
+    protected function overviewShowsModule(string $module): bool
+    {
+        return in_array($module, $this->selectedOverviewModules(), true);
+    }
+
+    /**
+     * @return list<array{modules: list<string>, classes: string}>
+     */
+    protected function overviewLayoutRows(): array
+    {
+        $modules = $this->selectedOverviewModules();
+        $count = count($modules);
+
+        if ($count === 0) {
+            return [];
+        }
+
+        if ($count <= 3) {
+            return [[
+                'modules' => $modules,
+                'classes' => $this->overviewRowGridClasses($count),
+            ]];
+        }
+
+        $rows = [];
+        $chunks = array_chunk($modules, 3);
+
+        foreach ($chunks as $index => $chunk) {
+            $isLast = $index === count($chunks) - 1;
+            $chunkCount = count($chunk);
+
+            $rows[] = [
+                'modules' => $chunk,
+                'classes' => ($isLast && $chunkCount < 3)
+                    ? $this->overviewRowGridClasses($chunkCount)
+                    : 'grid grid-cols-1 gap-6 lg:grid-cols-3',
+            ];
+        }
+
+        return $rows;
+    }
+
+    protected function overviewRowGridClasses(int $count): string
+    {
+        return match ($count) {
+            1 => 'grid grid-cols-1 gap-6 max-w-md mx-auto',
+            2 => 'grid grid-cols-1 gap-6 sm:grid-cols-2 max-w-4xl mx-auto',
+            default => 'grid grid-cols-1 gap-6 lg:grid-cols-3',
+        };
+    }
+
+    protected function overviewModulesFilterLabel(): string
+    {
+        $selected = collect($this->overviewModules)
+            ->filter(fn (mixed $key): bool => is_string($key) && array_key_exists($key, self::overviewModuleOptions()))
+            ->values();
+
+        if ($selected->isEmpty()) {
+            return 'All modules';
+        }
+
+        if ($selected->count() === 1) {
+            return self::overviewModuleOptions()[$selected->first()];
+        }
+
+        return $selected->count().' modules';
+    }
+
+    public function clearOverviewModules(): void
+    {
+        $this->overviewModules = [];
+    }
+
     protected function getViewData(): array
     {
         return [
@@ -41,6 +155,9 @@ class ReportsStatsWidget extends Widget
             'leaders' => $this->getLeaderboardStats(),
             'credit' => $this->getCreditStats(),
             'filterPeriodLabel' => $this->filterPeriodLabel(),
+            'overviewModuleOptions' => self::overviewModuleOptions(),
+            'overviewLayoutRows' => $this->overviewLayoutRows(),
+            'overviewModulesFilterLabel' => $this->overviewModulesFilterLabel(),
         ];
     }
 
@@ -49,9 +166,9 @@ class ReportsStatsWidget extends Widget
         $user = Filament::auth()->user();
 
         $merchantId = match (true) {
-            $user instanceof \App\Models\Merchant => $user->id,
-            $user instanceof \App\Models\User     => $user->merchant_id,
-            default                               => null,
+            $user instanceof Merchant => $user->id,
+            $user instanceof User => $user->merchant_id,
+            default => null,
         };
 
         return [$user, $merchantId];
@@ -64,6 +181,7 @@ class ReportsStatsWidget extends Widget
             'branch_id' => $this->pageFilters['branch_id'] ?? null,
             'product_variant_ids' => collect($this->pageFilters['product_variant_ids'] ?? [])
                 ->filter(fn ($id) => filled($id))
+                ->map(fn ($id) => (string) $id)
                 ->values()
                 ->all(),
             'date_from' => $this->pageFilters['date_from'] ?? null,
@@ -97,7 +215,7 @@ class ReportsStatsWidget extends Widget
     {
         $values = collect($values)
             ->filter(fn ($value) => filled($value))
-            ->map(fn ($value) => "'" . addslashes((string) $value) . "'")
+            ->map(fn ($value) => "'".addslashes((string) $value)."'")
             ->values()
             ->all();
 
@@ -105,7 +223,7 @@ class ReportsStatsWidget extends Widget
             return '';
         }
 
-        return " AND {$column} IN (" . implode(', ', $values) . ')';
+        return " AND {$column} IN (".implode(', ', $values).')';
     }
 
     protected function stockSoldExpression(?string $merchantId, array $filters, array $staffBusinessIds = [], array $staffBranchIds = []): string
@@ -114,20 +232,20 @@ class ReportsStatsWidget extends Widget
             return '0';
         }
 
-        $merchantScope = " AND s.merchant_id = '" . addslashes($merchantId) . "'";
+        $merchantScope = " AND s.merchant_id = '".addslashes($merchantId)."'";
         $businessScope = filled($filters['business_id'] ?? null)
-            ? " AND si.business_id = '" . addslashes((string) $filters['business_id']) . "'"
+            ? " AND si.business_id = '".addslashes((string) $filters['business_id'])."'"
             : '';
         $branchScope = filled($filters['branch_id'] ?? null)
-            ? " AND si.branch_id = '" . addslashes((string) $filters['branch_id']) . "'"
+            ? " AND si.branch_id = '".addslashes((string) $filters['branch_id'])."'"
             : '';
         $staffBusinessScope = $this->sqlInScope('si.business_id', $staffBusinessIds);
         $staffBranchScope = $this->sqlInScope('si.branch_id', $staffBranchIds);
         $fromScope = filled($filters['date_from'] ?? null)
-            ? " AND s.sale_date >= '" . addslashes((string) $filters['date_from']) . "'"
+            ? " AND s.sale_date >= '".addslashes((string) $filters['date_from'])."'"
             : '';
         $toScope = filled($filters['date_to'] ?? null)
-            ? " AND s.sale_date <= '" . addslashes((string) $filters['date_to']) . "'"
+            ? " AND s.sale_date <= '".addslashes((string) $filters['date_to'])."'"
             : '';
 
         return "
@@ -153,30 +271,30 @@ class ReportsStatsWidget extends Widget
     }
 
     protected function stockValueExpression(?string $merchantId, array $filters, array $staffBusinessIds = [], array $staffBranchIds = []): string
-{
-    // MySQL does not support CTEs inside subqueries
-    // Return simple purchase cost calculation instead
-    if (! $merchantId) {
-        return '0';
-    }
+    {
+        // MySQL does not support CTEs inside subqueries
+        // Return simple purchase cost calculation instead
+        if (! $merchantId) {
+            return '0';
+        }
 
-    $merchantScope = " AND p.merchant_id = '" . addslashes($merchantId) . "'";
-    $businessScope = filled($filters['business_id'] ?? null)
-        ? " AND pi.business_id = '" . addslashes((string) $filters['business_id']) . "'"
-        : '';
-    $branchScope = filled($filters['branch_id'] ?? null)
-        ? " AND pi.branch_id = '" . addslashes((string) $filters['branch_id']) . "'"
-        : '';
-    $staffBusinessScope = $this->sqlInScope('pi.business_id', $staffBusinessIds);
-    $staffBranchScope   = $this->sqlInScope('pi.branch_id', $staffBranchIds);
-    $fromScope = filled($filters['date_from'] ?? null)
-        ? " AND p.purchase_date >= '" . addslashes((string) $filters['date_from']) . "'"
-        : '';
-    $toScope = filled($filters['date_to'] ?? null)
-        ? " AND p.purchase_date <= '" . addslashes((string) $filters['date_to']) . "'"
-        : '';
+        $merchantScope = " AND p.merchant_id = '".addslashes($merchantId)."'";
+        $businessScope = filled($filters['business_id'] ?? null)
+            ? " AND pi.business_id = '".addslashes((string) $filters['business_id'])."'"
+            : '';
+        $branchScope = filled($filters['branch_id'] ?? null)
+            ? " AND pi.branch_id = '".addslashes((string) $filters['branch_id'])."'"
+            : '';
+        $staffBusinessScope = $this->sqlInScope('pi.business_id', $staffBusinessIds);
+        $staffBranchScope = $this->sqlInScope('pi.branch_id', $staffBranchIds);
+        $fromScope = filled($filters['date_from'] ?? null)
+            ? " AND p.purchase_date >= '".addslashes((string) $filters['date_from'])."'"
+            : '';
+        $toScope = filled($filters['date_to'] ?? null)
+            ? " AND p.purchase_date <= '".addslashes((string) $filters['date_to'])."'"
+            : '';
 
-    return "
+        return "
         COALESCE(
             (
                 SELECT SUM(piv.quantity * piv.unit_price)
@@ -196,7 +314,7 @@ class ReportsStatsWidget extends Widget
             0
         )
     ";
-}
+    }
 
     protected function salesBaseQuery($user, string $merchantId): EloquentBuilder
     {
@@ -207,20 +325,17 @@ class ReportsStatsWidget extends Widget
             ->where('merchant_id', $merchantId)
             ->when(
                 $filters['business_id'],
-                fn (EloquentBuilder $query, $businessId) => $query->whereHas('items', fn ($q) =>
-                    $q->where('sale_items.business_id', $businessId)
+                fn (EloquentBuilder $query, $businessId) => $query->whereHas('items', fn ($q) => $q->where('sale_items.business_id', $businessId)
                 ),
             )
             ->when(
                 $filters['branch_id'],
-                fn (EloquentBuilder $query, $branchId) => $query->whereHas('items', fn ($q) =>
-                    $q->where('sale_items.branch_id', $branchId)
+                fn (EloquentBuilder $query, $branchId) => $query->whereHas('items', fn ($q) => $q->where('sale_items.branch_id', $branchId)
                 ),
             )
             ->when(
                 ! empty($filters['product_variant_ids']),
-                fn (EloquentBuilder $query) => $query->whereHas('items.variants', fn ($q) =>
-                    $q->whereIn('sale_item_variants.product_variant_id', $filters['product_variant_ids'])
+                fn (EloquentBuilder $query) => $query->whereHas('items.variants', fn ($q) => $q->whereIn('sale_item_variants.product_variant_id', $filters['product_variant_ids'])
                 ),
             )
             ->when(
@@ -259,20 +374,17 @@ class ReportsStatsWidget extends Widget
             ->where('merchant_id', $merchantId)
             ->when(
                 $filters['business_id'],
-                fn (EloquentBuilder $query, $businessId) => $query->whereHas('items', fn ($q) =>
-                    $q->where('purchase_items.business_id', $businessId)
+                fn (EloquentBuilder $query, $businessId) => $query->whereHas('items', fn ($q) => $q->where('purchase_items.business_id', $businessId)
                 ),
             )
             ->when(
                 $filters['branch_id'],
-                fn (EloquentBuilder $query, $branchId) => $query->whereHas('items', fn ($q) =>
-                    $q->where('purchase_items.branch_id', $branchId)
+                fn (EloquentBuilder $query, $branchId) => $query->whereHas('items', fn ($q) => $q->where('purchase_items.branch_id', $branchId)
                 ),
             )
             ->when(
                 ! empty($filters['product_variant_ids']),
-                fn (EloquentBuilder $query) => $query->whereHas('items.variants', fn ($q) =>
-                    $q->whereIn('purchase_item_variants.product_variant_id', $filters['product_variant_ids'])
+                fn (EloquentBuilder $query) => $query->whereHas('items.variants', fn ($q) => $q->whereIn('purchase_item_variants.product_variant_id', $filters['product_variant_ids'])
                 ),
             )
             ->when(
@@ -422,7 +534,7 @@ class ReportsStatsWidget extends Widget
             ->whereIn('si.sale_id', $saleIds)
             ->sum('sv.quantity');
 
-        $totalAmount   = (clone $query)->sum('total_amount');
+        $totalAmount = (clone $query)->sum('total_amount');
         $totalDiscount = DB::table('sale_items')
             ->whereIn('sale_id', $saleIds)
             ->sum(DB::raw('line_total * (discount / 100.0)'));
@@ -441,28 +553,28 @@ class ReportsStatsWidget extends Widget
         $avgSale = $totalSales > 0 ? $netAmount / $totalSales : 0;
 
         return [
-            'total_sales'        => (int) $totalSales,
-            'total_items_count'  => (int) $totalItemLines,
-            'total_quantity'     => (float) $netQuantity,
-            'total_amount'       => (float) $netAmount,
-            'total_discount'     => (float) $netDiscount,
-            'total_tax'          => (float) $netTax,
-            'total_subtotal'     => (float) $netSubtotal,
-            'avg_sale'           => round($avgSale, 2),
+            'total_sales' => (int) $totalSales,
+            'total_items_count' => (int) $totalItemLines,
+            'total_quantity' => (float) $netQuantity,
+            'total_amount' => (float) $netAmount,
+            'total_discount' => (float) $netDiscount,
+            'total_tax' => (float) $netTax,
+            'total_subtotal' => (float) $netSubtotal,
+            'avg_sale' => round($avgSale, 2),
         ];
     }
 
     protected function emptySalesStats(): array
     {
         return [
-            'total_sales'        => 0,
-            'total_items_count'  => 0,
-            'total_quantity'     => 0,
-            'total_amount'       => 0,
-            'total_discount'     => 0,
-            'total_tax'          => 0,
-            'total_subtotal'     => 0,
-            'avg_sale'           => 0,
+            'total_sales' => 0,
+            'total_items_count' => 0,
+            'total_quantity' => 0,
+            'total_amount' => 0,
+            'total_discount' => 0,
+            'total_tax' => 0,
+            'total_subtotal' => 0,
+            'avg_sale' => 0,
         ];
     }
 
@@ -493,7 +605,7 @@ class ReportsStatsWidget extends Widget
             ->whereIn('pi.purchase_id', $purchaseIds)
             ->sum('piv.quantity');
 
-        $totalAmount   = (clone $query)->sum('total_amount');
+        $totalAmount = (clone $query)->sum('total_amount');
         $totalDiscount = DB::table('purchase_items')
             ->whereIn('purchase_id', $purchaseIds)
             ->sum(DB::raw('line_total * (discount / 100.0)'));
@@ -512,28 +624,28 @@ class ReportsStatsWidget extends Widget
         $avgPurchase = $totalPurchases > 0 ? $netAmount / $totalPurchases : 0;
 
         return [
-            'total_purchases'      => (int) $totalPurchases,
-            'total_items_count'    => (int) $totalItemLines,
+            'total_purchases' => (int) $totalPurchases,
+            'total_items_count' => (int) $totalItemLines,
             'total_items_quantity' => (float) $netQuantity,
-            'total_amount'         => (float) $netAmount,
-            'total_discount'       => (float) $netDiscount,
-            'total_tax'            => (float) $netTax,
-            'total_subtotal'       => (float) $netSubtotal,
-            'avg_purchase'         => round($avgPurchase, 2),
+            'total_amount' => (float) $netAmount,
+            'total_discount' => (float) $netDiscount,
+            'total_tax' => (float) $netTax,
+            'total_subtotal' => (float) $netSubtotal,
+            'avg_purchase' => round($avgPurchase, 2),
         ];
     }
 
     protected function emptyPurchaseStats(): array
     {
         return [
-            'total_purchases'      => 0,
-            'total_items_count'    => 0,
+            'total_purchases' => 0,
+            'total_items_count' => 0,
             'total_items_quantity' => 0,
-            'total_amount'         => 0,
-            'total_discount'       => 0,
-            'total_tax'            => 0,
-            'total_subtotal'       => 0,
-            'avg_purchase'         => 0,
+            'total_amount' => 0,
+            'total_discount' => 0,
+            'total_tax' => 0,
+            'total_subtotal' => 0,
+            'avg_purchase' => 0,
         ];
     }
 
@@ -556,14 +668,14 @@ class ReportsStatsWidget extends Widget
 
             if ($branchIds->isEmpty() || $businessIds->isEmpty()) {
                 return [
-                    'total_products'      => 0,
+                    'total_products' => 0,
                     'total_purchased_qty' => 0,
-                    'total_sold_qty'      => 0,
-                    'available_stock'     => 0,
-                    'total_amount'        => 0,
-                    'total_revenue'       => 0,
-                    'avg_selling_price'   => 0,
-                    'avg_buying_price'    => 0,
+                    'total_sold_qty' => 0,
+                    'available_stock' => 0,
+                    'total_amount' => 0,
+                    'total_revenue' => 0,
+                    'avg_selling_price' => 0,
+                    'avg_buying_price' => 0,
                 ];
             }
 
@@ -598,14 +710,14 @@ class ReportsStatsWidget extends Widget
 
         if ($variantIds->isEmpty()) {
             return [
-                'total_products'      => 0,
+                'total_products' => 0,
                 'total_purchased_qty' => 0,
-                'total_sold_qty'      => 0,
-                'available_stock'     => 0,
-                'total_amount'        => 0,
-                'total_revenue'       => 0,
-                'avg_selling_price'   => 0,
-                'avg_buying_price'    => 0,
+                'total_sold_qty' => 0,
+                'available_stock' => 0,
+                'total_amount' => 0,
+                'total_revenue' => 0,
+                'avg_selling_price' => 0,
+                'avg_buying_price' => 0,
             ];
         }
 
@@ -655,7 +767,7 @@ class ReportsStatsWidget extends Widget
                     $filters,
                     $staffBusinessIds->all(),
                     $staffBranchIds->all(),
-                ) . ' as total_amount'
+                ).' as total_amount'
             );
 
         $totalAmount = (float) DB::query()
@@ -675,14 +787,14 @@ class ReportsStatsWidget extends Widget
         $netBuyingCost = $totalBuyingCost;
 
         return [
-            'total_products'      => (int) $totalProducts,
+            'total_products' => (int) $totalProducts,
             'total_purchased_qty' => (float) $netPurchasedQty,
-            'total_sold_qty'      => (float) $netSoldQty,
-            'available_stock'     => (float) $availableStock,
-            'total_amount'        => (float) $totalAmount,
-            'total_revenue'       => (float) $netRevenue,
-            'avg_selling_price'   => $netSoldQty > 0 ? round($netRevenue / $netSoldQty, 2) : 0,
-            'avg_buying_price'    => $netPurchasedQty > 0 ? round($netBuyingCost / $netPurchasedQty, 2) : 0,
+            'total_sold_qty' => (float) $netSoldQty,
+            'available_stock' => (float) $availableStock,
+            'total_amount' => (float) $totalAmount,
+            'total_revenue' => (float) $netRevenue,
+            'avg_selling_price' => $netSoldQty > 0 ? round($netRevenue / $netSoldQty, 2) : 0,
+            'avg_buying_price' => $netPurchasedQty > 0 ? round($netBuyingCost / $netPurchasedQty, 2) : 0,
         ];
     }
 
@@ -1119,14 +1231,14 @@ class ReportsStatsWidget extends Widget
 
         $cashFlowBalances = (clone $cashFlowQuery)
             ->select('flow_type')
-            ->selectRaw("
+            ->selectRaw('
                 COALESCE(SUM(
                     CASE
                         WHEN settlement_for_id IS NULL THEN amount
                         ELSE -amount
                     END
                 ), 0) as balance
-            ")
+            ')
             ->groupBy('flow_type')
             ->pluck('balance', 'flow_type');
 

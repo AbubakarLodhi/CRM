@@ -52,213 +52,70 @@
 
     <div class="space-y-6 stats-dashboard" x-data="{ showSales: true, showPurchases: true, profitLossMetric: 'gross_profit', toggle(which) { if (which === 'sales') { this.showSales = !this.showSales; if (!this.showSales && !this.showPurchases) this.showPurchases = true; } if (which === 'purchases') { this.showPurchases = !this.showPurchases; if (!this.showPurchases && !this.showSales) this.showSales = true; } } }">
         <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 stats-card dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700/40">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-lg font-semibold text-slate-900 dark:text-slate-100">Overview</p>
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">{{ $filterPeriodLabel }}</span>
-            </div>
-            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                <div class="rounded-2xl bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm ring-1 ring-blue-100 stats-panel stats-panel-blue dark:bg-slate-900 dark:ring-blue-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Sales Summary</p>
-                        <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-900/40 dark:text-blue-200">Sales</span>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($sales['total_amount'], 2) }}</p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Total Sales</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($sales['total_sales']) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Quantity Sold</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($sales['total_quantity'], 2) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm ring-1 ring-emerald-100 stats-panel stats-panel-emerald dark:bg-slate-900 dark:ring-emerald-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Purchases Summary</p>
-                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-200">Purchases</span>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($purchases['total_amount'], 2) }}</p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Total Purchases</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($purchases['total_purchases']) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Quantity Bought</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($purchases['total_items_quantity'], 2) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-lime-50 to-white p-5 shadow-sm ring-1 ring-lime-100 stats-panel dark:bg-slate-900 dark:ring-lime-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Profit Loss</p>
-                        <select
-                            x-model="profitLossMetric"
-                            class="rounded-full border-0 bg-lime-50 px-3 py-1 text-xs font-semibold text-lime-700 shadow-none ring-0 focus:ring-2 focus:ring-lime-200 dark:bg-lime-900/40 dark:text-lime-200"
-                            aria-label="Profit Loss headline metric"
+                <div class="flex flex-wrap items-center gap-3">
+                    <div x-data="{ open: false }" class="relative" @keydown.escape.window="open = false">
+                        <button
+                            type="button"
+                            @click="open = !open"
+                            class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-700"
+                            aria-haspopup="listbox"
+                            :aria-expanded="open"
                         >
-                            <option value="gross_profit">Gross Profit</option>
-                            <option value="net_profit">Net Profit</option>
-                            <option value="net_sales">Net Sales</option>
-                            <option value="net_purchases">Net Purchases</option>
-                        </select>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold">
-                        <span x-show="profitLossMetric === 'gross_profit'" class="{{ ($profitLoss['gross_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['gross_profit'] ?? 0, 2) }}</span>
-                        <span x-show="profitLossMetric === 'net_profit'" class="{{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
-                        <span x-show="profitLossMetric === 'net_sales'" class="{{ ($profitLoss['net_sales'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_sales'] ?? 0, 2) }}</span>
-                        <span x-show="profitLossMetric === 'net_purchases'" class="{{ ($profitLoss['net_purchases'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_purchases'] ?? 0, 2) }}</span>
-                    </p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span class="inline-flex items-center gap-1">
-                                Gross Profit
-                                <span
-                                    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
-                                    title="Gross Profit = Net Sales - Net Purchases."
-                                    aria-label="Gross Profit formula"
-                                >?</span>
-                            </span>
-                            <span class="font-medium {{ ($profitLoss['gross_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['gross_profit'] ?? 0, 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="inline-flex items-center gap-1">
-                                Net Profit
-                                <span
-                                    class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
-                                    title="Net Profit = Gross Profit - Expenses - Payrolls"
-                                    aria-label="Net Profit formula"
-                                >?</span>
-                            </span>
-                            <span class="font-medium {{ ($profitLoss['net_profit'] ?? 0) < 0 ? 'text-rose-600 dark:text-rose-300' : 'text-slate-900 dark:text-slate-100' }}">PKR {{ number_format($profitLoss['net_profit'] ?? 0, 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Net Sales</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">PKR {{ number_format($profitLoss['net_sales'] ?? 0, 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Net Purchases</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">PKR {{ number_format($profitLoss['net_purchases'] ?? 0, 2) }}</span>
+                            <svg class="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
+                            </svg>
+                            <span>{{ $overviewModulesFilterLabel }}</span>
+                            <svg class="h-3.5 w-3.5 transition" :class="open ? 'rotate-180' : ''" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+                        <div
+                            x-show="open"
+                            x-transition
+                            @click.outside="open = false"
+                            x-cloak
+                            class="absolute right-0 z-20 mt-2 w-60 rounded-xl bg-white p-3 shadow-lg ring-1 ring-gray-950/10 dark:bg-slate-900 dark:ring-slate-700"
+                            role="listbox"
+                            aria-label="Overview modules"
+                        >
+                            <p class="px-1 pb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Show summaries</p>
+                            <div class="max-h-64 space-y-1 overflow-y-auto">
+                                @foreach ($overviewModuleOptions as $value => $label)
+                                    <label class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800">
+                                        <input
+                                            type="checkbox"
+                                            wire:model.live="overviewModules"
+                                            value="{{ $value }}"
+                                            class="rounded border-slate-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-800"
+                                        >
+                                        <span>{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            @if (count($overviewModules) > 0)
+                                <button
+                                    type="button"
+                                    wire:click="clearOverviewModules"
+                                    class="mt-2 w-full rounded-lg px-2 py-1.5 text-left text-xs font-semibold text-primary-600 hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950/40"
+                                >
+                                    Show all modules
+                                </button>
+                            @endif
                         </div>
                     </div>
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-200">{{ $filterPeriodLabel }}</span>
                 </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-orange-50 to-white p-5 shadow-sm ring-1 ring-orange-100 stats-panel stats-panel-orange dark:bg-slate-900 dark:ring-orange-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Stock Summary</p>
-                        <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600 dark:bg-orange-900/40 dark:text-orange-200">Stock</span>
+            </div>
+            <div class="mt-6 space-y-6">
+                @foreach ($overviewLayoutRows as $row)
+                    <div class="{{ $row['classes'] }}">
+                        @foreach ($row['modules'] as $module)
+                            @include('filament.widgets.partials.overview-module-card', ['module' => $module])
+                        @endforeach
                     </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['available_stock'], 2) }}</p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Total Products</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['total_products']) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Total Revenue</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['total_revenue'], 2) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-sky-50 to-white p-5 shadow-sm ring-1 ring-sky-100 stats-panel stats-panel-sky dark:bg-slate-900 dark:ring-sky-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Inventory Movement</p>
-                        <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-600 dark:bg-sky-900/40 dark:text-sky-200">{{ $filterPeriodLabel }}</span>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($stock['total_purchased_qty'] - $stock['total_sold_qty'], 2) }}</p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Inbound Qty</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['total_purchased_qty'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Outbound Qty</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['total_sold_qty'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Available Stock</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($stock['available_stock'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Total Amount</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">PKR {{ number_format($stock['total_amount'] ?? 0, 2) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm ring-1 ring-rose-100 stats-panel dark:bg-slate-900 dark:ring-rose-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Expenses Summary</p>
-                        <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 dark:bg-rose-900/40 dark:text-rose-200">Expenses</span>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($expenses['total_amount'], 2) }}</p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Total Expenses</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($expenses['total_expenses']) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-indigo-50 to-white p-5 shadow-sm ring-1 ring-indigo-100 stats-panel dark:bg-slate-900 dark:ring-indigo-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Total Funds</p>
-                        <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-200">Cash Pool</span>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">{{ number_format($funds['current_total_funds'], 2) }}</p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Opening Funds</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['opening_total_funds'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Sales Cash In</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['sales_cash_inflow'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Purchases Cash Out</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['purchases_cash_outflow'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Expenses Out</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['expenses_outflow'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Payroll Out</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['payroll_outflow'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Cash Flow Net</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_net'], 2) }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="rounded-2xl bg-gradient-to-br from-cyan-50 to-white p-5 shadow-sm ring-1 ring-cyan-100 stats-panel dark:bg-slate-900 dark:ring-cyan-900/50">
-                    <div class="flex items-center justify-between">
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">Cash Flow</p>
-                        <span class="rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-200">Flow</span>
-                    </div>
-                    <p class="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                        {{ number_format($funds['cash_flow_net'], 2) }}
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">(Net Cash Flow)</span>
-                    </p>
-                    <div class="mt-4 space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                        <div class="flex items-center justify-between">
-                            <span>Receivable Cash</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_receivable'], 2) }}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span>Payable Cash</span>
-                            <span class="font-medium text-slate-900 dark:text-slate-100">{{ number_format($funds['cash_flow_payable'], 2) }}</span>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
         </div>
 
