@@ -6,6 +6,10 @@ return [
 
     'logo' => 'images/flowdesk-logo.svg',
 
+    'icon' => 'images/flowdesk-icon.svg',
+
+    'favicon' => 'favicon.svg',
+
     'login_visual' => 'images/flowdesk-login-visual.svg',
 
     'primary_merchant_email' => env('PRIMARY_MERCHANT_EMAIL', 'info@flowdesk.com'),

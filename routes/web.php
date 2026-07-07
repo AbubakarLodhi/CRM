@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Asset\AssetPreviewController;
+use App\Http\Controllers\DemoAccountController;
+use App\Http\Controllers\DemoExitController;
 use App\Http\Controllers\Invoice\InvoiceController;
+use App\Http\Controllers\LandingPageController;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Merchant;
@@ -13,9 +16,9 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', LandingPageController::class)->name('landing');
+Route::get('/demo/login', DemoAccountController::class)->name('demo.login');
+Route::get('/demo/exit', DemoExitController::class)->name('demo.exit');
 
 Route::get('/invoices/{type}/{id}', [InvoiceController::class, 'show'])
     ->name('invoices.show');

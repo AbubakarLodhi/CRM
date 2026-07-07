@@ -1195,3 +1195,45 @@ html:not(.dark) body.fi-panel-user .fi-topbar .fi-logo {
 .fi-main-ctn:has(.fi-pos-sales-page) {
     overflow: hidden;
 }
+
+.fi-demo-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.65rem 1rem;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(129, 140, 248, 0.12));
+    border-bottom: 1px solid rgba(129, 140, 248, 0.35);
+    color: #e2e8f0;
+    font-size: 0.875rem;
+}
+
+.fi-demo-banner strong {
+    color: #c7d2fe;
+}
+
+.fi-demo-banner__timer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.5rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(129, 140, 248, 0.45);
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.fi-demo-banner a {
+    margin-left: auto;
+    color: #a5b4fc;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.fi-demo-banner a:hover {
+    color: #fff;
+}

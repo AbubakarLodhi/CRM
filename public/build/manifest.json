@@ -9,7 +9,7 @@
     ]
   },
   "resources/css/filament/merchant/theme.css": {
-    "file": "assets/theme-CIW05Xir.css",
+    "file": "assets/theme-C9Ie8IOu.css",
     "src": "resources/css/filament/merchant/theme.css",
     "isEntry": true,
     "name": "theme",
@@ -17,10 +17,25 @@
       "theme.css"
     ]
   },
+  "resources/css/landing.css": {
+    "file": "assets/landing-DlAM9mOc.css",
+    "src": "resources/css/landing.css",
+    "isEntry": true,
+    "name": "landing",
+    "names": [
+      "landing.css"
+    ]
+  },
   "resources/js/app.js": {
     "file": "assets/app-CAiCLEjY.js",
     "name": "app",
     "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/landing.js": {
+    "file": "assets/landing-B68l07sM.js",
+    "name": "landing",
+    "src": "resources/js/landing.js",
     "isEntry": true
   }
 }

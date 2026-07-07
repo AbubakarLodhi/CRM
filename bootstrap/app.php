@@ -23,6 +23,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('credit-reminders:send')
             ->dailyAt('00:05')
             ->timezone(config('app.timezone'));
+
+        $schedule->command('demo:cleanup-expired')
+            ->everyMinute()
+            ->timezone(config('app.timezone'));
+
+        $schedule->command('demo:reset')
+            ->dailyAt(config('demo.daily_reset_at', '17:00'))
+            ->timezone(config('app.timezone'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

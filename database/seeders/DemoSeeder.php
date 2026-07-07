@@ -22,6 +22,7 @@ use App\Models\SaleItem;
 use App\Models\SaleItemVariant;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\DemoAccount;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -31,6 +32,21 @@ class DemoSeeder extends Seeder
 {
     // ─── Merchant to seed for ─────────────────────────────────────
     private string $merchantEmail = 'info@flowdesk.com';
+
+    private ?string $staffEmailNamespace = null;
+
+    public function forMerchant(string $email): void
+    {
+        $this->merchantEmail = $email;
+        $this->staffEmailNamespace = null;
+
+        if (DemoAccount::isTemporaryDemoEmail($email)
+            && preg_match('/^demo-([a-f0-9]{32})@/i', $email, $matches) === 1) {
+            $this->staffEmailNamespace = substr($matches[1], 0, 8);
+        }
+
+        $this->run();
+    }
 
     public function run(): void
     {
@@ -60,12 +76,33 @@ class DemoSeeder extends Seeder
 
         $this->command->info('');
         $this->command->info('✅ DemoSeeder completed successfully!');
-        $this->command->info('─────────────────────────────────────────────');
-        $this->command->info('  Login credentials for seeded staff:');
-        $this->command->info('  Manager  → manager@demo.com  / password123');
-        $this->command->info('  Staff 1  → staff1@demo.com   / password123');
-        $this->command->info('  Staff 2  → staff2@demo.com   / password123');
-        $this->command->info('─────────────────────────────────────────────');
+
+        if ($this->staffEmailNamespace === null) {
+            $this->command->info('─────────────────────────────────────────────');
+            $this->command->info('  Login credentials for seeded staff:');
+            $this->command->info('  Manager  → manager@demo.com  / password123');
+            $this->command->info('  Staff 1  → staff1@demo.com   / password123');
+            $this->command->info('  Staff 2  → staff2@demo.com   / password123');
+            $this->command->info('─────────────────────────────────────────────');
+        }
+    }
+
+    private function scopedStaffEmail(string $localPart): string
+    {
+        if ($this->staffEmailNamespace === null) {
+            return "{$localPart}@demo.com";
+        }
+
+        return "{$localPart}.{$this->staffEmailNamespace}@demo.com";
+    }
+
+    private function demoDocumentSuffix(): string
+    {
+        if ($this->staffEmailNamespace === null) {
+            return '';
+        }
+
+        return '-'.$this->staffEmailNamespace;
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -173,19 +210,19 @@ class DemoSeeder extends Seeder
         $staffData = [
             [
                 'name' => 'Demo Manager',
-                'email' => 'manager@demo.com',
+                'email' => $this->scopedStaffEmail('manager'),
                 'role' => 'Manager',
                 'branch' => 0,
             ],
             [
                 'name' => 'Staff Member One',
-                'email' => 'staff1@demo.com',
+                'email' => $this->scopedStaffEmail('staff1'),
                 'role' => 'Sales Staff',
                 'branch' => 0,
             ],
             [
                 'name' => 'Staff Member Two',
-                'email' => 'staff2@demo.com',
+                'email' => $this->scopedStaffEmail('staff2'),
                 'role' => 'Sales Staff',
                 'branch' => 1,
             ],
@@ -698,9 +735,12 @@ class DemoSeeder extends Seeder
 
         foreach ($purchaseConfigs as $i => $config) {
             $purchaseDate = now()->subDays($config['days_ago']);
-            $purchaseNo = 'PUR-'.$purchaseDate->format('Ymd').'-DEMO'.($i + 1);
+            $purchaseNo = 'PUR-'.$purchaseDate->format('Ymd').'-DEMO'.($i + 1).$this->demoDocumentSuffix();
 
-            if (Purchase::where('purchase_no', $purchaseNo)->exists()) {
+            if (Purchase::query()
+                ->where('merchant_id', $merchant->id)
+                ->where('purchase_no', $purchaseNo)
+                ->exists()) {
                 $this->command->info("  ⏭️  Purchase {$purchaseNo} already exists, skipping.");
 
                 continue;
@@ -797,9 +837,12 @@ class DemoSeeder extends Seeder
 
         foreach ($saleConfigs as $i => $config) {
             $saleDate = now()->subDays($config['days_ago']);
-            $saleNo = 'SAL-'.$saleDate->format('Ymd').'-DEMO'.($i + 1);
+            $saleNo = 'SAL-'.$saleDate->format('Ymd').'-DEMO'.($i + 1).$this->demoDocumentSuffix();
 
-            if (Sale::where('sale_no', $saleNo)->exists()) {
+            if (Sale::query()
+                ->where('merchant_id', $merchant->id)
+                ->where('sale_no', $saleNo)
+                ->exists()) {
                 $this->command->info("  ⏭️  Sale {$saleNo} already exists, skipping.");
 
                 continue;

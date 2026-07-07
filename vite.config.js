@@ -9,12 +9,15 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/css/filament/merchant/theme.css',
+                'resources/css/landing.css',
+                'resources/js/landing.js',
             ],
             refresh: true,
         }),
         tailwindcss(),
     ],
     server: {
+        host: '127.0.0.1',
         watch: {
             ignored: ['**/storage/framework/views/**'],
         },

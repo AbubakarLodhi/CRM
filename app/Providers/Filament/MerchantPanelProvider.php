@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\Login;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
+use App\Http\Middleware\DemoSessionTimeout;
 use App\Http\Middleware\EnsureStaffIsVerified;
 use Filament\Actions\Action;
 use Filament\Enums\ThemeMode;
@@ -42,6 +43,7 @@ class MerchantPanelProvider extends PanelProvider
                 'gray' => Color::Slate,
             ])
             ->defaultThemeMode(ThemeMode::Dark)
+            ->favicon(asset(config('branding.favicon')))
             ->brandLogo(function () {
                 $merchant = Filament::auth()->user();
                 $defaultLogo = asset(config('branding.logo'));
@@ -124,11 +126,16 @@ class MerchantPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 EnsureStaffIsVerified::class,
+                DemoSessionTimeout::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
             ])
 
+            ->renderHook(
+                'panels::body.start',
+                fn () => view('filament.demo-banner')
+            )
             ->renderHook(
                 'panels::body.end',
                 fn () => view('filament.sidebar-hover')

@@ -3,15 +3,16 @@
     "private": true,
     "type": "module",
     "scripts": {
-    "build": "echo 'skipping build'",
-    "dev": "vite",
-    "prod": "vite build"
+        "build": "echo 'skipping build'",
+        "dev": "vite",
+        "prod": "vite build"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.1.18",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
+        "playwright": "^1.61.1",
         "tailwindcss": "^4.1.18",
         "vite": "^7.0.7"
     }

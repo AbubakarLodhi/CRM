@@ -38,6 +38,7 @@ class UserPanelProvider extends PanelProvider
                 'gray' => Color::Slate,
             ])
             ->defaultThemeMode(ThemeMode::Dark)
+            ->favicon(asset(config('branding.favicon')))
             ->brandLogo(function () {
                 $path = Filament::auth()->user()?->merchant?->logo?->photo_url;
 
