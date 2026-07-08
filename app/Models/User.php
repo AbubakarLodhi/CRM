@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use OwenIt\Auditing\Contracts\Auditable;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -16,7 +18,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements CanResetPasswordContract, Auditable
+class User extends Authenticatable implements CanResetPasswordContract, Auditable, FilamentUser
 {
     use \OwenIt\Auditing\Auditable;
     use HasUuids, HasRoles,Notifiable,CanResetPassword;
@@ -65,6 +67,11 @@ class User extends Authenticatable implements CanResetPasswordContract, Auditabl
             self::STATUS_VERIFIED,
             self::STATUS_REJECTED,
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->status === self::STATUS_VERIFIED && (bool) $this->is_active;
     }
 
     public function merchant(): BelongsTo

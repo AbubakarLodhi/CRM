@@ -4,7 +4,9 @@ namespace App\Models;
 
 use OwenIt\Auditing\Contracts\Auditable;
 use App\Enums\AttachmentMetaType;
+use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasAvatar;
+use Filament\Panel;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -20,7 +22,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Traits\HasRoles;
 
-class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordContract, Auditable
+class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordContract, Auditable, FilamentUser
 {
     use \OwenIt\Auditing\Auditable;
     use HasUuids, HasRoles, Notifiable, CanResetPassword;
@@ -59,6 +61,11 @@ class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordCo
         'cash_in_bank' => 'decimal:2',
         'password' => 'hashed',
     ];
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return (bool) $this->is_active;
+    }
 
     /**
      * @return string[]
