@@ -58,12 +58,7 @@ class RolesResource extends Resource
     }
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
-        $guardName = Filament::getCurrentPanel()->getAuthGuard();
-        if ($guardName=='admin') {
-            return Role::query();
-        }
-        return Role::query()
-            ->when($guardName, fn($query) => $query->where('guard_name', 'staff'));
+        return Role::query()->where('guard_name', 'merchant');
     }
 
     public static function afterCreate($record, array $data): void

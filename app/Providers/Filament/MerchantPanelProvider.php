@@ -137,6 +137,10 @@ class MerchantPanelProvider extends PanelProvider
                 fn () => view('filament.demo-banner')
             )
             ->renderHook(
+                \Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                fn () => view('filament.auth.forgot-password-link')
+            )
+            ->renderHook(
                 'panels::body.end',
                 fn () => view('filament.sidebar-hover')
             )
