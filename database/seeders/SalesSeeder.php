@@ -87,13 +87,9 @@ class SalesSeeder extends Seeder
                 [
                     'id' => Str::uuid(),
                     'merchant_id' => $merchant->id,
-                    'business_id' => $business->id,
-                    'branch_id' => $branch->id,
                     'customer_id' => $customer->id,
                     'sale_date' => $saleDate,
                     'subtotal' => 0,
-                    'discount' => 0,
-                    'tax' => 0,
                     'total_amount' => 0,
                     'notes' => "Sale #{$i} to {$customer->name}",
                     'created_by' => $createdBy?->id,
@@ -105,12 +101,15 @@ class SalesSeeder extends Seeder
             $selectedProducts = $products->random(min($itemCount, $products->count()));
 
             $subtotal = 0;
+            $totalTax = 0;
 
             foreach ($selectedProducts as $product) {
                 $quantity = rand(1, 5);
                 $unitPrice = $product->selling_price ?? rand(1500, 60000) / 100; // Random price if not set
                 $lineTotal = $quantity * $unitPrice;
+                $itemTax = round($lineTotal * 0.15, 2); // 15% tax
                 $subtotal += $lineTotal;
+                $totalTax += $itemTax;
 
                 SaleItem::firstOrCreate(
                     [
@@ -119,22 +118,22 @@ class SalesSeeder extends Seeder
                     ],
                     [
                         'id' => Str::uuid(),
+                        'business_id' => $business->id,
+                        'branch_id' => $branch->id,
                         'quantity' => $quantity,
                         'unit_price' => $unitPrice,
                         'line_total' => $lineTotal,
+                        'discount' => 0,
+                        'tax' => $itemTax,
                     ]
                 );
             }
 
             // Calculate totals
-            $discount = rand(0, 10) > 6 ? rand(200, 2000) / 100 : 0; // 40% chance of discount
-            $tax = $subtotal * 0.15; // 15% tax
-            $totalAmount = $subtotal - $discount + $tax;
+            $totalAmount = $subtotal + $totalTax;
 
             $sale->update([
                 'subtotal' => $subtotal,
-                'discount' => $discount,
-                'tax' => $tax,
                 'total_amount' => $totalAmount,
             ]);
 
@@ -146,8 +145,6 @@ class SalesSeeder extends Seeder
                 [
                     'id' => Str::uuid(),
                     'merchant_id' => $merchant->id,
-                    'business_id' => $business->id,
-                    'branch_id' => $branch->id,
                     'status' => 'pending',
                 ]
             );
