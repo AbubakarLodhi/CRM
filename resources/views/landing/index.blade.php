@@ -332,13 +332,19 @@
                     <p><strong>Email:</strong> <a href="mailto:{{ $content['contact']['email'] }}">{{ $content['contact']['email'] }}</a></p>
                     <p><strong>Website:</strong> <a href="{{ $content['contact']['website'] }}" target="_blank" rel="noopener">{{ $content['contact']['website'] }}</a></p>
                 </div>
-                <form class="landing-form" data-landing-form data-reveal="right">
+                <form
+                    class="landing-form"
+                    data-landing-form
+                    data-reveal="right"
+                    data-web3forms-key="{{ $content['contact']['web3forms_access_key'] }}"
+                    data-form-subject="{{ $content['contact']['form_subject'] }}"
+                >
                     <div class="landing-form__grid">
                         <label>Name<input type="text" name="name" required autocomplete="name"></label>
                         <label>Email<input type="email" name="email" required autocomplete="email"></label>
                     </div>
                     <label>Message<textarea name="message" rows="4" required></textarea></label>
-                    <button type="submit" class="btn btn--primary">Send message</button>
+                    <button type="submit" class="btn btn--primary" data-form-submit>Send message</button>
                     <p class="landing-form__feedback" data-form-feedback hidden></p>
                 </form>
             </div>

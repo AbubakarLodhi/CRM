@@ -231,6 +231,8 @@ return [
     'contact' => [
         'email' => config('branding.primary_merchant_email'),
         'website' => config('branding.primary_merchant_website'),
+        'web3forms_access_key' => env('WEB3FORMS_ACCESS_KEY'),
+        'form_subject' => 'New Flowdesk contact form message',
     ],
 
     'footer' => [

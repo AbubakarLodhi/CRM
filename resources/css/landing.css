@@ -1149,6 +1149,19 @@ main {
     gap: 1.25rem;
 }
 
+.landing-contact a {
+    color: #e2e8f0;
+    text-decoration: underline;
+    text-decoration-color: rgba(148, 163, 184, 0.55);
+    text-underline-offset: 0.2em;
+    transition: color 0.3s var(--landing-ease), text-decoration-color 0.3s var(--landing-ease);
+}
+
+.landing-contact a:hover {
+    color: #fff;
+    text-decoration-color: rgba(199, 210, 254, 0.85);
+}
+
 .landing-form label {
     display: grid;
     gap: 0.35rem;
@@ -1177,6 +1190,10 @@ main {
     margin-top: 0.75rem;
     color: #6ee7b7;
     font-size: 0.85rem;
+}
+
+.landing-form__feedback--error {
+    color: #fca5a5;
 }
 
 .landing-footer {

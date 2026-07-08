@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "echo 'skipping build'",
+        "build": "vite build",
         "dev": "vite",
         "prod": "vite build"
     },

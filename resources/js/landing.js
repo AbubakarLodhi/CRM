@@ -161,17 +161,63 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.landing-metric').forEach((metric) => counterObserver.observe(metric));
 
     document.querySelectorAll('[data-landing-form]').forEach((form) => {
-        form.addEventListener('submit', (event) => {
+        form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const feedback = form.querySelector('[data-form-feedback]');
+            const submitButton = form.querySelector('[data-form-submit]');
+            const accessKey = form.getAttribute('data-web3forms-key') || '';
 
-            if (feedback) {
+            const showFeedback = (message, isError = false) => {
+                if (! feedback) {
+                    return;
+                }
+
                 feedback.hidden = false;
-                feedback.textContent = 'Thanks! We will get back to you shortly.';
+                feedback.textContent = message;
+                feedback.classList.toggle('landing-form__feedback--error', isError);
+            };
+
+            if (accessKey === '') {
+                showFeedback('Contact form is not configured yet. Please email us directly.', true);
+
+                return;
             }
 
-            form.reset();
+            const formData = new FormData(form);
+
+            submitButton?.setAttribute('disabled', 'disabled');
+            showFeedback('Sending...', false);
+
+            try {
+                const response = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify({
+                        access_key: accessKey,
+                        subject: form.getAttribute('data-form-subject') || 'New contact form message',
+                        name: formData.get('name'),
+                        email: formData.get('email'),
+                        message: formData.get('message'),
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (! response.ok || ! result.success) {
+                    throw new Error(result.message || 'Submission failed');
+                }
+
+                form.reset();
+                showFeedback('Thanks! We will get back to you shortly.', false);
+            } catch {
+                showFeedback('Something went wrong. Please try again or email us directly.', true);
+            } finally {
+                submitButton?.removeAttribute('disabled');
+            }
         });
     });
 

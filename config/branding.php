@@ -12,7 +12,7 @@ return [
 
     'login_visual' => 'images/flowdesk-login-visual.svg',
 
-    'primary_merchant_email' => env('PRIMARY_MERCHANT_EMAIL', 'info@flowdesk.com'),
+    'primary_merchant_email' => env('PRIMARY_MERCHANT_EMAIL', 'flowdesk.contact.help@gmail.com'),
 
     'primary_merchant_website' => env('PRIMARY_MERCHANT_WEBSITE', 'https://flowdesk.app'),
 
