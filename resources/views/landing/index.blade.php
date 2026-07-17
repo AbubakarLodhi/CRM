@@ -30,14 +30,59 @@
     <header class="landing-header" id="top">
         <div class="landing-container landing-header__inner">
             <a href="{{ route('landing') }}" class="landing-logo">
-                <img src="{{ asset('images/flowdesk-logo-dark.svg') }}" alt="{{ config('branding.name') }}" width="120" height="40">
+                <img
+                    src="{{ asset('images/flowdesk-logo-dark.svg') }}"
+                    alt="{{ config('branding.name') }}"
+                    width="120"
+                    height="40"
+                    data-landing-logo
+                    data-logo-dark="{{ asset('images/flowdesk-logo-dark.svg') }}"
+                    data-logo-light="{{ asset('images/flowdesk-logo.svg') }}"
+                >
             </a>
+            <script>
+                (() => {
+                    const theme = document.documentElement.getAttribute('data-landing-theme') === 'light' ? 'light' : 'dark';
+                    document.querySelectorAll('[data-landing-logo]').forEach((logo) => {
+                        const src = theme === 'light'
+                            ? logo.getAttribute('data-logo-light')
+                            : logo.getAttribute('data-logo-dark');
+
+                        if (src) {
+                            logo.setAttribute('src', src);
+                        }
+                    });
+                })();
+            </script>
             <nav class="landing-nav" aria-label="Primary">
                 @foreach ($content['nav'] as $item)
                     <a href="{{ $item['href'] }}">{{ $item['label'] }}</a>
                 @endforeach
             </nav>
             <div class="landing-header__actions">
+                <button
+                    type="button"
+                    class="landing-theme-toggle"
+                    data-landing-theme-toggle
+                    aria-label="Switch to light theme"
+                    aria-pressed="false"
+                >
+                    <span class="landing-theme-toggle__track" aria-hidden="true">
+                        <span class="landing-theme-toggle__icon landing-theme-toggle__icon--sun">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="4" />
+                                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                            </svg>
+                        </span>
+                        <span class="landing-theme-toggle__icon landing-theme-toggle__icon--moon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" />
+                            </svg>
+                        </span>
+                        <span class="landing-theme-toggle__knob"></span>
+                    </span>
+                    <span class="landing-theme-toggle__sr">Theme</span>
+                </button>
                 <a href="{{ route('demo.login') }}" class="btn btn--ghost">Try Demo</a>
                 <a href="#pricing" class="btn btn--primary">Get Started</a>
             </div>
@@ -49,6 +94,29 @@
             @foreach ($content['nav'] as $item)
                 <a href="{{ $item['href'] }}">{{ $item['label'] }}</a>
             @endforeach
+            <button
+                type="button"
+                class="landing-theme-toggle landing-theme-toggle--mobile"
+                data-landing-theme-toggle
+                aria-label="Switch to light theme"
+                aria-pressed="false"
+            >
+                <span class="landing-theme-toggle__track" aria-hidden="true">
+                    <span class="landing-theme-toggle__icon landing-theme-toggle__icon--sun">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                        </svg>
+                    </span>
+                    <span class="landing-theme-toggle__icon landing-theme-toggle__icon--moon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" />
+                        </svg>
+                    </span>
+                    <span class="landing-theme-toggle__knob"></span>
+                </span>
+                <span class="landing-theme-toggle__text" data-landing-theme-label>Light mode</span>
+            </button>
             <a href="{{ route('demo.login') }}" class="btn btn--primary">Try Demo</a>
         </div>
     </header>
@@ -103,7 +171,28 @@
                 <div class="landing-grid landing-grid--3" data-reveal-stagger>
                     @foreach ($content['why'] as $item)
                         <article class="landing-card landing-card--hover">
-                            <div class="landing-card__icon" aria-hidden="true"></div>
+                            <div class="landing-card__icon landing-card__icon--{{ $item['icon'] }}" aria-hidden="true">
+                                @switch($item['icon'])
+                                    @case('layers')
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+                                            <path d="m2 12 10 5 10-5" />
+                                            <path d="m2 17 10 5 10-5" />
+                                        </svg>
+                                        @break
+                                    @case('zap')
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M13 2 3 14h8l-1 8 10-12h-8l1-8Z" />
+                                        </svg>
+                                        @break
+                                    @case('shield')
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                                            <path d="m9 12 2 2 4-4" />
+                                        </svg>
+                                        @break
+                                @endswitch
+                            </div>
                             <h3>{{ $item['title'] }}</h3>
                             <p>{{ $item['description'] }}</p>
                         </article>

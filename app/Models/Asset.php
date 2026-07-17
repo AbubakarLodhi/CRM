@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
+use App\Enums\AttachmentMetaType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 
@@ -91,5 +93,12 @@ class Asset extends Model implements Auditable
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function attachment(): MorphOne
+    {
+        return $this->morphOne(Attachment::class, 'attachable')
+            ->where('meta_type', AttachmentMetaType::ASSET_FILE)
+            ->whereNull('deleted_at');
     }
 }

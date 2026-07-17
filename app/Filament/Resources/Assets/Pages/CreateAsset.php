@@ -2,13 +2,17 @@
 
 namespace App\Filament\Resources\Assets\Pages;
 
+use App\Enums\AttachmentMetaType;
+use App\Enums\AttachmentType;
 use App\Filament\Resources\Assets\AssetResource;
 use App\Models\Branch;
 use App\Models\Merchant;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class CreateAsset extends CreateRecord
 {
@@ -41,5 +45,35 @@ class CreateAsset extends CreateRecord
     protected function handleRecordCreation(array $data): Model
     {
         return static::getModel()::create($data);
+    }
+
+    protected function afterCreate(): void
+    {
+        $path = collect($this->form->getRawState()['attachment'] ?? null)->first();
+
+        if ($path) {
+            $this->record->attachment()?->delete();
+
+            $this->record->attachment()->create([
+                'merchant_id' => $this->record->merchant_id,
+                'type' => $this->resolveAttachmentType((string) $path),
+                'meta_type' => AttachmentMetaType::ASSET_FILE,
+                'photo_url' => $path,
+            ]);
+        }
+
+        Notification::make()
+            ->title('Asset created')
+            ->success()
+            ->send();
+    }
+
+    private function resolveAttachmentType(string $path): AttachmentType
+    {
+        $extension = Str::lower(pathinfo($path, PATHINFO_EXTENSION));
+
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)
+            ? AttachmentType::IMAGE
+            : AttachmentType::FILE;
     }
 }

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -157,6 +158,30 @@ class AssetForm
                     Textarea::make('notes')
                         ->label('Notes')
                         ->rows(3)
+                        ->columnSpanFull(),
+
+                    FileUpload::make('attachment')
+                        ->label('Attach File')
+                        ->disk('public')
+                        ->directory('assets/files')
+                        ->visibility('public')
+                        ->maxSize(1024)
+                        ->maxFiles(1)
+                        ->acceptedFileTypes([
+                            'image/jpeg',
+                            'image/png',
+                            'image/webp',
+                            'application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        ])
+                        ->helperText('Maximum file size: 1 MB.')
+                        ->validationMessages([
+                            'max' => 'The file size should be at most 1 MB.',
+                        ])
+                        ->dehydrated(false)
                         ->columnSpanFull(),
                 ]),
         ]);

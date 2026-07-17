@@ -13,6 +13,72 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const getLandingTheme = () => {
+        const attr = document.documentElement.getAttribute('data-landing-theme');
+
+        return attr === 'light' ? 'light' : 'dark';
+    };
+
+    const syncLandingThemeUi = (theme) => {
+        const nextTheme = theme === 'dark' ? 'light' : 'dark';
+        const isLight = theme === 'light';
+
+        document.querySelectorAll('[data-landing-theme-toggle]').forEach((button) => {
+            button.setAttribute(
+                'aria-label',
+                nextTheme === 'light' ? 'Switch to light theme' : 'Switch to dark theme'
+            );
+            button.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+        });
+
+        document.querySelectorAll('[data-landing-theme-label]').forEach((label) => {
+            label.textContent = isLight ? 'Dark mode' : 'Light mode';
+        });
+
+        document.querySelectorAll('[data-landing-logo]').forEach((logo) => {
+            const nextSrc = theme === 'light'
+                ? logo.getAttribute('data-logo-light')
+                : logo.getAttribute('data-logo-dark');
+
+            if (nextSrc) {
+                logo.setAttribute('src', nextSrc);
+            }
+        });
+
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+
+        if (themeColor) {
+            themeColor.setAttribute('content', theme === 'light' ? '#f4f7fb' : '#6366f1');
+        }
+    };
+
+    const setLandingTheme = (theme, sourceButton = null) => {
+        const nextTheme = theme === 'light' ? 'light' : 'dark';
+
+        if (sourceButton) {
+            sourceButton.classList.remove('is-animating');
+            // Force reflow so the animation can restart on rapid clicks.
+            void sourceButton.offsetWidth;
+            sourceButton.classList.add('is-animating');
+
+            window.setTimeout(() => {
+                sourceButton.classList.remove('is-animating');
+            }, 560);
+        }
+
+        document.documentElement.setAttribute('data-landing-theme', nextTheme);
+        localStorage.setItem('landing-theme', nextTheme);
+        syncLandingThemeUi(nextTheme);
+    };
+
+    document.querySelectorAll('[data-landing-theme-toggle]').forEach((button) => {
+        button.addEventListener('click', () => {
+            setLandingTheme(getLandingTheme() === 'dark' ? 'light' : 'dark', button);
+        });
+    });
+
+    syncLandingThemeUi(getLandingTheme());
+
     const initSwiper = () => {
         if (typeof Swiper === 'undefined') {
             return;

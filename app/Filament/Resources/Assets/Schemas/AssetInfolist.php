@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Assets\Schemas;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class AssetInfolist
 {
@@ -52,6 +53,15 @@ class AssetInfolist
                 ->schema([
                     TextEntry::make('description')->label('Description')->placeholder('—')->columnSpanFull(),
                     TextEntry::make('notes')->label('Notes')->placeholder('—')->columnSpanFull(),
+                    TextEntry::make('attachment.photo_url')
+                        ->label('Attached File')
+                        ->placeholder('—')
+                        ->formatStateUsing(fn (?string $state): string => $state ? basename($state) : '—')
+                        ->url(fn ($record): ?string => $record->attachment?->photo_url
+                            ? Storage::disk('public')->url($record->attachment->photo_url)
+                            : null)
+                        ->openUrlInNewTab()
+                        ->columnSpanFull(),
                 ]),
         ]);
     }

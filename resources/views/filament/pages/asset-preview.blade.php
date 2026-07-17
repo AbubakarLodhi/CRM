@@ -347,6 +347,17 @@
             <div class="notes">{{ $record->notes }}</div>
         </div>
     @endif
+
+    @if($record->attachment?->photo_url)
+        <div class="section">
+            <div class="section-title">Attached File</div>
+            <div class="notes">
+                <a href="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($record->attachment->photo_url) }}" target="_blank" rel="noopener">
+                    {{ basename($record->attachment->photo_url) }}
+                </a>
+            </div>
+        </div>
+    @endif
 </div>
 
 <script>

@@ -362,7 +362,7 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
 }
 
 /* --------------------------------------------
- | Login screen
+ | Login screen (forced light, professional card)
  |---------------------------------------------
  */
 .flowdesk-auth-layout {
@@ -370,7 +370,11 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
     align-items: stretch;
-    background: #ffffff;
+    color-scheme: light;
+    background:
+        radial-gradient(circle at 12% 18%, rgba(99, 102, 241, 0.1), transparent 42%),
+        radial-gradient(circle at 88% 12%, rgba(79, 70, 229, 0.07), transparent 36%),
+        #f1f5f9;
 }
 
 .flowdesk-auth-layout .flowdesk-auth-visual {
@@ -387,7 +391,7 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
     height: min(86vh, 670px);
     object-fit: contain;
     object-position: center;
-    border-radius: 2px;
+    border-radius: 16px;
 }
 
 .flowdesk-auth-layout .fi-simple-main-ctn {
@@ -395,32 +399,35 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 48px clamp(36px, 6vw, 92px);
+    padding: 48px clamp(28px, 5vw, 72px);
 }
 
 .flowdesk-auth-layout .fi-simple-main {
-    width: min(100%, 630px);
-    max-width: 630px;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    box-shadow: none;
+    width: min(100%, 420px);
+    max-width: 420px;
+    padding: 36px 32px 28px;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 18px !important;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 18px 40px rgba(15, 23, 42, 0.08) !important;
 }
 
 .flowdesk-auth-layout .fi-simple-page-content {
-    gap: 34px;
+    gap: 26px;
 }
 
 .flowdesk-auth-layout .fi-simple-header {
     align-items: flex-start;
     text-align: left;
-    gap: 10px;
+    gap: 8px;
 }
 
 .flowdesk-auth-layout .fi-logo {
     align-self: center;
     height: auto !important;
-    margin-bottom: 22px;
+    margin-bottom: 16px;
     color: #6366f1;
     font-size: 24px;
     font-weight: 800;
@@ -431,8 +438,8 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
 
 .flowdesk-auth-layout img.fi-logo {
     width: auto;
-    max-width: 240px;
-    max-height: 150px;
+    max-width: 180px;
+    max-height: 64px;
     object-fit: contain;
 }
 
@@ -445,80 +452,213 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
 }
 
 .flowdesk-auth-layout .flowdesk-auth-logo svg {
-    width: 104px;
-    height: 84px;
+    width: 64px;
+    height: 52px;
     display: block;
 }
 
 .flowdesk-auth-layout .flowdesk-auth-logo strong {
     color: #6366f1;
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1;
 }
 
 .flowdesk-auth-layout .fi-simple-header-heading {
-    color: #202b3c;
-    font-size: 26px;
+    color: #0f172a !important;
+    font-size: 28px;
     font-weight: 700;
-    letter-spacing: 0;
+    letter-spacing: -0.02em;
     line-height: 1.2;
 }
 
-.flowdesk-auth-layout .fi-simple-header-subheading {
-    color: #7a8495;
-    font-size: 13px;
-    line-height: 1.5;
+.flowdesk-auth-layout .fi-simple-header-subheading,
+.flowdesk-auth-layout .fi-simple-header-subheading * {
+    color: #64748b !important;
+    font-size: 14px !important;
+    line-height: 1.55;
 }
 
+/* Always stack email / password / remember vertically */
+.flowdesk-auth-layout .fi-sc,
 .flowdesk-auth-layout .fi-sc-form,
-.flowdesk-auth-layout .fi-fo-component-ctn,
-.flowdesk-auth-layout form {
-    gap: 20px;
+.flowdesk-auth-layout form .fi-sc {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
 }
 
+.flowdesk-auth-layout .fi-grid-col,
+.flowdesk-auth-layout .fi-fo-field-wrp,
+.flowdesk-auth-layout .fi-sc-component {
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 / -1 !important;
+}
+
+.flowdesk-auth-layout .fi-fo-field-wrp-label,
 .flowdesk-auth-layout .fi-fo-field-wrp-label span,
-.flowdesk-auth-layout .fi-fo-field-wrp-label label {
-    color: #4a5668;
-    font-size: 12px;
-    font-weight: 700;
+.flowdesk-auth-layout .fi-fo-field-wrp-label label,
+.flowdesk-auth-layout .fi-fo-field-wrp-label .fi-fo-field-wrp-label-text,
+.flowdesk-auth-layout .fi-fo-field-label,
+.flowdesk-auth-layout .fi-fo-field-label-ctn,
+.flowdesk-auth-layout .fi-fo-field-label-col,
+.flowdesk-auth-layout .fi-fo-field-label-content,
+.flowdesk-auth-layout .fi-fo-field-label span {
+    color: #334155 !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    clip: auto !important;
+    overflow: visible !important;
+    white-space: normal !important;
 }
 
+.flowdesk-auth-layout .fi-fo-field-label-col {
+    display: block !important;
+    margin-bottom: 6px !important;
+}
+
+.flowdesk-auth-layout .fi-fo-field-label-ctn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+}
+
+.flowdesk-auth-layout .fi-fo-field-wrp-required-indicator,
+.flowdesk-auth-layout .fi-fo-field-wrp-label .fi-fo-field-wrp-required,
+.flowdesk-auth-layout .fi-fo-field-label-required-mark,
+.flowdesk-auth-layout .fi-fo-field-label sup,
+.dark .flowdesk-auth-layout .fi-fo-field-label-required-mark,
+.dark .flowdesk-auth-layout .fi-fo-field-label .fi-fo-field-label-required-mark,
+.dark .flowdesk-auth-layout .fi-fo-field-label sup {
+    color: #ef4444 !important;
+    font-size: 13px !important;
+}
+
+/* Visible credential borders + clean filled state */
 .flowdesk-auth-layout .fi-input-wrp {
-    min-height: 40px;
-    border-color: #e2e8f0;
-    border-radius: 5px;
-    background: #ffffff;
-    box-shadow: none;
+    display: flex !important;
+    align-items: center !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    border: 1.5px solid #94a3b8 !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-offset-shadow: 0 0 #0000 !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.flowdesk-auth-layout .fi-input {
-    color: #263244;
-    font-size: 13px;
+.flowdesk-auth-layout .fi-input-wrp:hover {
+    border-color: #64748b !important;
+}
+
+.flowdesk-auth-layout .fi-input-wrp:focus-within {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
+}
+
+.flowdesk-auth-layout .fi-input-wrp.fi-invalid {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14) !important;
+}
+
+.flowdesk-auth-layout .fi-input-wrp-content-ctn,
+.flowdesk-auth-layout .fi-input-wrp > * {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.flowdesk-auth-layout .fi-input-wrp-prefix,
+.flowdesk-auth-layout .fi-input-wrp-suffix,
+.flowdesk-auth-layout .fi-input-wrp-actions {
+    display: flex !important;
+    align-items: center !important;
+    height: 100% !important;
+}
+
+.flowdesk-auth-layout .fi-input,
+.flowdesk-auth-layout .flowdesk-auth-input {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 45px !important;
+    padding-block: 0 !important;
+    margin: 0 !important;
+    color: #0f172a !important;
+    font-size: 14px !important;
+    line-height: 48px !important;
+    background: transparent !important;
+    -webkit-text-fill-color: #0f172a !important;
+    vertical-align: middle;
 }
 
 .flowdesk-auth-layout .fi-input::placeholder {
-    color: #a5adbb;
+    color: #94a3b8 !important;
+    -webkit-text-fill-color: #94a3b8 !important;
+    opacity: 1 !important;
+}
+
+/* Remove browser autofill grey/yellow boxes */
+.flowdesk-auth-layout input:-webkit-autofill,
+.flowdesk-auth-layout input:-webkit-autofill:hover,
+.flowdesk-auth-layout input:-webkit-autofill:focus,
+.flowdesk-auth-layout input:-webkit-autofill:active {
+    -webkit-text-fill-color: #0f172a !important;
+    caret-color: #0f172a !important;
+    box-shadow: 0 0 0 1000px #ffffff inset !important;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+    transition: background-color 99999s ease-out 0s;
+    background-color: #ffffff !important;
 }
 
 .flowdesk-auth-layout .fi-fo-field-wrp-error-message {
-    font-size: 12px;
+    color: #dc2626 !important;
+    font-size: 12px !important;
 }
 
 .flowdesk-auth-layout .fi-checkbox-input {
-    border-color: #d8dee8;
-    border-radius: 3px;
+    width: 1.05rem !important;
+    height: 1.05rem !important;
+    border: 1.5px solid #64748b !important;
+    border-radius: 4px !important;
+    background: #ffffff !important;
+    color: #ffffff !important;
 }
 
+.flowdesk-auth-layout .fi-checkbox-input:checked {
+    border-color: #6366f1 !important;
+    background-color: #6366f1 !important;
+}
+
+.flowdesk-auth-layout .fi-fo-checkbox,
+.flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) .fi-fo-field-wrp-label,
+.flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) .fi-fo-field-wrp-label *,
+.flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) .fi-fo-field-label,
+.flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) .fi-fo-field-label-content,
+.flowdesk-auth-layout label:has(.fi-checkbox-input),
 .flowdesk-auth-layout .fi-checkbox-list-option-label,
-.flowdesk-auth-layout .fi-fo-checkbox-list-option-label,
-.flowdesk-auth-layout .fi-fo-field-wrp-hint,
-.flowdesk-auth-layout .fi-link {
-    color: #6c7483;
-    font-size: 13px;
-}
-
-.flowdesk-auth-layout .fi-link {
-    font-weight: 600;
+.flowdesk-auth-layout .fi-fo-checkbox-list-option-label {
+    color: #475569 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .flowdesk-auth-layout .fi-ac {
@@ -526,22 +666,73 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
 }
 
 .flowdesk-auth-layout .fi-btn {
-    min-height: 44px;
-    border-radius: 5px;
-    background: #6366f1;
-    font-size: 13px;
-    font-weight: 700;
-    box-shadow: none;
+    min-height: 48px !important;
+    width: 100%;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+    color: #ffffff !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.28) !important;
 }
 
 .flowdesk-auth-layout .fi-btn:hover,
 .flowdesk-auth-layout .fi-btn:focus-visible {
-    background: #4f46e5;
+    background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+}
+
+.flowdesk-auth-layout .fi-simple-layout-forgot-password-link {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.flowdesk-auth-layout .fi-simple-layout-forgot-password-link .fi-link,
+.flowdesk-auth-layout .fi-link {
+    color: #64748b !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+}
+
+.flowdesk-auth-layout .fi-simple-layout-forgot-password-link .fi-link:hover,
+.flowdesk-auth-layout .fi-link:hover {
+    color: #6366f1 !important;
+}
+
+/* Keep login light even when panel default theme is dark */
+.dark .flowdesk-auth-layout,
+.dark .flowdesk-auth-layout .fi-simple-main,
+.dark .flowdesk-auth-layout .fi-input-wrp {
+    background-color: #ffffff !important;
+}
+
+.dark .flowdesk-auth-layout .fi-simple-header-heading,
+.dark .flowdesk-auth-layout .fi-input,
+.dark .flowdesk-auth-layout .flowdesk-auth-input {
+    color: #0f172a !important;
+    -webkit-text-fill-color: #0f172a !important;
+}
+
+.dark .flowdesk-auth-layout .fi-fo-field-wrp-label,
+.dark .flowdesk-auth-layout .fi-fo-field-wrp-label *:not(.fi-fo-field-label-required-mark):not(sup),
+.dark .flowdesk-auth-layout .fi-fo-field-label,
+.dark .flowdesk-auth-layout .fi-fo-field-label-content,
+.dark .flowdesk-auth-layout .fi-fo-field-label *:not(.fi-fo-field-label-required-mark):not(sup),
+.dark .flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) .fi-fo-field-wrp-label *:not(.fi-fo-field-label-required-mark):not(sup),
+.dark .flowdesk-auth-layout .fi-fo-field-wrp:has(.fi-checkbox-input) .fi-fo-field-label *:not(.fi-fo-field-label-required-mark):not(sup) {
+    color: #334155 !important;
+}
+
+.dark .flowdesk-auth-layout .fi-fo-field-label-required-mark,
+.dark .flowdesk-auth-layout .fi-fo-field-label .fi-fo-field-label-required-mark,
+.dark .flowdesk-auth-layout .fi-fo-field-label > .fi-fo-field-label-content > .fi-fo-field-label-required-mark,
+.dark .flowdesk-auth-layout .fi-fo-field-label sup {
+    color: #ef4444 !important;
 }
 
 @media (max-width: 1024px) {
     .flowdesk-auth-layout {
         grid-template-columns: 1fr;
+        background: #f1f5f9;
     }
 
     .flowdesk-auth-layout .flowdesk-auth-visual {
@@ -549,11 +740,12 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
     }
 
     .flowdesk-auth-layout .fi-simple-main-ctn {
-        padding: 32px 22px;
+        padding: 28px 18px;
     }
 
     .flowdesk-auth-layout .fi-simple-main {
-        max-width: 520px;
+        max-width: 420px;
+        padding: 28px 22px 22px;
     }
 
     .flowdesk-auth-layout .fi-simple-header {

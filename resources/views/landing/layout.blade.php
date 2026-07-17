@@ -15,6 +15,13 @@
     <link rel="icon" href="{{ asset(config('branding.favicon')) }}" type="image/svg+xml">
     <link rel="apple-touch-icon" href="{{ asset(config('branding.icon')) }}">
     <meta name="theme-color" content="#6366f1">
+    <script>
+        (() => {
+            const stored = localStorage.getItem('landing-theme');
+            const theme = stored === 'light' || stored === 'dark' ? stored : 'dark';
+            document.documentElement.setAttribute('data-landing-theme', theme);
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">

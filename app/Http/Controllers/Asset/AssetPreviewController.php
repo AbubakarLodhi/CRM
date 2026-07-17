@@ -25,6 +25,7 @@ class AssetPreviewController
                 'assignedUser',
                 'vendor',
                 'createdBy',
+                'attachment',
             ])
             ->find($id);
 
