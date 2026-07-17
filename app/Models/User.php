@@ -21,7 +21,10 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements CanResetPasswordContract, Auditable, FilamentUser
 {
     use \OwenIt\Auditing\Auditable;
-    use HasUuids, HasRoles,Notifiable,CanResetPassword;
+    use HasUuids, HasRoles, Notifiable, CanResetPassword {
+        HasRoles::hasPermissionTo as protected traitHasPermissionTo;
+        HasRoles::hasRole as protected traitHasRole;
+    }
     /** @var string */
     protected $keyType = 'string';
 
@@ -72,6 +75,22 @@ class User extends Authenticatable implements CanResetPasswordContract, Auditabl
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->status === self::STATUS_VERIFIED && (bool) $this->is_active;
+    }
+
+    /**
+     * Roles and permissions are only ever stored under the 'merchant' Spatie
+     * guard, shared between the merchant and staff panels. Filament resources
+     * often pass the current Laravel auth guard ('staff' or 'merchant') here
+     * instead, which would otherwise make every check fail on the staff panel.
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        return $this->traitHasPermissionTo($permission, 'merchant');
+    }
+
+    public function hasRole($roles, ?string $guard = null): bool
+    {
+        return $this->traitHasRole($roles, 'merchant');
     }
 
     public function merchant(): BelongsTo
