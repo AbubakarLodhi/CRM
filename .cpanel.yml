@@ -2,9 +2,7 @@
 deployment:
   tasks:
     - /bin/tar --exclude='.git' --exclude='.env' --exclude='storage' --exclude='node_modules' --exclude='.github' --exclude='public/hot' -cf - . | (cd /home/techshakerco99/public_html/flowdeskpos.com && /bin/tar -xf -)
-    - /opt/cpanel/ea-php84/root/usr/bin/php /home/techshakerco99/composer.phar install --no-dev --optimize-autoloader --no-interaction --no-scripts --working-dir=/home/techshakerco99/public_html/flowdeskpos.com
     - /opt/cpanel/ea-php84/root/usr/bin/php /home/techshakerco99/public_html/flowdeskpos.com/artisan migrate --force
-    - /opt/cpanel/ea-php84/root/usr/bin/php /home/techshakerco99/public_html/flowdeskpos.com/artisan package:discover --ansi
     - /opt/cpanel/ea-php84/root/usr/bin/php /home/techshakerco99/public_html/flowdeskpos.com/artisan optimize:clear
     - /opt/cpanel/ea-php84/root/usr/bin/php /home/techshakerco99/public_html/flowdeskpos.com/artisan config:cache
     - /opt/cpanel/ea-php84/root/usr/bin/php /home/techshakerco99/public_html/flowdeskpos.com/artisan route:cache
