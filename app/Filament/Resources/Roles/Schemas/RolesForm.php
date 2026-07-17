@@ -24,14 +24,13 @@ class RolesForm
                         TextInput::make('name')
                             ->label('Role Name')
                             ->required()
-                            ->unique()
+                            ->unique(ignoreRecord: true)
                             ->maxLength(255)
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set, $livewire) {
                                 $livewire->resetValidation('data.name');
                                 $livewire->resetErrorBag('data.name');
                             }),
-//                         //   ->unique(ignoreRecord: true),
 
 
 

@@ -97,16 +97,9 @@ class EditRoles extends EditRecord
         $permissions = $data['permissions'] ?? [];
         unset($data['permissions']);
 
-        $panelGuard = \Filament\Facades\Filament::getCurrentPanel()?->getAuthGuard();
-        $data['guard_name'] = $data['guard_name'] ?? match ($panelGuard) {
-            'merchant', 'staff' => 'staff',
-            default => $panelGuard ?? $record->guard_name,
-        };
-
         return DB::transaction(function () use ($record, $data, $permissions) {
             $record->update([
-                'name'       => $data['name'],
-                'guard_name' => $data['guard_name'] ?? $record->guard_name,
+                'name' => $data['name'],
             ]);
 
             RolesResource::afterUpdate($record, $permissions);
