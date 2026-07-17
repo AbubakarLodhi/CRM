@@ -82,8 +82,6 @@ class DemoMerchantAccess
             $merchant->syncPermissions($permissionNames);
         }
 
-        if (! $merchant->hasRole($role)) {
-            $merchant->syncRoles([$role]);
-        }
+        $merchant->syncRoles([$role]);
     }
 }

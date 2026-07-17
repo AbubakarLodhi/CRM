@@ -59,13 +59,13 @@ class UserResource extends Resource
     // If logged in user is Admin, hide other Admin accounts
     // Admin cannot see the merchant account (merchants are in a different table)
     // But hide users with Admin role from being seen by non-admin staff
-    $isAdmin = $user->hasRole('Admin', 'staff');
+    $isAdmin = $user->hasRole('Admin', 'merchant');
 
     if (! $isAdmin) {
         // Non-admin staff cannot see Admin accounts
         $adminRoleId = \DB::table('roles')
             ->where('name', 'Admin')
-            ->where('guard_name', 'staff')
+            ->where('guard_name', 'merchant')
             ->value('id');
 
         if ($adminRoleId) {
