@@ -119,7 +119,7 @@ class UserForm
                     ->relationship(
                         'roles',
                         'name',
-                        fn ($query) => $query->where('guard_name', 'staff')
+                        fn ($query) => $query->where('guard_name', 'merchant')
                     )
                     ->preload()
                     ->required()
