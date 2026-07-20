@@ -2,7 +2,11 @@
 
 namespace App\Services\Demo;
 
+use App\Models\Asset;
+use App\Models\CashFlow;
+use App\Models\Expense;
 use App\Models\Merchant;
+use App\Models\Payroll;
 use App\Models\Purchase;
 use App\Models\Sale;
 use App\Support\DemoAccount;
@@ -79,7 +83,23 @@ class TemporaryDemoProvisioner
             return true;
         }
 
-        return $merchant->customers()->count() === 0;
+        if ($merchant->customers()->count() === 0) {
+            return true;
+        }
+
+        if (Expense::query()->where('merchant_id', $merchant->id)->count() === 0) {
+            return true;
+        }
+
+        if (Payroll::query()->where('merchant_id', $merchant->id)->count() === 0) {
+            return true;
+        }
+
+        if (CashFlow::query()->where('merchant_id', $merchant->id)->count() === 0) {
+            return true;
+        }
+
+        return Asset::query()->where('merchant_id', $merchant->id)->count() === 0;
     }
 
     private function seedSampleData(Merchant $merchant): void

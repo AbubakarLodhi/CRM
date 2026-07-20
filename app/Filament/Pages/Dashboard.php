@@ -7,6 +7,7 @@ use App\Models\Business;
 use App\Models\Merchant;
 use App\Models\ProductVariant;
 use App\Models\User;
+use App\Support\DemoAccount;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
@@ -159,7 +160,9 @@ class Dashboard extends BaseDashboard
 
                         DatePicker::make('date_from')
                             ->label('Date From')
-                            ->default(now()->toDateString())
+                            ->default(fn (): string => DemoAccount::isDemoMerchant()
+                                ? now()->subDays(30)->toDateString()
+                                : now()->toDateString())
                             ->placeholder('Start date')
                             ->displayFormat('d/m/Y')
                             ->maxDate(now())

@@ -2,25 +2,40 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AssetCondition;
+use App\Enums\AssetStatus;
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use App\Models\Asset;
+use App\Models\AssetType;
 use App\Models\Branch;
 use App\Models\Brand;
 use App\Models\BrandModel;
 use App\Models\Business;
+use App\Models\CashFlow;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\ExpenseItem;
 use App\Models\Merchant;
+use App\Models\MerchantSetting;
 use App\Models\Order;
+use App\Models\Payroll;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\PurchaseItemVariant;
+use App\Models\PurchaseReturn;
+use App\Models\PurchaseReturnItem;
+use App\Models\PurchaseReturnItemVariant;
 use App\Models\Role;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleItemVariant;
+use App\Models\SaleReturn;
+use App\Models\SaleReturnItem;
+use App\Models\SaleReturnItemVariant;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Support\DemoAccount;
@@ -73,6 +88,13 @@ class DemoSeeder extends Seeder
         $vendors = $this->seedVendors($merchant);
         $this->seedPurchases($merchant, $business, $branches, $vendors, $products, $variants, $staff);
         $this->seedSales($merchant, $branches, $customers, $products, $variants, $staff);
+        $this->seedExpenses($merchant, $business, $branches, $staff);
+        $this->seedPayrolls($merchant, $staff);
+        $this->seedCashFlows($merchant, $business, $branches, $customers, $vendors, $staff);
+        $this->seedAssets($merchant, $business, $branches, $vendors, $staff);
+        $this->seedSaleReturns($merchant, $staff);
+        $this->seedPurchaseReturns($merchant, $staff);
+        $this->seedMerchantProfile($merchant);
 
         $this->command->info('');
         $this->command->info('✅ DemoSeeder completed successfully!');
@@ -731,6 +753,20 @@ class DemoSeeder extends Seeder
                 'days_ago' => 5,
                 'product_count' => 2,
             ],
+            [
+                'vendor' => $vendors[2],
+                'branch' => $branches[0],
+                'created_by' => $staff[2],
+                'days_ago' => 1,
+                'product_count' => 2,
+            ],
+            [
+                'vendor' => $vendors[3],
+                'branch' => $branches[1],
+                'created_by' => $staff[0],
+                'days_ago' => 0,
+                'product_count' => 2,
+            ],
         ];
 
         foreach ($purchaseConfigs as $i => $config) {
@@ -833,6 +869,28 @@ class DemoSeeder extends Seeder
                 'days_ago' => 3,
                 'product_count' => 3,
             ],
+            [
+                'customer' => $customers[2],
+                'branch' => $branches[0],
+                'created_by' => $staff[1],
+                'days_ago' => 1,
+                'product_count' => 2,
+            ],
+            [
+                'customer' => $customers[3],
+                'branch' => $branches[0],
+                'created_by' => $staff[0],
+                'days_ago' => 0,
+                'product_count' => 2,
+            ],
+            [
+                'customer' => $customers[4],
+                'branch' => $branches[1],
+                'created_by' => $staff[2],
+                'days_ago' => 0,
+                'product_count' => 2,
+                'credit_ratio' => 0.45,
+            ],
         ];
 
         foreach ($saleConfigs as $i => $config) {
@@ -900,11 +958,15 @@ class DemoSeeder extends Seeder
                 }
             }
 
+            $creditRatio = (float) ($config['credit_ratio'] ?? 0);
+            $paidAmount = round($subtotal * (1 - $creditRatio), 2);
+            $dueAmount = round($subtotal - $paidAmount, 2);
+
             $sale->update([
                 'subtotal' => $subtotal,
                 'total_amount' => $subtotal,
-                'paid_amount' => $subtotal,
-                'due_amount' => 0,
+                'paid_amount' => $paidAmount,
+                'due_amount' => $dueAmount,
             ]);
 
             Order::create([
@@ -916,5 +978,446 @@ class DemoSeeder extends Seeder
 
             $this->command->info("  💰 Sale: {$saleNo} — PKR ".number_format($subtotal));
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 11. EXPENSES
+    // ═══════════════════════════════════════════════════════════════
+    private function seedExpenses(Merchant $merchant, Business $business, array $branches, array $staff): void
+    {
+        $expenseDescriptions = [
+            'Office Supplies',
+            'Utilities - Electricity',
+            'Internet & Phone',
+            'Rent Payment',
+            'Transportation - Fuel',
+            'Marketing - Digital Ads',
+            'Equipment Maintenance',
+            'Software Subscription',
+        ];
+
+        $expenseConfigs = [
+            ['days_ago' => 0, 'items' => 2],
+            ['days_ago' => 2, 'items' => 3],
+            ['days_ago' => 5, 'items' => 2],
+            ['days_ago' => 12, 'items' => 3],
+            ['days_ago' => 18, 'items' => 2],
+            ['days_ago' => 25, 'items' => 2],
+        ];
+
+        $createdBy = $staff[0] ?? null;
+
+        foreach ($expenseConfigs as $i => $config) {
+            $expenseDate = now()->subDays($config['days_ago']);
+            $expenseNo = 'EXP-'.$expenseDate->format('Ymd').'-DEMO'.($i + 1).$this->demoDocumentSuffix();
+
+            if (Expense::query()->where('merchant_id', $merchant->id)->where('expense_no', $expenseNo)->exists()) {
+                continue;
+            }
+
+            $branch = $branches[$i % count($branches)];
+
+            $expense = Expense::create([
+                'id' => Str::uuid()->toString(),
+                'merchant_id' => (string) $merchant->id,
+                'business_id' => (string) $business->id,
+                'branch_id' => (string) $branch->id,
+                'expense_no' => $expenseNo,
+                'expense_date' => $expenseDate,
+                'subtotal' => 0,
+                'discount' => 0,
+                'tax' => 0,
+                'total_amount' => 0,
+                'notes' => 'Demo expense #'.($i + 1),
+                'created_by' => $createdBy ? (string) $createdBy->id : null,
+            ]);
+
+            $selectedDescriptions = collect($expenseDescriptions)->random($config['items']);
+            $subtotal = 0;
+
+            foreach ($selectedDescriptions as $description) {
+                $quantity = rand(1, 3);
+                $unitPrice = rand(5000, 250000) / 100;
+                $lineTotal = round($quantity * $unitPrice, 2);
+                $subtotal += $lineTotal;
+
+                ExpenseItem::create([
+                    'id' => Str::uuid()->toString(),
+                    'expense_id' => (string) $expense->id,
+                    'description' => $description,
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                ]);
+            }
+
+            $tax = round($subtotal * 0.05, 2);
+            $totalAmount = $subtotal + $tax;
+
+            $expense->update([
+                'subtotal' => $subtotal,
+                'tax' => $tax,
+                'total_amount' => $totalAmount,
+            ]);
+
+            $this->command->info("  📋 Expense: {$expenseNo} — PKR ".number_format($totalAmount));
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 12. PAYROLLS
+    // ═══════════════════════════════════════════════════════════════
+    private function seedPayrolls(Merchant $merchant, array $staff): void
+    {
+        $periods = [
+            ['month' => now()->subMonth()->month, 'year' => now()->subMonth()->year],
+            ['month' => now()->month, 'year' => now()->year],
+        ];
+
+        foreach ($staff as $staffIndex => $user) {
+            $baseSalary = str_contains(strtolower($user->email), 'manager')
+                ? 180000.00
+                : 95000.00;
+
+            foreach ($periods as $period) {
+                if (Payroll::query()
+                    ->where('merchant_id', $merchant->id)
+                    ->where('user_id', $user->id)
+                    ->where('period_month', $period['month'])
+                    ->where('period_year', $period['year'])
+                    ->exists()) {
+                    continue;
+                }
+
+                $allowances = [
+                    ['name' => 'Housing Allowance', 'amount' => round($baseSalary * 0.12, 2)],
+                    ['name' => 'Transport Allowance', 'amount' => 8000.00],
+                ];
+                $deductions = [
+                    ['name' => 'Income Tax', 'amount' => round($baseSalary * 0.08, 2)],
+                ];
+
+                $totalAllowances = collect($allowances)->sum(fn ($item) => (float) $item['amount']);
+                $totalDeductions = collect($deductions)->sum(fn ($item) => (float) $item['amount']);
+                $netSalary = $baseSalary + $totalAllowances - $totalDeductions;
+
+                $isCurrentPeriod = $period['month'] === now()->month && $period['year'] === now()->year;
+                $status = $isCurrentPeriod ? Payroll::STATUS_PENDING : Payroll::STATUS_PAID;
+
+                Payroll::create([
+                    'id' => Str::uuid()->toString(),
+                    'merchant_id' => (string) $merchant->id,
+                    'user_id' => (string) $user->id,
+                    'payroll_no' => 'PAY-'.$period['year'].str_pad((string) $period['month'], 2, '0', STR_PAD_LEFT).'-'.($staffIndex + 1).$this->demoDocumentSuffix(),
+                    'period_month' => $period['month'],
+                    'period_year' => $period['year'],
+                    'base_salary' => $baseSalary,
+                    'allowances' => $allowances,
+                    'deductions' => $deductions,
+                    'net_salary' => $netSalary,
+                    'status' => $status,
+                    'payment_date' => $isCurrentPeriod ? null : now()->setMonth($period['month'])->setYear($period['year'])->setDay(5),
+                    'notes' => 'Demo payroll for '.$period['month'].'/'.$period['year'],
+                    'created_by' => null,
+                ]);
+            }
+        }
+
+        $this->command->info('  💼 Payrolls seeded for demo staff');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 13. CASH FLOWS
+    // ═══════════════════════════════════════════════════════════════
+    private function seedCashFlows(
+        Merchant $merchant,
+        Business $business,
+        array $branches,
+        array $customers,
+        array $vendors,
+        array $staff
+    ): void {
+        $createdBy = $staff[0] ?? null;
+        $branch = $branches[0];
+
+        $flowConfigs = [
+            ['party' => $customers[0], 'party_type' => Customer::class, 'flow_type' => 'loan', 'amount' => 125000, 'days_ago' => 14],
+            ['party' => $customers[1], 'party_type' => Customer::class, 'flow_type' => 'loan', 'amount' => 85000, 'days_ago' => 7],
+            ['party' => $customers[2], 'party_type' => Customer::class, 'flow_type' => 'advance', 'amount' => 45000, 'days_ago' => 3],
+            ['party' => $vendors[0], 'party_type' => Vendor::class, 'flow_type' => 'advance', 'amount' => 320000, 'days_ago' => 10],
+            ['party' => $vendors[1], 'party_type' => Vendor::class, 'flow_type' => 'loan', 'amount' => 95000, 'days_ago' => 0],
+        ];
+
+        foreach ($flowConfigs as $i => $config) {
+            $referenceNo = 'CF-DEMO-'.($i + 1).$this->demoDocumentSuffix();
+
+            if (CashFlow::query()
+                ->where('merchant_id', $merchant->id)
+                ->where('reference_no', $referenceNo)
+                ->exists()) {
+                continue;
+            }
+
+            CashFlow::create([
+                'id' => Str::uuid()->toString(),
+                'merchant_id' => (string) $merchant->id,
+                'business_id' => (string) $business->id,
+                'branch_id' => (string) $branch->id,
+                'party_type' => $config['party_type'],
+                'party_id' => (string) $config['party']->id,
+                'settlement_for_id' => null,
+                'flow_type' => $config['flow_type'],
+                'direction' => CashFlow::primaryDirectionForFlowType($config['flow_type']),
+                'amount' => $config['amount'],
+                'flow_date' => now()->subDays($config['days_ago']),
+                'method' => 'Cash',
+                'reference_no' => $referenceNo,
+                'notes' => 'Demo cash flow entry',
+                'created_by' => $createdBy ? (string) $createdBy->id : null,
+            ]);
+        }
+
+        $this->command->info('  💵 Cash flows seeded');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 14. ASSETS
+    // ═══════════════════════════════════════════════════════════════
+    private function seedAssets(
+        Merchant $merchant,
+        Business $business,
+        array $branches,
+        array $vendors,
+        array $staff
+    ): void {
+        $assetTypeConfigs = [
+            ['name' => 'Office Equipment', 'code' => 'OFF-EQ'],
+            ['name' => 'Vehicles', 'code' => 'VEH'],
+            ['name' => 'Tools & Machinery', 'code' => 'TOOLS'],
+        ];
+
+        $assetTypes = [];
+
+        foreach ($assetTypeConfigs as $typeConfig) {
+            $assetTypes[] = AssetType::firstOrCreate(
+                [
+                    'merchant_id' => $merchant->id,
+                    'code' => $typeConfig['code'],
+                ],
+                [
+                    'id' => Str::uuid()->toString(),
+                    'name' => $typeConfig['name'],
+                    'description' => 'Demo asset type',
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        $assetConfigs = [
+            ['name' => 'Demo Laptop', 'type' => 0, 'branch' => 0, 'cost' => 185000, 'days_ago' => 120],
+            ['name' => 'Delivery Van', 'type' => 1, 'branch' => 0, 'cost' => 2800000, 'days_ago' => 365],
+            ['name' => 'Power Drill Set', 'type' => 2, 'branch' => 1, 'cost' => 45000, 'days_ago' => 60],
+            ['name' => 'Office Printer', 'type' => 0, 'branch' => 0, 'cost' => 65000, 'days_ago' => 90],
+        ];
+
+        $createdBy = $staff[0] ?? null;
+
+        foreach ($assetConfigs as $i => $config) {
+            $assetCode = 'AST-DEMO-'.($i + 1).$this->demoDocumentSuffix();
+
+            if (Asset::query()->where('merchant_id', $merchant->id)->where('asset_code', $assetCode)->exists()) {
+                continue;
+            }
+
+            $purchaseDate = now()->subDays($config['days_ago']);
+            $purchaseCost = $config['cost'];
+
+            Asset::create([
+                'id' => Str::uuid()->toString(),
+                'merchant_id' => (string) $merchant->id,
+                'business_id' => (string) $business->id,
+                'branch_id' => (string) $branches[$config['branch']]->id,
+                'asset_type_id' => (string) $assetTypes[$config['type']]->id,
+                'asset_code' => $assetCode,
+                'name' => $config['name'],
+                'description' => 'Demo company asset',
+                'purchase_date' => $purchaseDate,
+                'purchase_cost' => $purchaseCost,
+                'current_value' => round($purchaseCost * 0.85, 2),
+                'status' => AssetStatus::Active,
+                'condition' => AssetCondition::Good,
+                'location' => $branches[$config['branch']]->name,
+                'assigned_to' => $createdBy ? (string) $createdBy->id : null,
+                'vendor_id' => (string) $vendors[$i % count($vendors)]->id,
+                'created_by' => $createdBy ? (string) $createdBy->id : null,
+            ]);
+        }
+
+        $this->command->info('  🏗️  Assets seeded');
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 15. SALE RETURNS
+    // ═══════════════════════════════════════════════════════════════
+    private function seedSaleReturns(Merchant $merchant, array $staff): void
+    {
+        $returnNo = 'SR-DEMO-01'.$this->demoDocumentSuffix();
+
+        if (SaleReturn::query()->where('merchant_id', $merchant->id)->where('return_no', $returnNo)->exists()) {
+            return;
+        }
+
+        $sale = Sale::query()
+            ->where('merchant_id', $merchant->id)
+            ->with(['items.product', 'items.variants'])
+            ->oldest('sale_date')
+            ->first();
+
+        if (! $sale || $sale->items->isEmpty()) {
+            return;
+        }
+
+        $saleItem = $sale->items->first();
+        $returnQty = min(1, (int) $saleItem->quantity);
+        $lineTotal = round($returnQty * (float) $saleItem->unit_price, 2);
+        $createdBy = $staff[0] ?? null;
+
+        $saleReturn = SaleReturn::create([
+            'id' => Str::uuid()->toString(),
+            'merchant_id' => (string) $merchant->id,
+            'sale_id' => (string) $sale->id,
+            'customer_id' => (string) $sale->customer_id,
+            'return_no' => $returnNo,
+            'return_date' => now()->subDays(2),
+            'subtotal' => $lineTotal,
+            'total_discount' => 0,
+            'total_tax' => 0,
+            'total_amount' => $lineTotal,
+            'reason' => 'Demo return — defective unit',
+            'created_by' => $createdBy ? (string) $createdBy->id : null,
+        ]);
+
+        $returnItem = SaleReturnItem::create([
+            'id' => Str::uuid()->toString(),
+            'sale_return_id' => (string) $saleReturn->id,
+            'sale_item_id' => (string) $saleItem->id,
+            'business_id' => (string) $saleItem->business_id,
+            'branch_id' => (string) $saleItem->branch_id,
+            'product_id' => (string) $saleItem->product_id,
+            'quantity' => $returnQty,
+            'unit_price' => $saleItem->unit_price,
+            'line_total' => $lineTotal,
+            'discount' => 0,
+            'tax' => 0,
+        ]);
+
+        $variant = $saleItem->variants->first();
+        if ($variant) {
+            SaleReturnItemVariant::create([
+                'id' => Str::uuid()->toString(),
+                'sale_return_item_id' => (string) $returnItem->id,
+                'product_variant_id' => (string) $variant->product_variant_id,
+                'quantity' => $returnQty,
+                'unit_price' => $variant->unit_price,
+                'line_total' => $lineTotal,
+            ]);
+        }
+
+        $this->command->info("  ↩️  Sale return: {$returnNo}");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 16. PURCHASE RETURNS
+    // ═══════════════════════════════════════════════════════════════
+    private function seedPurchaseReturns(Merchant $merchant, array $staff): void
+    {
+        $returnNo = 'PR-DEMO-01'.$this->demoDocumentSuffix();
+
+        if (PurchaseReturn::query()->where('merchant_id', $merchant->id)->where('return_no', $returnNo)->exists()) {
+            return;
+        }
+
+        $purchase = Purchase::query()
+            ->where('merchant_id', $merchant->id)
+            ->with(['items.product', 'items.variants'])
+            ->oldest('purchase_date')
+            ->first();
+
+        if (! $purchase || $purchase->items->isEmpty()) {
+            return;
+        }
+
+        $purchaseItem = $purchase->items->first();
+        $returnQty = min(1, (int) $purchaseItem->quantity);
+        $lineTotal = round($returnQty * (float) $purchaseItem->unit_price, 2);
+        $createdBy = $staff[0] ?? null;
+
+        $purchaseReturn = PurchaseReturn::create([
+            'id' => Str::uuid()->toString(),
+            'merchant_id' => (string) $merchant->id,
+            'purchase_id' => (string) $purchase->id,
+            'return_no' => $returnNo,
+            'return_date' => now()->subDays(3),
+            'subtotal' => $lineTotal,
+            'total_discount' => 0,
+            'total_tax' => 0,
+            'total_amount' => $lineTotal,
+            'reason' => 'Demo return — wrong specification',
+            'created_by' => $createdBy ? (string) $createdBy->id : null,
+        ]);
+
+        $returnItem = PurchaseReturnItem::create([
+            'id' => Str::uuid()->toString(),
+            'purchase_return_id' => (string) $purchaseReturn->id,
+            'purchase_item_id' => (string) $purchaseItem->id,
+            'business_id' => (string) $purchaseItem->business_id,
+            'branch_id' => (string) $purchaseItem->branch_id,
+            'product_id' => (string) $purchaseItem->product_id,
+            'quantity' => $returnQty,
+            'unit_price' => $purchaseItem->unit_price,
+            'line_total' => $lineTotal,
+            'discount' => 0,
+            'tax' => 0,
+        ]);
+
+        $variant = $purchaseItem->variants->first();
+        if ($variant) {
+            PurchaseReturnItemVariant::create([
+                'id' => Str::uuid()->toString(),
+                'purchase_return_item_id' => (string) $returnItem->id,
+                'product_variant_id' => (string) $variant->product_variant_id,
+                'quantity' => $returnQty,
+                'unit_price' => $variant->unit_price,
+                'line_total' => $lineTotal,
+            ]);
+        }
+
+        $this->command->info("  ↩️  Purchase return: {$returnNo}");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // 17. MERCHANT PROFILE (funds + settings)
+    // ═══════════════════════════════════════════════════════════════
+    private function seedMerchantProfile(Merchant $merchant): void
+    {
+        MerchantSetting::firstOrCreate(
+            ['merchant_id' => $merchant->id],
+            [
+                'id' => Str::uuid()->toString(),
+                'primary_color' => '#6d28d9',
+                'secondary_color' => '#4f46e5',
+                'warning_color' => '#f59e0b',
+                'danger_color' => '#ef4444',
+                'success_color' => '#10b981',
+                'default_color' => '#6b7280',
+            ]
+        );
+
+        $merchant->update([
+            'cash_in_hand' => 850000,
+            'cash_in_bank' => 2450000,
+        ]);
+
+        $this->command->info('  🏦 Merchant funds and settings seeded');
     }
 }
