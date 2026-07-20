@@ -387,11 +387,11 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
 }
 
 .flowdesk-auth-layout .flowdesk-auth-visual-image {
-    width: 100%;
-    height: min(86vh, 670px);
+    width: min(100%, 520px);
+    height: auto;
+    max-height: min(86vh, 640px);
     object-fit: contain;
     object-position: center;
-    border-radius: 16px;
 }
 
 .flowdesk-auth-layout .fi-simple-main-ctn {
