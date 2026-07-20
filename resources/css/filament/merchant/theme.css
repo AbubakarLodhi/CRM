@@ -386,12 +386,122 @@ body.fi-panel-user .fi-main-ctn .fi-ta-ctn .fi-ta-content-ctn {
     overflow: hidden;
 }
 
-.flowdesk-auth-layout .flowdesk-auth-visual-image {
+.flowdesk-auth-layout .flowdesk-auth-visual-image,
+.flowdesk-auth-layout .flowdesk-login-visual {
     width: min(100%, 520px);
     height: auto;
     max-height: min(86vh, 640px);
     object-fit: contain;
     object-position: center;
+    display: block;
+    overflow: hidden;
+    border-radius: 24px;
+}
+
+.flowdesk-login-visual__blob {
+    transform-box: fill-box;
+    transform-origin: center;
+    will-change: transform;
+}
+
+.flowdesk-login-visual__blob--1 {
+    transform-origin: 360px 320px;
+    animation: flowdesk-login-blob-1 11s ease-in-out infinite;
+}
+
+.flowdesk-login-visual__blob--2 {
+    transform-origin: 120px 100px;
+    animation: flowdesk-login-blob-2 9s ease-in-out infinite;
+}
+
+.flowdesk-login-visual__blob--3 {
+    transform-origin: 600px 540px;
+    animation: flowdesk-login-blob-3 10s ease-in-out infinite;
+}
+
+.flowdesk-login-visual__mark {
+    transform-origin: 0 -44px;
+    animation: flowdesk-login-mark-pulse 3s ease-in-out infinite;
+}
+
+.flowdesk-login-visual__shimmer {
+    animation: flowdesk-login-shimmer 2.4s ease-in-out infinite;
+}
+
+.flowdesk-login-visual__bar {
+    opacity: 0.4;
+    animation: flowdesk-login-bar-pulse 1.6s ease-in-out infinite;
+}
+
+.flowdesk-login-visual__bar--1 { animation-delay: 0s; }
+.flowdesk-login-visual__bar--2 { animation-delay: 0.35s; }
+.flowdesk-login-visual__bar--3 { animation-delay: 0.7s; }
+
+.flowdesk-login-visual__dot {
+    opacity: 0;
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: flowdesk-login-dot-flow 2s ease-in-out infinite;
+}
+
+@keyframes flowdesk-login-mark-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.94; transform: scale(1.03); }
+}
+
+@keyframes flowdesk-login-shimmer {
+    0% { transform: translateX(0); opacity: 0; }
+    20% { opacity: 0.16; }
+    80% { opacity: 0.16; }
+    100% { transform: translateX(72px); opacity: 0; }
+}
+
+@keyframes flowdesk-login-bar-pulse {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 1; }
+}
+
+@keyframes flowdesk-login-dot-flow {
+    0% { transform: translateX(0); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateX(24px); opacity: 0; }
+}
+
+@keyframes flowdesk-login-blob-1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(22px, -16px) scale(1.05); }
+    66% { transform: translate(-14px, 10px) scale(0.97); }
+}
+
+@keyframes flowdesk-login-blob-2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40% { transform: translate(18px, 14px) scale(1.08); }
+    70% { transform: translate(-10px, -8px) scale(0.95); }
+}
+
+@keyframes flowdesk-login-blob-3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    35% { transform: translate(-20px, -12px) scale(1.06); }
+    68% { transform: translate(12px, 8px) scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .flowdesk-login-visual__mark,
+    .flowdesk-login-visual__shimmer,
+    .flowdesk-login-visual__bar,
+    .flowdesk-login-visual__dot,
+    .flowdesk-login-visual__blob {
+        animation: none;
+    }
+
+    .flowdesk-login-visual__bar {
+        opacity: 1;
+    }
+
+    .flowdesk-login-visual__dot {
+        opacity: 0;
+    }
 }
 
 .flowdesk-auth-layout .fi-simple-main-ctn {

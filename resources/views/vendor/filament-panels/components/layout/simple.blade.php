@@ -41,11 +41,7 @@
 
         @if (! filament()->auth()->check())
             <aside class="flowdesk-auth-visual" aria-hidden="true">
-                <img
-                    src="{{ asset(config('branding.login_visual')) }}"
-                    alt=""
-                    class="flowdesk-auth-visual-image"
-                >
+                @include('filament.auth.login-visual')
             </aside>
         @endif
 
