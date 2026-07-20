@@ -24,7 +24,10 @@ class RolesForm
                         TextInput::make('name')
                             ->label('Role Name')
                             ->required()
-                            ->unique(ignoreRecord: true)
+                            ->unique(
+                                ignoreRecord: true,
+                                modifyRuleUsing: fn ($rule) => $rule->where('guard_name', 'merchant')
+                            )
                             ->maxLength(255)
                             ->live()
                             ->afterStateUpdated(function ($state, callable $set, $livewire) {

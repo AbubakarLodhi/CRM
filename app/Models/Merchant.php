@@ -71,19 +71,20 @@ class Merchant extends Authenticatable implements HasAvatar , CanResetPasswordCo
     }
 
     /**
-     * Roles and permissions are only ever stored under the 'merchant' Spatie
-     * guard, shared between the merchant and staff panels. Filament resources
-     * often pass the current Laravel auth guard ('staff' or 'merchant') here
-     * instead, which would otherwise make every check fail on the staff panel.
+     * The merchant is the business owner and always has full access to their
+     * own account, independent of the role system. Roles/permissions are for
+     * governing staff access only -- editing a role (e.g. "Admin") must never
+     * affect the owner's own access, even if they happen to share a role name
+     * with staff members.
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
-        return $this->traitHasPermissionTo($permission, 'merchant');
+        return true;
     }
 
     public function hasRole($roles, ?string $guard = null): bool
     {
-        return $this->traitHasRole($roles, 'merchant');
+        return true;
     }
 
     /**
