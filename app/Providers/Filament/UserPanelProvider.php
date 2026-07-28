@@ -4,8 +4,8 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
 use App\Filament\Pages\Dashboard;
-use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\EnsureStaffIsVerified;
+use App\Http\Middleware\SetPanelAuthDefaults;
 use Filament\Enums\ThemeMode;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
@@ -70,7 +70,7 @@ class UserPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticatePanelSession::class,
+                SetPanelAuthDefaults::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,

@@ -28,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
                 'session.secure' => env('SESSION_SECURE_COOKIE', true),
             ]);
         }
+
+        $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        if (
+            is_string($appHost)
+            && str_ends_with($appHost, 'flowdeskpos.com')
+            && blank(config('session.domain'))
+        ) {
+            config(['session.domain' => '.flowdeskpos.com']);
+        }
         Table::configureUsing(function (Table $table): void {
             $table
                 ->filtersFormMaxHeight('28rem')
