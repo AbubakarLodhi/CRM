@@ -5,18 +5,19 @@ namespace App\Providers\Filament;
 use App\Filament\Auth\Login;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\EditProfile;
+use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\DemoSessionTimeout;
 use App\Http\Middleware\EnsureStaffIsVerified;
 use Filament\Actions\Action;
 use Filament\Enums\ThemeMode;
 use Filament\Facades\Filament;
 use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -119,7 +120,7 @@ class MerchantPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
+                AuthenticatePanelSession::class,
                 ShareErrorsFromSession::class,
                 VerifyCsrfToken::class,
                 SubstituteBindings::class,
@@ -137,7 +138,7 @@ class MerchantPanelProvider extends PanelProvider
                 fn () => view('filament.demo-banner')
             )
             ->renderHook(
-                \Filament\View\PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
+                PanelsRenderHook::AUTH_LOGIN_FORM_AFTER,
                 fn () => view('filament.auth.forgot-password-link')
             )
             ->renderHook(

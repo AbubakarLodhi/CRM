@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Auth\Http\Responses\LoginResponse;
+use Filament\Auth\Http\Responses\Contracts\LoginResponse as LoginResponseContract;
 use Filament\Facades\Filament;
 use Filament\Tables\Table;
 use Illuminate\Support\ServiceProvider;
@@ -13,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
     }
 
     /**
@@ -21,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            config([
+                'session.secure' => env('SESSION_SECURE_COOKIE', true),
+            ]);
+        }
         Table::configureUsing(function (Table $table): void {
             $table
                 ->filtersFormMaxHeight('28rem')
