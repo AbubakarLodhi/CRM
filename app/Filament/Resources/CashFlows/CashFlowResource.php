@@ -25,7 +25,6 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 
 class CashFlowResource extends Resource
 {
@@ -110,16 +109,29 @@ class CashFlowResource extends Resource
                 ->whereIn('branch_id', $branchIds);
         }
 
-        $rankedPerParty = (clone $query)
-            ->selectRaw('id, ROW_NUMBER() OVER (PARTITION BY party_type, party_id ORDER BY flow_date DESC, created_at DESC) AS cf_row_num');
+        $table = (new CashFlow)->getTable();
+        $bindings = [(string) $merchantId];
+        $scopeSql = '';
 
-        return CashFlow::query()
-            ->whereIn('id', function (QueryBuilder $subquery) use ($rankedPerParty): void {
-                $subquery
-                    ->fromSub($rankedPerParty, 'ranked_cash_flows')
-                    ->where('ranked_cash_flows.cf_row_num', 1)
-                    ->select('ranked_cash_flows.id');
-            });
+        if ($user instanceof User) {
+            $businessPlaceholders = implode(', ', array_fill(0, $businessIds->count(), '?'));
+            $branchPlaceholders = implode(', ', array_fill(0, $branchIds->count(), '?'));
+            $scopeSql = " AND cf2.business_id IN ({$businessPlaceholders}) AND cf2.branch_id IN ({$branchPlaceholders})";
+            $bindings = array_merge($bindings, $businessIds->all(), $branchIds->all());
+        }
+
+        return $query->whereRaw("{$table}.id = (
+            SELECT cf2.id
+            FROM {$table} AS cf2
+            WHERE cf2.party_type = {$table}.party_type
+              AND cf2.party_id = {$table}.party_id
+              AND cf2.merchant_id = ?
+              AND cf2.settlement_for_id IS NULL
+              AND cf2.deleted_at IS NULL
+              {$scopeSql}
+            ORDER BY cf2.flow_date DESC, cf2.created_at DESC
+            LIMIT 1
+        )", $bindings);
     }
 
     public static function form(Schema $schema): Schema

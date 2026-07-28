@@ -8,13 +8,10 @@ use App\Http\Controllers\LandingPageController;
 use App\Models\Branch;
 use App\Models\Category;
 use App\Models\Merchant;
-use App\Models\Product;
 use App\Support\ProductStockAvailability;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 Route::get('/', LandingPageController::class)->name('landing');
 Route::get('/demo/login', DemoAccountController::class)->name('demo.login');
@@ -24,7 +21,7 @@ Route::get('/invoices/{type}/{id}', [InvoiceController::class, 'show'])
     ->name('invoices.show');
 
 Route::get('/assets/preview/{id}', [AssetPreviewController::class, 'show'])
-    ->middleware(['web', 'auth:staff,merchant'])
+    ->middleware(['web', 'auth.staff_or_merchant'])
     ->name('assets.preview');
 
 // POS product search endpoint
@@ -47,7 +44,7 @@ Route::get('/pos/products', function (Request $request) {
             inStockOnly: false,
         )
     );
-})->middleware(['web', 'auth:staff,merchant'])->name('pos.products');
+})->middleware(['web', 'auth.staff_or_merchant'])->name('pos.products');
 
 // POS variants endpoint
 Route::get('/pos/variants', function (Request $request) {
@@ -63,7 +60,7 @@ Route::get('/pos/variants', function (Request $request) {
             inStockOnly: false,
         )
     );
-})->middleware(['web', 'auth:staff,merchant'])->name('pos.variants');
+})->middleware(['web', 'auth.staff_or_merchant'])->name('pos.variants');
 
 // POS branches endpoint
 Route::get('/pos/branches', function (Request $request) {
@@ -100,7 +97,7 @@ Route::get('/pos/branches', function (Request $request) {
     return response()->json(
         $query->orderBy('name')->get(['id', 'name'])
     );
-})->middleware(['web', 'auth:staff,merchant'])->name('pos.branches');
+})->middleware(['web', 'auth.staff_or_merchant'])->name('pos.branches');
 
 // POS categories endpoint - only shows categories that have products
 // POS categories endpoint
@@ -128,25 +125,4 @@ Route::get('/pos/categories', function (Request $request) {
             ->orderBy('name')
             ->get(['id', 'name'])
     );
-})->middleware(['web', 'auth:staff,merchant'])->name('pos.categories');
-
-Route::get('/assign-images', function () {
-
-    $products = Product::all();
-
-    foreach ($products as $product) {
-
-        $filename = Str::slug($product->name).'.png';
-
-        $path = 'products/'.$filename;
-
-        if (Storage::disk('s3')->exists($path)) {
-
-            $product->image = $path;
-
-            $product->save();
-        }
-    }
-
-    return 'Images assigned successfully!';
-});
+})->middleware(['web', 'auth.staff_or_merchant'])->name('pos.categories');

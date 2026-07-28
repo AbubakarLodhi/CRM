@@ -12,7 +12,9 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Payroll;
 use App\Models\Purchase;
+use App\Models\PurchaseReturn;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\User;
 use App\Support\DemoAccount;
 use Illuminate\Support\Facades\DB;
@@ -112,10 +114,16 @@ class TemporaryDemoCleanup
         $branchIds = DB::table('branches')->where('merchant_id', $merchantId)->pluck('id');
         $businessIds = DB::table('businesses')->where('merchant_id', $merchantId)->pluck('id');
 
+        SaleReturn::withTrashed()->where('merchant_id', $merchantId)->each(
+            fn (SaleReturn $saleReturn) => $saleReturn->forceDelete()
+        );
+
+        PurchaseReturn::withTrashed()->where('merchant_id', $merchantId)->each(
+            fn (PurchaseReturn $purchaseReturn) => $purchaseReturn->forceDelete()
+        );
+
         if ($branchIds->isNotEmpty()) {
             DB::table('purchase_items')->whereIn('branch_id', $branchIds)->update(['branch_id' => null]);
-            DB::table('sale_return_items')->whereIn('branch_id', $branchIds)->update(['branch_id' => null]);
-            DB::table('purchase_return_items')->whereIn('branch_id', $branchIds)->update(['branch_id' => null]);
         }
 
         if ($businessIds->isNotEmpty()) {

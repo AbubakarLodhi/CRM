@@ -4,22 +4,26 @@ namespace App\Filament\Pages;
 
 use App\Enums\AttachmentMetaType;
 use App\Enums\AttachmentType;
+use App\Models\Merchant;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Repeater;
-
-use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use function PHPUnit\Framework\isInstanceOf;
 
 class EditProfile extends Page
 {
     protected static bool $shouldRegisterNavigation = false;
+
+    public static function canAccess(): bool
+    {
+        return Filament::getCurrentPanel()?->getId() === 'merchant';
+    }
 
     // 🔴 IMPORTANT: Page MUST have a view
     protected string $view = 'filament.pages.edit-profile';
@@ -42,6 +46,8 @@ class EditProfile extends Page
     public function mount(): void
     {
         $merchant = Auth::guard('merchant')->user();
+
+        abort_unless($merchant instanceof Merchant, 403);
 
         $this->data = [
             'name' => $merchant->name,
@@ -86,7 +92,8 @@ class EditProfile extends Page
                             ->imagePreviewHeight(120)
                             ->getUploadedFileNameForStorageUsing(function ($file) {
                                 $ext = $file->getClientOriginalExtension();
-                                return 'profile-photo-' . now()->format('YmdHis') . '.' . $ext;
+
+                                return 'profile-photo-'.now()->format('YmdHis').'.'.$ext;
                             }),
                     ])->columns(2),
 
@@ -123,21 +130,21 @@ class EditProfile extends Page
                             ->label('NTN No (Optional)')
                             ->maxLength(50),
 
-//                        TextInput::make('cash_in_hand')
-//                            ->label('Cash In Hand')
-//                            ->prefix('PKR')
-//                            ->numeric()
-//                            ->default(0)
-//                            ->minValue(0)
-//                            ->step(0.01),
-//
-//                        TextInput::make('cash_in_bank')
-//                            ->label('Cash In Bank')
-//                            ->prefix('PKR')
-//                            ->numeric()
-//                            ->default(0)
-//                            ->minValue(0)
-//                            ->step(0.01),
+                        //                        TextInput::make('cash_in_hand')
+                        //                            ->label('Cash In Hand')
+                        //                            ->prefix('PKR')
+                        //                            ->numeric()
+                        //                            ->default(0)
+                        //                            ->minValue(0)
+                        //                            ->step(0.01),
+                        //
+                        //                        TextInput::make('cash_in_bank')
+                        //                            ->label('Cash In Bank')
+                        //                            ->prefix('PKR')
+                        //                            ->numeric()
+                        //                            ->default(0)
+                        //                            ->minValue(0)
+                        //                            ->step(0.01),
 
                         Repeater::make('extra_fields')
                             ->label('Additional Fields')
@@ -162,10 +169,11 @@ class EditProfile extends Page
     /**
      * Save handler
      */
-
     public function save(): void
     {
         $merchant = Auth::guard('merchant')->user();
+
+        abort_unless($merchant instanceof Merchant, 403);
 
         $merchant->update([
             'name' => $this->data['name'],
@@ -190,9 +198,9 @@ class EditProfile extends Page
 
                 $merchant->profilePhoto()->create([
                     'merchant_id' => $merchant->id,
-                    'type'        => AttachmentType::IMAGE,
-                    'meta_type'   => AttachmentMetaType::PROFILE_PHOTO,
-                    'photo_url'   => $path,
+                    'type' => AttachmentType::IMAGE,
+                    'meta_type' => AttachmentMetaType::PROFILE_PHOTO,
+                    'photo_url' => $path,
                 ]);
             }
         } else {
@@ -209,5 +217,4 @@ class EditProfile extends Page
         );
 
     }
-
 }

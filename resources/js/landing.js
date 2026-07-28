@@ -279,8 +279,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 form.reset();
                 showFeedback('Thanks! We will get back to you shortly.', false);
-            } catch {
-                showFeedback('Something went wrong. Please try again or email us directly.', true);
+            } catch (error) {
+                const message = error instanceof Error && error.message !== ''
+                    ? error.message
+                    : 'Something went wrong. Please try again or email us directly.';
+
+                showFeedback(message, true);
             } finally {
                 submitButton?.removeAttribute('disabled');
             }

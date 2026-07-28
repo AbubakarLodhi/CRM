@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuthenticateStaffOrMerchant;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -12,7 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'auth.staff_or_merchant' => AuthenticateStaffOrMerchant::class,
+        ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('payrolls:generate-monthly')

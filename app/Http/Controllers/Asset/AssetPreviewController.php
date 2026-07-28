@@ -8,6 +8,7 @@ use App\Models\PermissionModule;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -65,10 +66,10 @@ class AssetPreviewController
 
         $guard = auth('staff')->check() ? 'staff' : 'merchant';
 
-        $hasAssetViewPermission = $user->hasPermissionTo('assets.view', $guard);
+        $hasAssetViewPermission = $this->userHasPermission($user, 'assets.view', $guard);
 
         if (! $hasAssetViewPermission && $user instanceof User) {
-            $hasAssetViewPermission = $user->hasPermissionTo('assets.view', 'merchant');
+            $hasAssetViewPermission = $this->userHasPermission($user, 'assets.view', 'merchant');
         }
 
         if (! $hasAssetViewPermission) {
@@ -85,6 +86,15 @@ class AssetPreviewController
         }
 
         return $user;
+    }
+
+    protected function userHasPermission(Merchant|User $user, string $permission, string $guard): bool
+    {
+        try {
+            return $user->hasPermissionTo($permission, $guard);
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
     }
 
     protected function resolveCloseUrl(): string
