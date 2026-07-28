@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\DemoVisitorSession;
 use App\Services\Demo\TemporaryDemoCleanup;
 use App\Support\DemoAccount;
 use Closure;
@@ -26,6 +27,22 @@ class DemoSessionTimeout
 
             if ($visitorSession) {
                 session(['demo_visitor_session_id' => $visitorSession->id]);
+            }
+        }
+
+        if (! $visitorSession && DemoAccount::isDemoMerchant()) {
+            $merchant = Auth::guard('merchant')->user();
+
+            if ($merchant) {
+                $visitorSession = DemoVisitorSession::query()
+                    ->where('merchant_id', $merchant->id)
+                    ->where('expires_at', '>', now())
+                    ->latest('started_at')
+                    ->first();
+
+                if ($visitorSession) {
+                    session(['demo_visitor_session_id' => $visitorSession->id]);
+                }
             }
         }
 

@@ -64,12 +64,12 @@ class DemoAccountController extends Controller
                 ->with('error', 'Demo account is not available yet. Please contact support.');
         }
 
-        Auth::guard('merchant')->login($merchant);
+        $request->session()->put('demo_visitor_session_id', $visitorSession->id);
 
-        session([
-            'demo_visitor_session_id' => $visitorSession->id,
-        ]);
+        Auth::guard('merchant')->login($merchant, remember: true);
 
-        return redirect()->to('/merchant');
+        $request->session()->save();
+
+        return redirect()->route('filament.merchant.pages.dashboard');
     }
 }
